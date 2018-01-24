@@ -1,6 +1,6 @@
 locus_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
-                                       sig2_beta_vb, tau_vb, list_struct, bool_blocks, tol, maxit,
-                                       anneal, verbose) {
+                                       sig2_beta_vb, tau_vb, list_struct, 
+                                       bool_blocks, hs, df, tol, maxit, anneal, verbose) {
   
   r <- ncol(V)
   
@@ -22,9 +22,19 @@ locus_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     if (verbose)
       cat("---------- VB updates ----------\n")
     
-    vb <- locus_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
-                                vb$sig2_beta_vb, vb$tau_vb, list_struct, eb = TRUE, tol_em,
-                                maxit, anneal, verbose = FALSE, full_output = TRUE)
+    if (hs) {
+      vb <- locus_dual_horseshoe_info_core_(Y, X, V, list_hyper, vb$gam_vb, 
+                                            vb$mu_beta_vb, vb$sig2_beta_vb, 
+                                            vb$tau_vb, df, list_struct, eb = TRUE, 
+                                            tol_em, maxit, anneal, verbose = FALSE, 
+                                            full_output = TRUE)
+    } else {
+      vb <- locus_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
+                                  vb$sig2_beta_vb, vb$tau_vb, list_struct, 
+                                  eb = TRUE, tol_em, maxit, anneal,
+                                  verbose = FALSE, full_output = TRUE)
+    }
+   
     
     if (verbose)
       cat("--- EM hyperparameter updates ---\n")
@@ -65,10 +75,17 @@ locus_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       cat("\n\n")
     }
   
-  
-    out <- locus_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
-                                 vb$sig2_beta_vb, vb$tau_vb, list_struct, eb = TRUE, tol,
-                                 maxit, anneal, verbose)
+    if (hs) {
+      out <- locus_dual_horseshoe_info_core_(Y, X, V, list_hyper, vb$gam_vb, 
+                                             vb$mu_beta_vb, vb$sig2_beta_vb, 
+                                             vb$tau_vb, df, list_struct, 
+                                             eb = TRUE, tol, maxit, anneal, verbose)
+    } else {
+      out <- locus_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
+                                   vb$sig2_beta_vb, vb$tau_vb, list_struct, 
+                                   eb = TRUE, tol, maxit, anneal, verbose)
+    }
+   
   
     out$s2 <- list_hyper$s2
     

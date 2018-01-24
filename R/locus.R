@@ -594,16 +594,29 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         } else if (nq & ng) {
           
           if (eb) {
+            
             vb <- locus_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                              list_init$mu_beta_vb,
                                              list_init$sig2_beta_vb, list_init$tau_vb,
-                                             list_struct, bool_blocks = FALSE, 
+                                             list_struct, bool_blocks = FALSE, hs, df,
                                              tol, maxit, anneal, verbose)
           } else {
-            vb <- locus_dual_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
-                                        list_init$mu_beta_vb,
-                                        list_init$sig2_beta_vb, list_init$tau_vb,
-                                        list_struct, eb, tol, maxit, anneal, verbose)
+
+            if (hs) {
+              vb <- locus_dual_horseshoe_info_core_(Y, X, V, list_hyper, 
+                                                    list_init$gam_vb,
+                                                    list_init$mu_beta_vb,
+                                                    list_init$sig2_beta_vb, 
+                                                    list_init$tau_vb, df, 
+                                                    list_struct, eb, tol, maxit, 
+                                                    anneal, verbose)
+            } else {
+              vb <- locus_dual_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
+                                          list_init$mu_beta_vb,
+                                          list_init$sig2_beta_vb, list_init$tau_vb,
+                                          list_struct, eb, tol, maxit, anneal, verbose)
+            }
+
           }
           
         } else if (nq) {
@@ -748,7 +761,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         vb_bl <- locus_dual_info_vbem_core_(Y, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
                                             list_init_bl$tau_vb, list_struct, bool_blocks = TRUE, 
-                                            tol, maxit, anneal, verbose = FALSE)
+                                            hs, df, tol, maxit, anneal, verbose = FALSE)
         
       } else if (!dual) {
         
@@ -912,9 +925,21 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       list_rmvd_coll_v <- lapply(list_vb, `[[`, "rmvd_coll_v_bl")
       list_V <- lapply(list_vb, `[[`, "V_bl") # V_bl without cst and coll and standardized in each block
       
-      vb <- locus_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl, list_hyper, list_init$gam_vb,
-                                         list_init$mu_beta_vb, list_init$sig2_beta_vb, list_init$tau_vb,
-                                         list_struct, tol, maxit, anneal, verbose)
+      
+      if (hs) {
+        vb <- locus_dual_horseshoe_info_blocks_core_(Y, X, list_V, vec_fac_bl, 
+                                                     list_hyper, list_init$gam_vb, 
+                                                     list_init$mu_beta_vb, 
+                                                     list_init$sig2_beta_vb, 
+                                                     list_init$tau_vb, df, 
+                                                     tol, maxit, anneal, verbose) 
+      } else {
+        vb <- locus_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl, list_hyper, 
+                                           list_init$gam_vb, list_init$mu_beta_vb, 
+                                           list_init$sig2_beta_vb, list_init$tau_vb,
+                                           list_struct, tol, maxit, anneal, verbose)
+      }     
+     
       
       vb$s02 <- list_hyper$s02
       

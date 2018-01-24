@@ -6,8 +6,8 @@
 # link, no fixed covariates. See help of `locus` function for details.
 #
 locus_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
-                                  sig2_beta_vb, tau_vb, list_struct, eb, tol, maxit,
-                                  anneal, verbose, batch = "y",
+                                  sig2_beta_vb, tau_vb, list_struct, eb, tol, 
+                                  maxit, anneal, verbose, batch = "y",
                                   full_output = FALSE, debug = TRUE) {
   
   # Y centered, and X and V standardized.
@@ -19,7 +19,7 @@ locus_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
   
   
   with(list_hyper, { # list_init not used with the with() function to avoid
-    # copy-on-write for large objects
+                     # copy-on-write for large objects
     
     # Preparing annealing if any
     #
@@ -246,12 +246,13 @@ locus_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
         
       } else {
         
-        lb_new <- elbo_dual_info_(Y, V, a, a_vb, b, b_vb, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
-                                  lambda_vb, m0, n0, mu_c_vb, mu_rho_vb, mu_theta_vb, nu, nu_vb, om_vb,
+        lb_new <- elbo_dual_info_(Y, V, a, a_vb, b, b_vb, eta, eta_vb, gam_vb, 
+                                  kappa, kappa_vb, lambda, lambda_vb, m0, n0, 
+                                  mu_c_vb, mu_rho_vb, mu_theta_vb, nu, nu_vb, om_vb,
                                   sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
-                                  sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
-                                  m2_beta, mat_x_m1, mat_v_mu, vec_fac_st, vec_sum_log_det_rho,
-                                  vec_sum_log_det_theta, eb)
+                                  sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, 
+                                  m1_beta, m2_beta, mat_x_m1, mat_v_mu, vec_fac_st, 
+                                  vec_sum_log_det_rho, vec_sum_log_det_theta, eb)
         
         if (verbose & (it == 1 | it %% 5 == 0))
           cat(paste("ELBO = ", format(lb_new), "\n\n", sep = ""))
@@ -278,11 +279,12 @@ locus_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     
     if (full_output) { # for internal use only
       
-      create_named_list_(Y, V, a, a_vb, b, b_vb, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
-                         lambda_vb, m0, n0, mu_beta_vb, mu_c_vb, mu_rho_vb, mu_theta_vb, nu, nu_vb,
-                         om_vb, sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
-                         sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
-                         m2_beta, mat_x_m1, mat_v_mu, vec_fac_st, vec_sum_log_det_rho,
+      create_named_list_(a, a_vb, b, b_vb, eta, eta_vb, gam_vb, kappa, kappa_vb, 
+                         lambda, lambda_vb, m0, n0, mu_beta_vb, mu_c_vb, 
+                         mu_rho_vb, mu_theta_vb, nu, nu_vb, om_vb, sig2_beta_vb, 
+                         S0_inv, s2, sig2_c_vb, sig2_theta_vb, sig2_inv_vb, 
+                         sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta, m2_beta, 
+                         mat_x_m1, mat_v_mu, vec_fac_st, vec_sum_log_det_rho,
                          vec_sum_log_det_theta, lb_opt)
       
     } else {
@@ -307,8 +309,8 @@ locus_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(mat_v_mu, mu_c_vb, gam_vb, mu_theta_vb, mu_rho_vb, om_vb, zeta_vb, converged, it,
-                         lb_opt, diff_lb)
+      create_named_list_(gam_vb, mat_v_mu, mu_c_vb, mu_theta_vb, mu_rho_vb, 
+                         om_vb, zeta_vb, converged, it, lb_opt, diff_lb)
       
     }
   })
