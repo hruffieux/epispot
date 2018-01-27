@@ -23,15 +23,16 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
     
     # Preparing annealing if any
     #
+    # Preparing annealing if any
+    #
     if (df == 1) {
-      anneal_scale <- TRUE # if TRUE, scale parameters s02 and bhs_vb also annealed. 
+      anneal_scale <- TRUE # if TRUE, scale parameters s02 and bhs_vb also annealed.
     } else {
-      anneal_scale <- FALSE # annealed bhs_vb updates not implemented for df > 1 (need to compute a nasty integral)
+      anneal_scale <- FALSE # annealed bhs_vb updates not sable for df > 1
     }
     
-    
     if (df > 1 && !is.null(anneal) && anneal_scale) {
-      stop("Annealing for scale parameters not yet implemented with df > 1.")
+      stop("Annealing for scale parameters may not be numerically stable with df > 1.")
     }
     
     if (is.null(anneal)) {
@@ -200,45 +201,42 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
       
       # keep this order!
       #
-      G_vb <- c_s * S0_inv_vb * d * (mu_theta_vb^2 + sig2_theta_vb - 2 * mu_theta_vb * m0 + m0^2) / 2 # bhs_vb not annealed. possibly no closed form.
-      nu_a_inv_vb <- c_s * (A2_inv + S0_inv_vb)
+      G_vb <- c_s * S0_inv_vb * d * (mu_theta_vb^2 + sig2_theta_vb - 2 * mu_theta_vb * m0 + m0^2) / 2 / df 
+      nu_a_inv_vb <- c_s * (A2_inv + S0_inv_vb) 
       
-      if (df == 1) {
+      if (annealing & anneal_scale) {
         
-        if (annealing & anneal_scale) {
-          
-          bhs_vb <- gsl::gamma_inc(- c_s + 2, G_vb) / (gsl::gamma_inc(- c_s + 1, G_vb) * G_vb) - 1
-          
-        } else {
+        bhs_vb <- update_annealed_b_vb_(G_vb, c_s, df)
+        
+      } else {
+        
+        if (df == 1) {
           
           Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))  # TODO implement a Q_approx for vectors
           
           bhs_vb <- 1 / (Q_app * G_vb) - 1
           
+        } else if (df == 3) {
+          
+          Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))
+          
+          bhs_vb <- exp(-log(3) - log(G_vb) + log(1 - G_vb * Q_app) - log(Q_app * (1 + G_vb) - 1)) - 1 / 3
+          
+        } else {
+          # also works for df = 3 but might be slightly less efficient than the above
+          
+          Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))
+          
+          exponent <- (df + 1) / 2
+          
+          bhs_vb <- sapply(1:p, function(j) {
+            
+            exp(log(compute_integral_hs_(df, G_vb[j] * df, m = exponent, n = exponent, Q_ab = Q_app[j])) -
+                  log(compute_integral_hs_(df, G_vb[j] * df, m = exponent, n = exponent - 1, Q_ab = Q_app[j])))
+            
+          })
+          
         }
-        
-      } else if (df == 3) {
-        
-        G_vb <- G_vb / df
-        
-        Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))
-        
-        bhs_vb <- exp(-log(3) - log(G_vb) + log(1 - G_vb * Q_app) - log(Q_app * (1 + G_vb) - 1)) - 1 / 3
-        
-      } else {
-        # also works for df = 3 but might be slightly less efficient than the above
-        G_vb <- G_vb / df
-        
-        Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))
-        
-        exponent <- (df + 1) / 2
-        
-        bhs_vb <- sapply(1:p, function(j) {
-          
-          exp(log(compute_integral_hs_(df, G_vb[j] * df, m = exponent, n = exponent, Q_ab = Q_app[j])) -
-                log(compute_integral_hs_(df, G_vb[j] * df, m = exponent, n = exponent - 1, Q_ab = Q_app[j])))
-          
-        })
         
       }
       
