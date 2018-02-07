@@ -502,7 +502,7 @@ elbo_dual_horseshoe_info_ <- function(Y, V, a, a_vb, a_inv_vb, A2_inv, b,
 
   
   n <- nrow(Y)
-  d <- nrow(Y)
+  d <- ncol(Y)
 
   # needed for monotonically increasing elbo.
   #

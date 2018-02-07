@@ -317,7 +317,7 @@ elbo_dual_prior_ <- function(Y, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
                              vec_sum_log_det_rho, list_struct) {
   
   n <- nrow(Y)
-  d <- nrow(Y)
+  d <- ncol(Y)
   p <- length(m0)
   
   # needed for monotonically increasing elbo.

@@ -435,7 +435,7 @@ elbo_dual_horseshoe_info_blocks_ <- function(Y, list_V, a_inv_vb, A2_inv,
   
   n <- nrow(Y)
   n_bl <- length(list_V)
-  d <- nrow(Y)
+  d <- ncol(Y)
   
   # needed for monotonically increasing elbo.
   #
