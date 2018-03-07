@@ -10,7 +10,7 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
                                                    sig2_beta_vb, tau_vb, df, 
                                                    tol, maxit, anneal, verbose, 
                                                    batch = "y", full_output = FALSE, 
-                                                   debug = TRUE) {
+                                                   debug = TRUE, trace_path = NULL) {
   
   # Y must have been centered, and X standardized.
   
@@ -18,11 +18,15 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
   n <- nrow(Y)
   p <- ncol(X)
   
+  # Preparing trace saving if any
+  #
+  trace_ind_max <- trace_var_max <- NULL
+  
   with(list_hyper, { # list_init not used with the with() function to avoid
     # copy-on-write for large objects
     
-    # Preparing annealing if any
-    #
+    shr_fac_inv <- d # = 1 / shrinkage_factor for global variance
+    
     # Preparing annealing if any
     #
     if (df == 1) {
@@ -61,25 +65,25 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
     
     # Variance initialization
     #
-    S0_inv_vb <- rgamma(1, shape = 1, rate = 1) # initial guess
+    S0_inv_vb <- rgamma(1, shape = max(p, d), rate = 1) 
     
     
     # Some hyperparameters
     #
     A2_inv <- 1 #  hyperparameter # TODO: see how to fix, sensitivity analysis
     
-    # Choose m0 so that, `a priori' (i.e. before optimization), E_p_gam is as specified by the user:
-    n0_star <- - n0[1]
-    m0_star <- n0_star * (sqrt(1 + (1/S0_inv_vb[1] / d) / (1 + t02)) - 1) # assumes b equiv 1. see hyperparameter_setting document. m0 not needed anymore in set_hyper.
-    
-    m0 <- - rep(m0_star, p)
+    # Choose m0 so that, `a priori' (i.e. before optimization), E_p_gam is as specified by the user. 
+    # In fact, we assume that the variance of theta (s0^2 in the hyperparameter doc) 
+    # is very small so that the shift is negligeable: we set m0 to 0.
+    #
+    m0 <- rep(0, p)
     
     # Parameter initialization here for the top level 
     #
-    mu_theta_vb <- rnorm(p, mean = m0, sd = abs(m0) / 5) # m0 ########################### see how to set m0 
-    sig2_theta_vb <- 1 / (d + rgamma(p, shape = S0_inv_vb[1] * d, rate = 1)) # initial guess assuming bhs_vb = 1
+    mu_theta_vb <- rnorm(p, sd = 1 / sqrt(S0_inv_vb[1] * shr_fac_inv)) 
+    sig2_theta_vb <- 1 / (d + rgamma(p, shape = S0_inv_vb[1] * shr_fac_inv, rate = 1)) # initial guess assuming b_vb = 1
     
-    mu_rho_vb <- rnorm(d, mean = n0, sd = abs(n0) / 5) # n0
+    mu_rho_vb <- rnorm(d, mean = n0, sd = sqrt(t02))
     mu_c_vb <- lapply(vec_r_bl, function(r) rnorm(r, sd = 0.1)) 
     
     
@@ -201,7 +205,7 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
       
       # keep this order!
       #
-      G_vb <- c_s * S0_inv_vb * d * (mu_theta_vb^2 + sig2_theta_vb - 2 * mu_theta_vb * m0 + m0^2) / 2 / df 
+      G_vb <- c_s * S0_inv_vb * shr_fac_inv * (mu_theta_vb^2 + sig2_theta_vb - 2 * mu_theta_vb * m0 + m0^2) / 2 / df 
       nu_a_inv_vb <- c_s * (A2_inv + S0_inv_vb) 
       
       if (annealing & anneal_scale) {
@@ -243,16 +247,16 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
       a_inv_vb <- lambda_a_inv_vb / nu_a_inv_vb
       
        
-      sig2_theta_vb <- update_sig2_c0_vb_(d, 1 / (S0_inv_vb * bhs_vb * d), c = c)
+      sig2_theta_vb <- update_sig2_c0_vb_(d, 1 / (S0_inv_vb * bhs_vb * shr_fac_inv), c = c)
       
       mat_v_mu <- sweep(mat_v_mu, 1, mu_theta_vb, `-`)
-      mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv_vb * bhs_vb * d, sig2_theta_vb,
+      mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv_vb * bhs_vb * shr_fac_inv, sig2_theta_vb,
                                          vec_fac_st = NULL, mat_v_mu, is_mat = TRUE, c = c)
       
       lambda_s0_vb <- update_lambda_vb_(1 / 2, p, c = c_s)
       
       nu_s0_vb <- c_s * (a_inv_vb + 
-                           sum(bhs_vb * d * (mu_theta_vb^2 + sig2_theta_vb - 2 * mu_theta_vb * m0 + m0^2)) / 2) 
+                           sum(bhs_vb * shr_fac_inv * (mu_theta_vb^2 + sig2_theta_vb - 2 * mu_theta_vb * m0 + m0^2)) / 2) 
       
       S0_inv_vb <- as.numeric(lambda_s0_vb / nu_s0_vb)
       
@@ -291,10 +295,18 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
       
       if (verbose & (it == 1 | it %% 5 == 0)) {
         
-        cat(paste0("Updated s02 / d: ", format(1 / S0_inv_vb / d, digits = 4), ".\n"))
-        cat("Updated 1 / b: \n")
+        cat(paste0("Updated global variance: ", format(nu_s0_vb / (lambda_s0_vb - 1) / shr_fac_inv, digits = 4), ".\n"))
+        cat("Updated local variational parameter 1 / mu_b_vb for local variances: \n")
         print(summary(1 / bhs_vb))
         cat("\n")
+        
+      }
+      
+      if (!is.null(trace_path) && (it == 1 | it %% 25 == 0)) {
+        
+        list_traces <- plot_trace_var_hs_(b_vb, S0_inv_vb, d, it, trace_ind_max, trace_var_max, trace_path)
+        trace_ind_max <- list_traces$trace_ind_max
+        trace_var_max <- list_traces$trace_var_max
         
       }
       
@@ -336,7 +348,7 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
                                                    sig2_inv_vb, sig2_rho_vb,
                                                    T0_inv, tau_vb, zeta_vb, 
                                                    m1_beta, m2_beta, mat_x_m1, 
-                                                   mat_v_mu, vec_sum_log_det_rho, df)
+                                                   mat_v_mu, vec_sum_log_det_rho, df, shr_fac_inv)
         
         if (verbose & (it == 1 | it %% 5 == 0))
           cat(paste("ELBO = ", format(lb_new), "\n\n", sep = ""))
@@ -363,6 +375,7 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
     }
     
     lb_opt <- lb_new
+    s02_vb <- nu_s0_vb / (lambda_s0_vb - 1) / shr_fac_inv
     
     if (full_output) { # for internal use only
       
@@ -370,10 +383,10 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
                          kappa, kappa_vb, lambda, lambda_vb, lambda_a_inv_vb, 
                          lambda_s0_vb, log_1_min_om_vb, log_om_vb, m0, n0, 
                          mu_c_vb, mu_rho_vb, mu_theta_vb, nu, nu_vb, nu_a_inv_vb, 
-                         nu_s0_vb, Q_app, sig2_beta_vb, S0_inv_vb, s2, sig2_c_vb, 
+                         nu_s0_vb, Q_app, sig2_beta_vb, S0_inv_vb, s02_vb, s2, sig2_c_vb, 
                          sig2_theta_vb, sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, 
                          zeta_vb, m1_beta, m2_beta, mat_x_m1, mat_v_mu, 
-                         vec_sum_log_det_rho, df, lb_opt)
+                         vec_sum_log_det_rho, df, lb_opt, shr_fac_inv)
       
     } else {
       
@@ -405,7 +418,9 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
       diff_lb <- abs(lb_opt - lb_old)
       
       create_named_list_(bhs_vb, gam_vb, mu_c_vb, mu_theta_vb, mu_rho_vb, 
-                         om_vb, S0_inv_vb, zeta_vb, converged, it, lb_opt, diff_lb, df)
+                         om_vb, S0_inv_vb, s02_vb, zeta_vb, converged, it, 
+                         lb_opt, diff_lb, df, trace_ind_max, 
+                         trace_var_max, shr_fac_inv)
       
     }
   })
@@ -430,7 +445,8 @@ elbo_dual_horseshoe_info_blocks_ <- function(Y, list_V, a_inv_vb, A2_inv,
                                              sig2_inv_vb, sig2_rho_vb,
                                              T0_inv, tau_vb, zeta_vb, 
                                              m1_beta, m2_beta, mat_x_m1, 
-                                             mat_v_mu, vec_sum_log_det_rho, df) {
+                                             mat_v_mu, vec_sum_log_det_rho, df, 
+                                             shr_fac_inv) {
   
   
   n <- nrow(Y)
@@ -460,8 +476,8 @@ elbo_dual_horseshoe_info_blocks_ <- function(Y, list_V, a_inv_vb, A2_inv,
                                     sig2_inv_vb, tau_vb, zeta_vb, bool_blocks = TRUE)
   
   
-  elbo_C <- e_theta_hs_(bhs_vb, G_vb, log_S0_inv_vb + log(d), m0, mu_theta_vb, 
-                        Q_app, S0_inv_vb * d, sig2_theta_vb, df)
+  elbo_C <- e_theta_hs_(bhs_vb, G_vb, log_S0_inv_vb + log(shr_fac_inv), m0, mu_theta_vb, 
+                        Q_app, S0_inv_vb * shr_fac_inv, sig2_theta_vb, df)
   
   elbo_D <- e_rho_(mu_rho_vb, n0, sig2_rho_vb, T0_inv, vec_sum_log_det_rho)
   
