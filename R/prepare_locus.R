@@ -709,7 +709,7 @@ prepare_cv_ <- function(list_cv, n, p, r, bool_rmvd_x, p0_av, link, list_hyper,
 # Internal function implementing sanity checks and needed preprocessing to the
 # settings provided by the user for block-wise parallel inference.
 #
-prepare_blocks_ <- function(list_blocks, eb, bool_rmvd_x, dual, list_cv, list_groups, list_struct) {
+prepare_blocks_ <- function(list_blocks, d, eb, bool_rmvd_x, dual, list_cv, list_groups, list_struct) {
 
   if (!inherits(list_blocks, "blocks"))
     stop(paste("The provided list_blocks must be an object of class ``blocks''. \n",
@@ -720,8 +720,7 @@ prepare_blocks_ <- function(list_blocks, eb, bool_rmvd_x, dual, list_cv, list_gr
                sep=""))
 
   if (xor(dual, eb))
-    stop(paste("dual must be FALSE if list_blocks is provided (block-wise ",
-               "inference not yet implemented for the corresponding model).",sep = ""))
+    stop(paste0("dual and eb must be TRUE or FALSE together if list_blocks is provided"))
 
   if (!is.null(list_cv))
     stop(paste("list_cv must be NULL if non NULL ",
@@ -735,21 +734,52 @@ prepare_blocks_ <- function(list_blocks, eb, bool_rmvd_x, dual, list_cv, list_gr
     stop(paste("Structured sparse priors not enabled for block-wise parallel inference. ",
                "list_blocks and list_struct can't be both non-NULL.", sep = ""))
 
-  if (list_blocks$p_blocks != length(bool_rmvd_x))
-    stop(paste("The number of candidate predictors p provided to the function set_blocks ",
-               "is not consistent with X.\n", sep=""))
+  if (!is.null(list_blocks$bl_y)) {
+    
+    if (list_blocks$bl_x$n_var_blocks != length(bool_rmvd_x))
+      stop(paste("The number of candidate predictors p provided to the function set_blocks ",
+                 "is not consistent with X.\n", sep=""))
+    
+    vec_fac_bl_x <- list_blocks$bl_x$vec_fac_bl[!bool_rmvd_x]
+    
+    if (list_blocks$bl_y$n_var_blocks != d)
+      stop(paste("The number of responses d provided to the function set_blocks ",
+                 "is not consistent with Y.\n", sep=""))
+    
+    vec_fac_bl_y <- list_blocks$bl_y$vec_fac_bl
+    
+    tab_bl_y <- table(vec_fac_bl_y)
+    pres_bl_y <- tab_bl_y > 0
+    
+    # in case a block was removed due to the above because of bool_rmvd_y
+    n_bl_y  <- sum(pres_bl_y)
+    
+  } else {
+    
+    if (list_blocks$n_var_blocks != length(bool_rmvd_x))
+      stop(paste("The number of candidate predictors p provided to the function set_blocks ",
+                 "is not consistent with X.\n", sep="")) 
+    
+    vec_fac_bl_x <- list_blocks$vec_fac_bl[!bool_rmvd_x]
+    vec_fac_bl_y <- NULL
+    n_bl_y <- 1
+    
+  }
 
-  vec_fac_bl <- list_blocks$vec_fac_bl[!bool_rmvd_x]
-
-  tab_bl <- table(vec_fac_bl)
-  pres_bl <- tab_bl > 0
+  tab_bl_x <- table(vec_fac_bl_x)
+  pres_bl_x <- tab_bl_x > 0
 
   # in case a block was removed due to the above because of bool_rmvd_x
-  n_bl  <- sum(pres_bl)
-  if(list_blocks$n_cpus > n_bl) n_cpus <- n_bl
-  else n_cpus <- list_blocks$n_cpus
+  n_bl_x  <- sum(pres_bl_x)
+  if (is.null(list_blocks$bl_y) && list_blocks$n_cpus > n_bl_x) {
+    n_cpus <- n_bl_x
+  } else if (!is.null(list_blocks$bl_y) && list_blocks$n_cpus > (n_bl_x * n_bl_y)){
+    n_cpus <- n_bl_x * n_bl_y
+  } else {
+    n_cpus <- list_blocks$n_cpus
+  }
 
-  create_named_list_(n_bl, n_cpus, vec_fac_bl)
+  create_named_list_(n_bl_x, n_bl_y, n_cpus, vec_fac_bl_x, vec_fac_bl_y)
 
 }
 
@@ -758,9 +788,11 @@ prepare_blocks_ <- function(list_blocks, eb, bool_rmvd_x, dual, list_cv, list_gr
 #' Parallel applications of the method on blocks of candidate predictors for
 #' large datasets allows faster and less RAM-greedy executions.
 #'
-#' @param p Number of candidate predictors.
+#' @param tot Number of candidate predictors (vector of size 1), and followed 
+#'   optionally by the number of responses (vector of size 2).
 #' @param pos_bl Vector gathering the predictor block positions (first index of
-#'   each block).
+#'   each block), or list gathering the predictor block positions and response
+#'   block positions.
 #' @param n_cpus Number of CPUs to be used. If large, one should ensure that
 #'   enough RAM will be available for parallel execution. Set to 1 for serial
 #'   execution.
@@ -821,39 +853,62 @@ prepare_blocks_ <- function(list_blocks, eb, bool_rmvd_x, dual, list_cv, list_gr
 #' @seealso \code{\link{locus}}
 #'
 #' @export
-set_blocks <- function(p, pos_bl, n_cpus, verbose = TRUE) {
-
-  check_structure_(p, "vector", "numeric", 1)
-  check_natural_(p)
-
-  check_structure_(verbose, "vector", "logical", 1)
-
-  check_structure_(pos_bl, "vector", "numeric")
-  check_natural_(pos_bl)
-
-  if (length(pos_bl) > 25)
-    warning(paste("The provided number of blocks may be too large for accurate ",
-                  "inference. If possible, use less blocks.", sep = ""))
-
-  if (any(pos_bl < 1) | any(pos_bl > p))
-    stop("The positions provided in pos_bl must range between 1 and total number of variables in X, p.")
-
-  if (any(duplicated(pos_bl)))
-    stop("The positions provided in pos_bl must be unique.")
-
-  if (any(pos_bl != cummax(pos_bl)))
-    stop("The positions provided in pos_bl must be monotonically increasing.")
-
-  vec_fac_bl <- as.factor(cumsum(seq_along(1:p) %in% pos_bl))
-
-  n_bl <- length(unique(vec_fac_bl))
-
+set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
+  
   check_structure_(n_cpus, "vector", "numeric", 1)
   check_natural_(n_cpus)
+  
+  check_structure_(verbose, "vector", "logical", 1)
+  
+  list_blocks <- lapply(seq_along(tot), function(ii) {
+    
+    tt <- tot[ii]
+    
+    if (is.list(pos_bl)) {
+      pb <- pos_bl[[ii]]  
+    } else {
+      pb <- pos_bl
+    }
+    
+    check_structure_(tt, "vector", "numeric", 1)
+    check_natural_(tt)
+    
+    check_structure_(pb, "vector", "numeric")
+    check_natural_(pb)
+    
+    if (length(pb) > 25)
+      warning(paste("The provided number of blocks may be too large for accurate ",
+                    "inference. If possible, use less blocks.", sep = ""))
+    
+    if (any(pb < 1) | any(pb > tt))
+      stop("The positions provided in pos_bl must range between 1 and total number of variables given in tot.")
+    
+    if (any(duplicated(pb)))
+      stop("The positions provided in pos_bl must be unique.")
+    
+    if (any(pb != cummax(pb)))
+      stop("The positions provided in pos_bl must be monotonically increasing.")
+    
+    vec_fac_bl <- as.factor(cumsum(seq_along(1:tt) %in% pb))
+    
+    n_bl <- length(unique(vec_fac_bl))
+    
+    n_var_blocks <- tt
+    
+    create_named_list_(n_var_blocks, n_bl, vec_fac_bl)
+    
+  })
 
+  if (length(list_blocks) > 1) {
+    names(list_blocks) <- c("bl_x", "bl_y")
+    tot_n_bl <- list_blocks$bl_x$n_bl * list_blocks$bl_y$n_bl
+  } else {
+    list_blocks <- list_blocks[[1]]
+    tot_n_bl <- list_blocks$n_bl
+  }
 
   if (n_cpus > 1) {
-
+    
     n_cpus_avail <- parallel::detectCores()
     if (n_cpus > n_cpus_avail) {
       n_cpus <- n_cpus_avail
@@ -861,24 +916,22 @@ set_blocks <- function(p, pos_bl, n_cpus, verbose = TRUE) {
                     "available on the machine. The latter has been used instead.",
                     sep=""))
     }
-
-    if (n_cpus > n_bl){
+    
+    if (n_cpus > tot_n_bl){
       message <- paste("The number of cpus in use is at most equal to the number of blocks.",
-                       "n_cpus is therefore set to ", n_bl, ". \n", sep ="")
+                       "n_cpus is therefore set to ", tot_n_bl, ". \n", sep ="")
       if(verbose) cat(message)
       else warning(message)
-      n_cpus <- n_bl
+      n_cpus <- tot_n_bl
     }
-
-    if (verbose) cat(paste("locus applied in parallel on ", n_bl,
+    
+    if (verbose) cat(paste("locus applied in parallel on ", tot_n_bl,
                            " blocks of candidate predictors, using ", n_cpus, " CPUs.\n",
                            "Please make sure that enough RAM is available. \n", sep=""))
   }
-
-  p_blocks <- p
-
-  list_blocks <- create_named_list_(p_blocks, n_bl, n_cpus, vec_fac_bl)
-
+  
+  list_blocks$n_cpus <- n_cpus
+  
   class(list_blocks) <- "blocks"
 
   list_blocks
