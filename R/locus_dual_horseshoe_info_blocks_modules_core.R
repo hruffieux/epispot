@@ -285,25 +285,25 @@ locus_dual_horseshoe_info_blocks_modules_core_ <- function(Y, X, list_V,
       for (bl_x in sample(1:n_bl_x)) {
         
         for (bl_y in sample(1:n_bl_y)) {
-        
+          
           for (l in sample(1:vec_r_bl[bl_x])) {
-            
+
             mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
                                                           list_V[[bl_x]][, l] * m1_c[[bl_x]][l, bl_y], `-`)
-            
+
             mu_c_vb[[bl_x]][l, bl_y] <- c * sig2_c_vb[bl_x, bl_y] *
               sum(crossprod(W[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE] - mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], list_V[[bl_x]][, l]))
-            
+
             zeta_vb[[bl_x]][l, bl_y] <- exp(-log_one_plus_exp_(c * (log_1_min_om_vb[[bl_x]][l, bl_y] - log_om_vb[[bl_x]][l, bl_y] +
                                                               log(s2[bl_x, bl_y]) / 2 - log(sig2_c_vb[bl_x, bl_y]) / 2 -
                                                               mu_c_vb[[bl_x]][l, bl_y] ^ 2 / (2 * sig2_c_vb[bl_x, bl_y]))))
-            
+
             m1_c[[bl_x]][l, bl_y] <- mu_c_vb[[bl_x]][l, bl_y] * zeta_vb[[bl_x]][l, bl_y]
-            
-            
+
+
             mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
                                                           list_V[[bl_x]][, l] * m1_c[[bl_x]][l, bl_y], `+`)
-            
+
           }
         }
       }

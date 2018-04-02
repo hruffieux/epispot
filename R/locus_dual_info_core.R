@@ -34,11 +34,18 @@ locus_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     
     eps <- .Machine$double.eps^0.5
     
-    # Parameter initialization here for the top level only  (not = m0 and n0 for random initialization)
+    # Choose m0 so that, `a priori' (i.e. before optimization), E_p_gam is as specified by the user. 
+    # In fact, we assume that the variance of theta (s0^2 in the hyperparameter doc) 
+    # is very small so that the shift is negligeable: we set m0 to 0.
     #
-    mu_theta_vb <- rnorm(p, mean = m0, sd = abs(m0) / 5) # m0
-    mu_rho_vb <- rnorm(d, mean = n0, sd = abs(n0) / 5) # n0
-    mu_c_vb <- rnorm(r, sd = 0.1) # rep(0, r)
+    m0 <- rep(0, p)
+    
+    # Parameter initialization here for the top level only
+    #
+    mu_theta_vb <- rnorm(p, sd = 0.1) 
+    mu_rho_vb <- rnorm(d, mean = n0, sd = sqrt(t02))
+    mu_c_vb <- rnorm(r, sd = 0.1) 
+    
     
     if (eb) {
       a <- b <- a_vb <- b_vb <- NULL

@@ -1075,10 +1075,25 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         }
       
       } else {
-        vb <- locus_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
-                                           list_init$gam_vb, list_init$mu_beta_vb, 
-                                           list_init$sig2_beta_vb, list_init$tau_vb,
-                                           list_struct, tol, maxit, anneal, verbose)
+        
+        if (n_bl_y > 1) {
+          
+          vb <- locus_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
+                                                     vec_fac_bl_y, list_hyper, 
+                                                     list_init$gam_vb, list_init$mu_beta_vb, 
+                                                     list_init$sig2_beta_vb, list_init$tau_vb,
+                                                     list_struct, tol, maxit, anneal, verbose)
+          
+          
+        } else {
+          
+          vb <- locus_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
+                                             list_init$gam_vb, list_init$mu_beta_vb, 
+                                             list_init$sig2_beta_vb, list_init$tau_vb,
+                                             list_struct, tol, maxit, anneal, verbose)
+          
+          
+        }
         
         vb$s02 <- list_hyper$s02
       }     

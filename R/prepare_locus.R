@@ -926,7 +926,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
     }
     
     if (verbose) cat(paste("locus applied in parallel on ", tot_n_bl,
-                           " blocks of candidate predictors, using ", n_cpus, " CPUs.\n",
+                           " blocks, using ", n_cpus, " CPUs.\n",
                            "Please make sure that enough RAM is available. \n", sep=""))
   }
   
