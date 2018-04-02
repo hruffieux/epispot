@@ -617,3 +617,9 @@ plot_trace_var_hs_ <- function(b_vb, S0_inv_vb, shr_fac_inv, it, trace_ind_max, 
   create_named_list_(trace_ind_max, trace_var_max)
   
 }
+
+cbind_fill_matrix <- function(...) { # more efficient than do.call cbind
+  tr <- lapply(..., as.matrix)
+  tr <- lapply(..., t)
+  t(as.matrix(plyr::rbind.fill.matrix(tr)))
+}

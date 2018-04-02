@@ -753,10 +753,10 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
       if (n_bl_y > 1) {
         
-        bl_y <- ceiling(bl / n_bl_x)
-        bl_x <- bl %% n_bl_x
-        if (bl_x == 0)
-          bl_x <- n_bl_x
+        bl_x <- ceiling(bl / n_bl_y)
+        bl_y <- bl %% n_bl_y
+        if (bl_y == 0)
+          bl_y <- n_bl_y
         
         # recover split Y matrix
         #
@@ -1030,20 +1030,50 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
     } else {
       
-      list_hyper$s2 <- do.call(c, lapply(list_vb, `[[`, "s2")) # now it is a vector with the s02 corresponding to each predictor
-      list_hyper$om_vb <- lapply(list_vb, `[[`, "om") # om_vb list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
-      list_rmvd_cst_v <- lapply(list_vb, `[[`, "rmvd_cst_v_bl")
-      list_rmvd_coll_v <- lapply(list_vb, `[[`, "rmvd_coll_v_bl")
-      list_V <- lapply(list_vb, `[[`, "V_bl") # V_bl without cst and coll and standardized in each block
+      if (n_bl_y > 1) {
+        
+        list_hyper$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
+  
+        tmp_om_vb <- lapply(list_vb, `[[`, "om")
+        
+        list_hyper$om_vb <- parallel::mclapply(1:n_bl_x, function(bl_x) {
+            cbind_fill_matrix(tmp_om_vb[((bl_x - 1) * n_bl_y + 1) : (bl_x * n_bl_y)])
+        }, mc.cores = n_cpus)
+          # om_vb list of length n_bl_x 
+          # containing matrices of size r' x n_bl_y (sizes of om r' can be different due to cst or coll columns in V_bl removed)
+        
+      } else {
+        
+        list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
+        list_hyper$om_vb <- lapply(list_vb, `[[`, "om") # om_vb list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
       
+      }
+     
+      list_V <- lapply(list_bl_mat_x, `[[`, "V_bl") # V_bl without cst and coll and standardized in each block
       
       if (hs) {
-        vb <- locus_dual_horseshoe_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, 
-                                                     list_hyper, list_init$gam_vb, 
-                                                     list_init$mu_beta_vb, 
-                                                     list_init$sig2_beta_vb, 
-                                                     list_init$tau_vb, df, 
-                                                     tol, maxit, anneal, verbose) 
+        
+        if (n_bl_y > 1) {
+          
+          vb <- locus_dual_horseshoe_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x, 
+                                                               vec_fac_bl_y,
+                                                               list_hyper, list_init$gam_vb, 
+                                                               list_init$mu_beta_vb, 
+                                                               list_init$sig2_beta_vb, 
+                                                               list_init$tau_vb, df, 
+                                                               tol, maxit, anneal, verbose) 
+          
+        } else {
+          
+          vb <- locus_dual_horseshoe_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, 
+                                                       list_hyper, list_init$gam_vb, 
+                                                       list_init$mu_beta_vb, 
+                                                       list_init$sig2_beta_vb, 
+                                                       list_init$tau_vb, df, 
+                                                       tol, maxit, anneal, verbose) 
+          
+        }
+      
       } else {
         vb <- locus_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
                                            list_init$gam_vb, list_init$mu_beta_vb, 

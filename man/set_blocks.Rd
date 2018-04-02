@@ -4,13 +4,15 @@
 \alias{set_blocks}
 \title{Gather settings for parallel inference on partitioned predictor space.}
 \usage{
-set_blocks(p, pos_bl, n_cpus, verbose = TRUE)
+set_blocks(tot, pos_bl, n_cpus, verbose = TRUE)
 }
 \arguments{
-\item{p}{Number of candidate predictors.}
+\item{tot}{Number of candidate predictors (vector of size 1), and followed 
+optionally by the number of responses (vector of size 2).}
 
 \item{pos_bl}{Vector gathering the predictor block positions (first index of
-each block).}
+each block), or list gathering the predictor block positions and response
+block positions.}
 
 \item{n_cpus}{Number of CPUs to be used. If large, one should ensure that
 enough RAM will be available for parallel execution. Set to 1 for serial

@@ -222,6 +222,29 @@ update_mat_v_mu_block_ <- function(list_V, mu_0_s, mu_0_t, list_mat_c, vec_fac_b
 }
 
 
+update_mat_v_mu_block_modules_ <- function(list_V, mu_0_s, mu_0_t, list_mat_c, vec_fac_bl_x, vec_fac_bl_y) {
+  
+  bl_ids_x <- unique(vec_fac_bl_x)
+  n_bl_x <- length(bl_ids_x)
+  
+  bl_ids_y <- unique(vec_fac_bl_y)
+  n_bl_y <- length(bl_ids_y)
+  
+  vec_d_bl <- table(vec_fac_bl_y)
+  
+  cbind_fill_matrix(lapply(1:n_bl_y, function(bl_y) {
+    
+    plyr::rbind.fill.matrix(lapply(1:n_bl_x, function(bl_x) {
+      
+      sweep(tcrossprod(as.vector(list_V[[bl_x]] %*% list_mat_c[[bl_x]][, bl_y] + mu_0_s[vec_fac_bl_x == bl_ids_x[bl_x]]), rep(1, vec_d_bl[bl_y])),
+            2, mu_0_t[vec_fac_bl_y == bl_ids_y[bl_y]], `+`)
+    }))
+    
+  }))
+
+  
+}
+
 
 ###################
 ## chi's updates ##
