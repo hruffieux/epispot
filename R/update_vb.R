@@ -234,8 +234,12 @@ update_mat_v_mu_block_modules_ <- function(list_V, mu_0_s, mu_0_t, list_mat_c, v
   
   cbind_fill_matrix(lapply(1:n_bl_y, function(bl_y) {
     
+    if (!is.null(dim(mu_0_s))) {
+      mu_0_s <- mu_0_s[, bl_y]
+    }
+    
     plyr::rbind.fill.matrix(lapply(1:n_bl_x, function(bl_x) {
-      
+    
       sweep(tcrossprod(as.vector(list_V[[bl_x]] %*% list_mat_c[[bl_x]][, bl_y] + mu_0_s[vec_fac_bl_x == bl_ids_x[bl_x]]), rep(1, vec_d_bl[bl_y])),
             2, mu_0_t[vec_fac_bl_y == bl_ids_y[bl_y]], `+`)
     }))
@@ -397,22 +401,69 @@ update_log_tau_vb_ <- function(eta_vb, kappa_vb) digamma(eta_vb) - log(kappa_vb)
 #####################
 
 update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
-                                mat_add = 0, is_mat = FALSE, c = 1) {
+                                mat_add = 0, is_mat = FALSE, c = 1, 
+                                vec_fac_bl = NULL) {
+                                #, vec_fac_bl_y = NULL) {
 
   if (is.null(vec_fac_st)) {
 
     # S0_inv and sig2_rho_vb are stored as scalars which represent the values on the diagonal of the corresponding diagonal matrix
 
-    if (is_mat) {
-
-      mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) + S0_inv * m0 - rowSums(mat_add)) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
-
-    } else {
-
-      mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) + S0_inv * m0 - sum(mat_add)) # mat_add = mu_rho_vb
-
+    if (is.null(vec_fac_bl)) {
+      
+      if (is_mat) {
+        
+        mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) + S0_inv * m0 - rowSums(mat_add)) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+        
+      } else {
+        
+        mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) + S0_inv * m0 - sum(mat_add)) # mat_add = mu_rho_vb
+        
+      }
+      
+    } else { #if (is.null(vec_fac_bl_y)){
+      
+      bl_ids <- unique(vec_fac_bl)
+      n_bl <- length(bl_ids)
+      
+      if (is_mat) {
+        
+        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[bl] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
+                                                                            S0_inv[bl] * m0[vec_fac_bl == bl_ids[bl]] - rowSums(mat_add[vec_fac_bl == bl_ids[bl], , drop = FALSE])))) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+        
+      } else {
+        
+        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[bl] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
+                                                                            S0_inv[bl] * m0[vec_fac_bl == bl_ids[bl]] - sum(mat_add)))) # mat_add = mu_rho_vb
+        
+      }
+      
+    # } else {
+    #   
+    #   bl_ids_x <- unique(vec_fac_bl)
+    #   n_bl_x <- length(bl_ids_x)
+    #   
+    #   bl_ids_y <- unique(vec_fac_bl_y)
+    #   n_bl_y <- length(bl_ids_y)
+    #   
+    #   if (is_mat) {
+    #     
+    #     sapply(1:n_bl_y, function(bl_y) {
+    #       unlist(sapply(1:n_bl_x, function(bl_x) c * sig2_theta_vb[bl_x, bl_y] * (rowSums(W[vec_fac_bl == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE]) + 
+    #                                                                     S0_inv[bl_x, bl_y] * m0[vec_fac_bl == bl_ids_x[bl_x]] - rowSums(mat_add[vec_fac_bl == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE])))) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+    #       
+    #     })
+    #     
+    #   } else {
+    #     
+    #     sapply(1:n_bl_y, function(bl_y) {
+    #       unlist(sapply(1:n_bl_x, function(bl_x) c * sig2_theta_vb[bl_x, bl_y] * (rowSums(W[vec_fac_bl == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE]) + 
+    #                                                                     S0_inv[bl_x, bl_y] * m0[vec_fac_bl == bl_ids_x[bl_x]] - sum(mat_add[vec_fac_bl_y == bl_ids_y[bl_y]])))) # mat_add = mu_rho_vb
+    #     })
+    #   }
+      
     }
-
+    
 
   } else {
 

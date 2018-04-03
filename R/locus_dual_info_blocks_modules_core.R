@@ -12,6 +12,10 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                                                  anneal, verbose, batch = "y", 
                                                  full_output = FALSE, debug = TRUE) {
   
+  # EB s02 specific to each grid element (i.e., also modules), no choice because part of vbem procedure.
+  
+  stopifnot(is.null(list_struct)) # algo not implemented for structured regression
+  
   # Y centered, and X and V standardized.
   
   d <- ncol(Y)
@@ -62,7 +66,7 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     
     # Parameter initialization here for the top level only
     #
-    mu_theta_vb <- rnorm(p, sd = 0.1) 
+    mu_theta_vb <- matrix(rnorm(p * n_bl_y, sd = 0.1), nrow = p)
     mu_rho_vb <- rnorm(d, mean = n0, sd = sqrt(t02))
     mu_c_vb <- lapply(vec_r_bl, function(r_bl) matrix(rnorm(r_bl * n_bl_y, sd = 0.1), nrow = r_bl)) 
     
@@ -76,13 +80,22 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     
     # Covariate-specific parameters: objects derived from s02, list_struct (possible block-wise in parallel)
     #
-    obj_theta_vb <- update_sig2_theta_vb_(d, p, list_struct, s02, X, c = c)
+    obj_theta_vb <- lapply(1:(n_bl_x * n_bl_y), function(bl) {
+      
+      bl_x <- ceiling(bl / n_bl_y)
+      bl_y <- bl %% n_bl_y
+      if (bl_y == 0)
+        bl_y <- n_bl_y
+      
+      update_sig2_theta_vb_(vec_d_bl[bl_y], vec_p_bl[bl_x], list_struct = NULL, s02[bl_x, bl_y], X = NULL, c = c)
+        
+    })
     
-    S0_inv <- obj_theta_vb$S0_inv
-    sig2_theta_vb <- obj_theta_vb$sig2_theta_vb
-    vec_sum_log_det_theta <- obj_theta_vb$vec_sum_log_det_theta
+    S0_inv <- matrix(unlist(lapply(obj_theta_vb, `[[`, "S0_inv")), nrow = n_bl_x, byrow = TRUE)
+    sig2_theta_vb <- matrix(unlist(lapply(obj_theta_vb, `[[`, "sig2_theta_vb")), nrow = n_bl_x, byrow = TRUE)
+    vec_sum_log_det_theta <- matrix(unlist(lapply(obj_theta_vb, `[[`, "vec_sum_log_det_theta")), nrow = n_bl_x, byrow = TRUE)
     
-    vec_fac_st <- obj_theta_vb$vec_fac_st
+    vec_fac_st <- NULL
     
     
     # Response-specific parameters: objects derived from t02
@@ -190,11 +203,24 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
       
       W <- update_W_info_(gam_vb, mat_v_mu, c = c) # we use info_ so that the second argument is a matrix
       
-      mat_v_mu <- sweep(mat_v_mu, 1, mu_theta_vb, `-`)
-      mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv, sig2_theta_vb,
-                                         vec_fac_st, mat_v_mu, is_mat = TRUE, c = c)
+      for (bl_y in sample(1:n_bl_y)) {
+        
+        mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1, mu_theta_vb[, bl_y], `-`)
+        
+        # mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv, sig2_theta_vb,
+        #                                    vec_fac_st, mat_v_mu, is_mat = TRUE, 
+        #                                    c = c, vec_fac_bl = vec_fac_bl_x, 
+        #                                    vec_fac_bl_y = vec_fac_bl_y)
+        mu_theta_vb[, bl_y] <- update_mu_theta_vb_(W[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 
+                                                   m0, S0_inv[, bl_y], sig2_theta_vb[, bl_y],
+                                                   vec_fac_st, mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], is_mat = TRUE, 
+                                                   c = c, vec_fac_bl = vec_fac_bl_x)
+        
       
-      mat_v_mu <- sweep(sweep(mat_v_mu, 1, mu_theta_vb, `+`), 2, mu_rho_vb, `-`)
+        mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1, mu_theta_vb[, bl_y], `+`)
+      }
+      
+      mat_v_mu <- sweep(mat_v_mu, 2, mu_rho_vb, `-`)
       
       mu_rho_vb <- update_mu_rho_vb_(W, mat_v_mu, n0, sig2_rho_vb, T0_inv, is_mat = TRUE, c = c)
       mat_v_mu <- sweep(mat_v_mu, 2, mu_rho_vb, `+`)
@@ -259,7 +285,8 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                                                  sig2_rho_vb, T0_inv, tau_vb, zeta_vb, 
                                                  m1_beta, m2_beta, mat_x_m1, mat_v_mu, 
                                                  vec_fac_st, vec_sum_log_det_rho,
-                                                 vec_sum_log_det_theta, vec_fac_bl_y)
+                                                 vec_sum_log_det_theta, 
+                                                 vec_fac_bl_x, vec_fac_bl_y)
         
         if (verbose & (it == 1 | it %% 5 == 0))
           cat(paste("ELBO = ", format(lb_new), "\n\n", sep = ""))
@@ -292,7 +319,7 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                          sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
                          sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
                          m2_beta, mat_x_m1, mat_v_mu, vec_fac_st, vec_sum_log_det_rho,
-                         vec_sum_log_det_theta, vec_fac_bl_y)
+                         vec_sum_log_det_theta, vec_fac_bl_x, vec_fac_bl_y)
       
     } else {
       
@@ -303,7 +330,8 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
       rownames(gam_vb) <- names_x
       colnames(gam_vb) <- names_y
       
-      names(mu_theta_vb) <- names_x
+      rownames(mu_theta_vb) <- names_x
+      colnames(mu_theta_vb) <- paste0("module_", 1:n_bl_y)
       names(mu_rho_vb) <- names_y
       
       mu_c_vb <- lapply(1:n_bl_x, function(bl) {
@@ -344,7 +372,7 @@ elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa
                                            sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
                                            sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
                                            m2_beta, mat_x_m1, mat_v_mu, vec_fac_st, vec_sum_log_det_rho,
-                                           vec_sum_log_det_theta, vec_fac_bl_y) {
+                                           vec_sum_log_det_theta, vec_fac_bl_x, vec_fac_bl_y) {
   
   n <- nrow(Y)
   n_bl_x <- length(list_V)
@@ -371,11 +399,13 @@ elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa
                                     sig2_c_vb, sig2_rho_vb, sig2_theta_vb,
                                     sig2_inv_vb, tau_vb, zeta_vb, 
                                     bool_modules = TRUE, 
-                                    vec_fac_bl_y = vec_fac_bl_y)
+                                    vec_fac_bl_y = vec_fac_bl_y,
+                                    vec_fac_bl_theta = vec_fac_bl_x)
   
   
   elbo_C <- e_theta_(m0, mu_theta_vb, S0_inv, sig2_theta_vb, vec_fac_st,
-                     vec_sum_log_det_theta)
+                     vec_sum_log_det_theta, vec_fac_bl = vec_fac_bl_x, 
+                     vec_fac_bl_y = vec_fac_bl_y)
   
   elbo_D <- e_rho_(mu_rho_vb, n0, sig2_rho_vb, T0_inv, vec_sum_log_det_rho)
   

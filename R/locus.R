@@ -1032,8 +1032,13 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
       if (n_bl_y > 1) {
         
+        if (!hyper) {
+          list_hyper$s02 <- matrix(unlist(lapply(list_vb, `[[`, "s02")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s02 corresponding to each predicor block (rows) and modules
+          rownames(list_hyper$s02) <- paste0("block_", 1:n_bl_x)
+          colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
+        }
         list_hyper$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
-  
+        
         tmp_om_vb <- lapply(list_vb, `[[`, "om")
         
         list_hyper$om_vb <- parallel::mclapply(1:n_bl_x, function(bl_x) {
@@ -1044,6 +1049,9 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         
       } else {
         
+        if (!hyper) {
+          list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
+        }
         list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
         list_hyper$om_vb <- lapply(list_vb, `[[`, "om") # om_vb list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
       
