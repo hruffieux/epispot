@@ -235,7 +235,7 @@ locus_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
             mat_v_mu_bl <- mat_v_mu[vec_fac_bl == bl_ids[bl],, drop = FALSE]
             
             coreDualInfoLoop(list_V[[bl]],
-                             W[vec_fac_bl == bl_ids[bl],],
+                             W[vec_fac_bl == bl_ids[bl],, drop = FALSE],
                              zeta_vb[[bl]],
                              log_om_vb[[bl]], log_1_min_om_vb[[bl]], s2[bl],
                              m1_c[[bl]],

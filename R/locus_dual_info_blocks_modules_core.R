@@ -208,15 +208,11 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
         
         mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1, mu_theta_vb[, bl_y], `-`)
         
-        # mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv, sig2_theta_vb,
-        #                                    vec_fac_st, mat_v_mu, is_mat = TRUE, 
-        #                                    c = c, vec_fac_bl = vec_fac_bl_x, 
-        #                                    vec_fac_bl_y = vec_fac_bl_y)
         mu_theta_vb[, bl_y] <- update_mu_theta_vb_(W[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 
-                                                   m0, S0_inv[, bl_y], sig2_theta_vb[, bl_y],
-                                                   vec_fac_st, mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], is_mat = TRUE, 
-                                                   c = c, vec_fac_bl = vec_fac_bl_x)
-        
+                                                 m0, S0_inv[, bl_y], sig2_theta_vb[, bl_y],
+                                                 vec_fac_st, mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], is_mat = TRUE, 
+                                                 c = c, vec_fac_bl = vec_fac_bl_x)
+      
       
         mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1, mu_theta_vb[, bl_y], `+`)
       }
@@ -226,28 +222,63 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
       mu_rho_vb <- update_mu_rho_vb_(W, mat_v_mu, n0, sig2_rho_vb, T0_inv, is_mat = TRUE, c = c)
       mat_v_mu <- sweep(mat_v_mu, 2, mu_rho_vb, `+`)
       
-      for (bl_x in sample(1:n_bl_x)) {
+      
+      if (batch == "y") {
         
-        for (bl_y in sample(1:n_bl_y)) {
+        for (bl_x in sample(1:n_bl_x)) {
           
-          for (l in sample(1:vec_r_bl[bl_x])) {
+          for (bl_y in sample(1:n_bl_y)) {
+              
+            # # C++ Eigen call for expensive updates
+            shuffled_ind_info_bl <- as.numeric(sample(0:(vec_r_bl[bl_x]-1))) # Zero-based index in C++
             
-            mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
-                                                                                              list_V[[bl_x]][, l] * m1_c[[bl_x]][l, bl_y], `-`)
+            mat_v_mu_bl <- mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE]
+            zeta_vb_bl <- zeta_vb[[bl_x]][, bl_y]
+            m1_c_bl <- m1_c[[bl_x]][, bl_y]
+            mu_c_vb_bl <- mu_c_vb[[bl_x]][, bl_y]
             
-            mu_c_vb[[bl_x]][l, bl_y] <- c * sig2_c_vb[bl_x, bl_y] *
-              sum(crossprod(W[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE] - mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], list_V[[bl_x]][, l]))
+            coreDualInfoLoop(list_V[[bl_x]],
+                             W[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE],
+                             zeta_vb_bl,
+                             log_om_vb[[bl_x]][, bl_y], log_1_min_om_vb[[bl_x]][, bl_y], s2[bl_x, bl_y],
+                             m1_c_bl,
+                             mat_v_mu_bl,
+                             mu_c_vb_bl, sig2_c_vb[bl_x, bl_y],
+                             shuffled_ind_info_bl, c = c)
             
-            zeta_vb[[bl_x]][l, bl_y] <- exp(-log_one_plus_exp_(c * (log_1_min_om_vb[[bl_x]][l, bl_y] - log_om_vb[[bl_x]][l, bl_y] +
-                                                                      log(s2[bl_x, bl_y]) / 2 - log(sig2_c_vb[bl_x, bl_y]) / 2 -
-                                                                      mu_c_vb[[bl_x]][l, bl_y] ^ 2 / (2 * sig2_c_vb[bl_x, bl_y]))))
+            mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y]] <- mat_v_mu_bl
+            zeta_vb[[bl_x]][, bl_y] <- zeta_vb_bl
+            m1_c[[bl_x]][, bl_y] <- m1_c_bl
+            mu_c_vb[[bl_x]][, bl_y] <- mu_c_vb_bl
             
-            m1_c[[bl_x]][l, bl_y] <- mu_c_vb[[bl_x]][l, bl_y] * zeta_vb[[bl_x]][l, bl_y]
+          }
+        }
+        
+      } else {
+          
+        for (bl_x in sample(1:n_bl_x)) {
+          
+          for (bl_y in sample(1:n_bl_y)) {
             
-            
-            mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
-                                                                                              list_V[[bl_x]][, l] * m1_c[[bl_x]][l, bl_y], `+`)
-            
+            for (l in sample(1:vec_r_bl[bl_x])) {
+              
+              mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
+                                                                                                list_V[[bl_x]][, l] * m1_c[[bl_x]][l, bl_y], `-`)
+              
+              mu_c_vb[[bl_x]][l, bl_y] <- c * sig2_c_vb[bl_x, bl_y] *
+                sum(crossprod(W[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE] - mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], list_V[[bl_x]][, l]))
+              
+              zeta_vb[[bl_x]][l, bl_y] <- exp(-log_one_plus_exp_(c * (log_1_min_om_vb[[bl_x]][l, bl_y] - log_om_vb[[bl_x]][l, bl_y] +
+                                                                        log(s2[bl_x, bl_y]) / 2 - log(sig2_c_vb[bl_x, bl_y]) / 2 -
+                                                                        mu_c_vb[[bl_x]][l, bl_y] ^ 2 / (2 * sig2_c_vb[bl_x, bl_y]))))
+              
+              m1_c[[bl_x]][l, bl_y] <- mu_c_vb[[bl_x]][l, bl_y] * zeta_vb[[bl_x]][l, bl_y]
+              
+              
+              mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[vec_fac_bl_x == bl_ids_x[bl_x], vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
+                                                                                                list_V[[bl_x]][, l] * m1_c[[bl_x]][l, bl_y], `+`)
+              
+            }
           }
         }
       }
