@@ -54,8 +54,8 @@ locus_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       if (!is.null(list_hyper$s02))
         cat(paste0("New value for hyperparameter s02 : ", format(list_hyper$s02, digits = 4),". \n"))
       
-      cat(paste0("New value for hyperparameter s2 : ", format(list_hyper$s2, digits = 4), 
-                 ". \n New values for hyperparameter omega : \n"))
+      cat(paste0("New value for hyperparameter s2 : ", format(list_hyper$s2, digits = 4), ". \n"))
+      cat("New values for hyperparameter omega : \n")
       print(summary(list_hyper$om_vb))
       
       cat("\n\n")

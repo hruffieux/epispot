@@ -272,11 +272,12 @@ locus_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       }
     }
     
-    if (verbose | eb) {
+    if (verbose) {
+    
       if (converged) {
-        cat(paste("Convergence obtained after ", format(it), " iterations. \n",
+        cat(paste0("Convergence obtained after ", format(it), " iterations. \n",
                   "Optimal marginal log-likelihood variational lower bound ",
-                  "(ELBO) = ", format(lb_new), ". \n\n", sep = ""))
+                  "(ELBO) = ", format(lb_new), ". \n\n"))
       } else {
         warning("Maximal number of iterations reached before convergence. Exit.")
       }

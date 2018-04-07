@@ -873,7 +873,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         vb_bl <- locus_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
                                             list_init_bl$tau_vb, list_struct, bool_blocks = TRUE, 
-                                            hs, df, tol, maxit, anneal, verbose = FALSE)
+                                            hs, df, tol, maxit, anneal, verbose = TRUE)
         
       } else if (!dual) {
         
