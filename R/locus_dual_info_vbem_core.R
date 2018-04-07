@@ -7,7 +7,7 @@ locus_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
   maxit_em <- ceiling(maxit / 5)
   converged_em <- FALSE
   it_em <- 0
-  tol_em <- 1e-3 
+  tol_em <- min(tol * 10, 1) # 1e-3
   s2_min <- 1e-6
   lb_old <- -Inf
   list_hyper$om_vb <- rep(1 / 2, r) # prior proportion of active annotations 
@@ -49,10 +49,12 @@ locus_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
   
     if (verbose) {
       
-      if (!is.null(list_hyper$s02))
-        cat(paste0("New value for hyperparameter s02 : ", format(list_hyper$s02, digits = 4)," \n"))
+      cat(paste0("EM iteration ", it_em, ". \n"))
       
-      cat(paste0("EM iteration ", it_em, ". \n New value for hyperparameter s2 : ", format(list_hyper$s2, digits = 4), 
+      if (!is.null(list_hyper$s02))
+        cat(paste0("New value for hyperparameter s02 : ", format(list_hyper$s02, digits = 4),". \n"))
+      
+      cat(paste0("New value for hyperparameter s2 : ", format(list_hyper$s2, digits = 4), 
                  ". \n New values for hyperparameter omega : \n"))
       print(summary(list_hyper$om_vb))
       

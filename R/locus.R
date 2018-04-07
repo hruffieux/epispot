@@ -386,6 +386,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
       vec_fac_bl_x <- list_blocks$vec_fac_bl_x
       vec_fac_bl_y <- list_blocks$vec_fac_bl_y
+
     }
     
     

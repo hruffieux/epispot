@@ -899,7 +899,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
     
   })
 
-  if (length(list_blocks) > 1) {
+  if (length(list_blocks) > 1 && list_blocks[[2]]$n_bl != 1) {
     names(list_blocks) <- c("bl_x", "bl_y")
     tot_n_bl <- list_blocks$bl_x$n_bl * list_blocks$bl_y$n_bl
   } else {

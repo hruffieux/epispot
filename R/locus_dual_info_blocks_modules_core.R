@@ -107,10 +107,11 @@ locus_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     
     # External information effects
     #
-    sig2_c_vb <- sapply(1:n_bl_y, function(bl_y) {
+    sig2_c_vb <- matrix(sapply(1:n_bl_y, function(bl_y) {
       sapply(1:n_bl_x, function(bl_x) update_sig2_c_vb_(vec_p_bl[bl_x], s2[bl_x, bl_y], vec_d_bl[bl_y], c = c))
-    })
+    }), nrow = n_bl_x)
     
+  
     # Stored/precomputed objects
     #
     m1_beta <- update_m1_beta_(gam_vb, mu_beta_vb)
