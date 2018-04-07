@@ -189,31 +189,94 @@ locus_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
       
       mu_rho_vb <- update_mu_rho_vb_(W, mat_v_mu, n0, sig2_rho_vb, T0_inv, is_mat = TRUE, c = c)
       mat_v_mu <- sweep(mat_v_mu, 2, mu_rho_vb, `+`)
-        
-      for (bl in sample(1:n_bl)) {
       
-        for (l in sample(1:vec_r_bl[bl])) {
+      
+      if (batch == "y") {
+
+        # Not clear if yields the same result. Doesn't seem to be the case...
+        # n_cpus <- 1
+        # if (n_cpus > 1) {
+        #   
+        #   out_bl <- parallel::mclapply(1:n_bl, function(bl) {
+        #     
+        #     shuffled_ind_info_bl <- as.numeric(sample(0:(vec_r_bl[bl]-1))) # Zero-based index in C++
+        #     
+        #     mat_v_mu_bl <- mat_v_mu[vec_fac_bl == bl_ids[bl],, drop = FALSE]
+        #     zeta_vb_bl <- zeta_vb[[bl]]
+        #     m1_c_bl <- m1_c[[bl]]
+        #     mu_c_vb_bl <- mu_c_vb[[bl]]
+        #     
+        #     coreDualInfoLoop(list_V[[bl]],
+        #                      W[vec_fac_bl == bl_ids[bl],, drop = FALSE],
+        #                      zeta_vb_bl,
+        #                      log_om_vb[[bl]], log_1_min_om_vb[[bl]], s2[bl],
+        #                      m1_c_bl,
+        #                      mat_v_mu_bl,
+        #                      mu_c_vb_bl, sig2_c_vb[bl],
+        #                      shuffled_ind_info_bl, c = c)
+        #   
+        #     create_named_list_(mat_v_mu_bl, mu_c_vb_bl, m1_c_bl, zeta_vb_bl)
+        # 
+        #     
+        #   }, mc.cores = n_cpus)
+        # 
+        #   mat_v_mu <- plyr::rbind.fill.matrix(lapply(out_bl, `[[`, "mat_v_mu_bl"))
+        #   m1_c <- lapply(out_bl, `[[`, "m1_c_bl")
+        #   mu_c_vb <- lapply(out_bl, `[[`, "mu_c_vb_bl")
+        #   zeta_vb <- lapply(out_bl, `[[`, "zeta_vb_bl")
+        # 
+        # } else {
           
-          mat_v_mu[vec_fac_bl == bl_ids[bl], ] <- sweep(mat_v_mu[vec_fac_bl == bl_ids[bl], , drop = FALSE], 1,
-                                                        list_V[[bl]][, l] * m1_c[[bl]][l], `-`)
+          for (bl in sample(1:n_bl)) {
+            
+            # # C++ Eigen call for expensive updates
+            shuffled_ind_info_bl <- as.numeric(sample(0:(vec_r_bl[bl]-1))) # Zero-based index in C++
+            
+            mat_v_mu_bl <- mat_v_mu[vec_fac_bl == bl_ids[bl],, drop = FALSE]
+            
+            coreDualInfoLoop(list_V[[bl]],
+                             W[vec_fac_bl == bl_ids[bl],],
+                             zeta_vb[[bl]],
+                             log_om_vb[[bl]], log_1_min_om_vb[[bl]], s2[bl],
+                             m1_c[[bl]],
+                             mat_v_mu_bl,
+                             mu_c_vb[[bl]], sig2_c_vb[bl],
+                             shuffled_ind_info_bl, c = c)
+            
+            mat_v_mu[vec_fac_bl == bl_ids[bl],] <- mat_v_mu_bl
+            
+          }
+        # }
+        
+
+      } else {
+
+        for (bl in sample(1:n_bl)) {
+       
+          for (l in sample(1:vec_r_bl[bl])) {
           
-          mu_c_vb[[bl]][l] <- c * sig2_c_vb[bl] *
-            sum(crossprod(W[vec_fac_bl == bl_ids[bl], , drop = FALSE] - mat_v_mu[vec_fac_bl == bl_ids[bl], , drop = FALSE], list_V[[bl]][, l]))
-          
-          zeta_vb[[bl]][l] <- exp(-log_one_plus_exp_(c * (log_1_min_om_vb[[bl]][l] - log_om_vb[[bl]][l] +
-                                                                 log(s2[bl]) / 2 - log(sig2_c_vb[bl]) / 2 -
-                                                                 mu_c_vb[[bl]][l] ^ 2 / (2 * sig2_c_vb[bl]))))
-          
-          m1_c[[bl]][l] <- mu_c_vb[[bl]][l] * zeta_vb[[bl]][l]
-          
-          
-          mat_v_mu[vec_fac_bl == bl_ids[bl], ] <- sweep(mat_v_mu[vec_fac_bl == bl_ids[bl], , drop = FALSE], 1,
-                                                        list_V[[bl]][, l] * m1_c[[bl]][l], `+`)
+            mat_v_mu[vec_fac_bl == bl_ids[bl], ] <- sweep(mat_v_mu[vec_fac_bl == bl_ids[bl], , drop = FALSE], 1,
+                                                          list_V[[bl]][, l] * m1_c[[bl]][l], `-`)
+            
+            mu_c_vb[[bl]][l] <- c * sig2_c_vb[bl] *
+              sum(crossprod(W[vec_fac_bl == bl_ids[bl], , drop = FALSE] - mat_v_mu[vec_fac_bl == bl_ids[bl], , drop = FALSE], list_V[[bl]][, l]))
+            
+            zeta_vb[[bl]][l] <- exp(-log_one_plus_exp_(c * (log_1_min_om_vb[[bl]][l] - log_om_vb[[bl]][l] +
+                                                              log(s2[bl]) / 2 - log(sig2_c_vb[bl]) / 2 -
+                                                              mu_c_vb[[bl]][l] ^ 2 / (2 * sig2_c_vb[bl]))))
+            
+            m1_c[[bl]][l] <- mu_c_vb[[bl]][l] * zeta_vb[[bl]][l]
+            
+            
+            mat_v_mu[vec_fac_bl == bl_ids[bl], ] <- sweep(mat_v_mu[vec_fac_bl == bl_ids[bl], , drop = FALSE], 1,
+                                                          list_V[[bl]][, l] * m1_c[[bl]][l], `+`)
+            
+          }
           
         }
-        
+
       }
-      
+    
       
       if (annealing) {
         
