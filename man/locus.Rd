@@ -4,10 +4,11 @@
 \alias{locus}
 \title{Fit sparse multivariate regression models using variational inference.}
 \usage{
-locus(Y, X, p0_av, Z = NULL, V = NULL, s02 = 0.01, link = "identity",
-  ind_bin = NULL, list_hyper = NULL, list_init = NULL, list_cv = NULL,
-  list_blocks = NULL, list_groups = NULL, list_struct = NULL,
-  dual = FALSE, hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
+locus(Y, X, p0_av, Z = NULL, V = NULL, s02 = 0.01,
+  link = "identity", ind_bin = NULL, list_hyper = NULL,
+  list_init = NULL, list_cv = NULL, list_blocks = NULL,
+  list_groups = NULL, list_struct = NULL, dual = FALSE,
+  hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
   user_seed = NULL, tol = 0.001, maxit = 1000, anneal = NULL,
   save_hyper = FALSE, save_init = FALSE, verbose = TRUE,
   checkpoint_path = NULL, trace_path = NULL)

@@ -6,8 +6,8 @@
 \usage{
 set_hyper(d, p, lambda, nu, a, b, eta, kappa, link = "identity",
   ind_bin = NULL, q = NULL, phi = NULL, xi = NULL, r = NULL,
-  m0 = NULL, n0 = NULL, s02 = NULL, s2 = NULL, t02 = NULL, G = NULL,
-  dual = FALSE, struct = FALSE)
+  m0 = NULL, n0 = NULL, s02 = NULL, s2 = NULL, t02 = NULL,
+  G = NULL, dual = FALSE, struct = FALSE)
 }
 \arguments{
 \item{d}{Number of responses.}
