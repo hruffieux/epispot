@@ -1,11 +1,11 @@
-# This file is part of the `locus` R package:
-#     https://github.com/hruffieux/locus
+# This file is part of the `epispot` R package:
+#     https://github.com/hruffieux/epispot
 #
 # Internal core function to call the variational algorithm for logit link,
 # optional fixed covariates and no external annotation variables.
-# See help of `locus` function for details.
+# See help of `epispot` function for details.
 #
-locus_logit_core_ <- function(Y, X, Z, list_hyper, chi_vb, gam_vb, mu_alpha_vb,
+epispot_logit_core_ <- function(Y, X, Z, list_hyper, chi_vb, gam_vb, mu_alpha_vb,
                               mu_beta_vb, sig2_alpha_vb, sig2_beta_vb, tol,
                               maxit, verbose, batch = "y", full_output = FALSE,
                               debug = FALSE) {
@@ -263,7 +263,7 @@ locus_logit_core_ <- function(Y, X, Z, list_hyper, chi_vb, gam_vb, mu_alpha_vb,
 
 
 # Internal function which implements the marginal log-likelihood variational
-# lower bound (ELBO) corresponding to the `locus_logit_core` algorithm.
+# lower bound (ELBO) corresponding to the `epispot_logit_core` algorithm.
 #
 elbo_logit_ <- function(Y, X, Z, a, a_vb, b, b_vb, chi_vb, gam_vb, lambda, nu,
                         phi, phi_vb, psi_vb, sig2_alpha_vb, sig2_beta_vb,

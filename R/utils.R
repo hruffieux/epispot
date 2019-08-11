@@ -1,5 +1,5 @@
-# This file is part of the `locus` R package:
-#     https://github.com/hruffieux/locus
+# This file is part of the `epispot` R package:
+#     https://github.com/hruffieux/epispot
 #
 
 # Diverse utility functions implementing sanity checks, basic preprocessing,

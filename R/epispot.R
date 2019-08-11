@@ -1,5 +1,5 @@
-# This file is part of the `locus` R package:
-#     https://github.com/hruffieux/locus
+# This file is part of the `epispot` R package:
+#     https://github.com/hruffieux/epispot
 #
 
 #' Fit sparse multivariate regression models using variational inference.
@@ -257,24 +257,24 @@
 #'
 #' # No covariate
 #' #
-#' vb_g <- locus(Y = Y, X = X, p0_av = p0, link = "identity", user_seed = seed)
+#' vb_g <- epispot(Y = Y, X = X, p0_av = p0, link = "identity", user_seed = seed)
 #'
 #' # With covariates
 #' #
-#' vb_g_z <- locus(Y = Y, X = X, p0_av = p0,  Z = Z, link = "identity",
+#' vb_g_z <- epispot(Y = Y, X = X, p0_av = p0,  Z = Z, link = "identity",
 #'                 user_seed = seed)
 #'
 #' # With external annotation variables
 #' #
-#' vb_g_v <- locus(Y = Y, X = X, p0_av = p0, Z = Z, V = V, link = "identity",
+#' vb_g_v <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, V = V, link = "identity",
 #'                 user_seed = seed)
 #'
 #' ## Binary responses
 #' ##
-#' vb_logit <- locus(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
+#' vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
 #'                   user_seed = seed)
 #'
-#' vb_probit <- locus(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
+#' vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
 #'                    user_seed = seed)
 #'
 #' ## Mix of continuous and binary responses
@@ -282,7 +282,7 @@
 #' Y_mix <- cbind(Y, Y_bin)
 #' ind_bin <- (d+1):(2*d)
 #'
-#' vb_mix <- locus(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
+#' vb_mix <- epispot(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
 #'                 ind_bin = ind_bin, user_seed = seed)
 #'
 #' @references
@@ -300,7 +300,7 @@
 #'
 #' @export
 #'
-locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity",
+epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity",
                   ind_bin = NULL, list_hyper = NULL, list_init = NULL,
                   list_cv = NULL, list_blocks = NULL, list_groups = NULL,
                   list_struct = NULL, dual = FALSE, hyper = FALSE, hs = FALSE, 
@@ -532,27 +532,27 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         
         if (nq & nr) {
           
-          vb <- locus_core_(Y, X, list_hyper, list_init$gam_vb,
+          vb <- epispot_core_(Y, X, list_hyper, list_init$gam_vb,
                             list_init$mu_beta_vb, list_init$sig2_beta_vb,
                             list_init$tau_vb, tol, maxit, anneal, verbose, 
                             checkpoint_path = checkpoint_path)
           
         } else if (nq) { # r non-null
           
-          vb <- locus_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
+          vb <- epispot_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                  list_init$mu_beta_vb, list_init$sig2_beta_vb,
                                  list_init$tau_vb, tol, maxit, anneal, verbose)
           
         } else if (nr) { # q non-null
           
-          vb <- locus_z_core_(Y, X, Z, list_hyper, list_init$gam_vb,
+          vb <- epispot_z_core_(Y, X, Z, list_hyper, list_init$gam_vb,
                               list_init$mu_alpha_vb, list_init$mu_beta_vb,
                               list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
                               list_init$tau_vb, tol, maxit, anneal, verbose)
           
         } else { # both q and r non-null
           
-          vb <- locus_z_info_core_(Y, X, Z, V, list_hyper, list_init$gam_vb,
+          vb <- epispot_z_info_core_(Y, X, Z, V, list_hyper, list_init$gam_vb,
                                    list_init$mu_alpha_vb, list_init$mu_beta_vb,
                                    list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
                                    list_init$tau_vb, tol, maxit, verbose)
@@ -562,7 +562,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         
         # X is a list (transformed in prepare_data)
         # mu_beta_vb is a list (transformed in prepare_init)
-        vb <- locus_group_core_(Y, X, list_hyper, list_init$gam_vb,
+        vb <- epispot_group_core_(Y, X, list_hyper, list_init$gam_vb,
                                 list_init$mu_beta_vb, list_init$sig2_inv_vb,
                                 list_init$tau_vb, tol, maxit, verbose)
         
@@ -575,7 +575,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           if (hyper) {
             
             if (hs) {
-              vb <- locus_dual_horseshoe_core_(Y, X, list_hyper, list_init$gam_vb,
+              vb <- epispot_dual_horseshoe_core_(Y, X, list_hyper, list_init$gam_vb,
                                                list_init$mu_beta_vb, 
                                                list_init$sig2_beta_vb,
                                                list_init$tau_vb, df, list_struct, 
@@ -583,7 +583,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
                                                checkpoint_path = checkpoint_path,
                                                trace_path = trace_path)
             } else {
-              vb <- locus_dual_prior_core_(Y, X, list_hyper, list_init$gam_vb,
+              vb <- epispot_dual_prior_core_(Y, X, list_hyper, list_init$gam_vb,
                                            list_init$mu_beta_vb, list_init$sig2_beta_vb,
                                            list_init$tau_vb, list_struct, tol, maxit,
                                            anneal, verbose, 
@@ -591,7 +591,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
             }
             
           } else {
-            vb <- locus_dual_core_(Y, X, list_hyper, list_init$gam_vb,
+            vb <- epispot_dual_core_(Y, X, list_hyper, list_init$gam_vb,
                                    list_init$mu_beta_vb, list_init$sig2_beta_vb,
                                    list_init$tau_vb, list_struct, tol, maxit,
                                    anneal, verbose, 
@@ -603,7 +603,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           
           if (eb) {
             
-            vb <- locus_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
+            vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                              list_init$mu_beta_vb,
                                              list_init$sig2_beta_vb, list_init$tau_vb,
                                              list_struct, bool_blocks = FALSE, hs, df,
@@ -611,7 +611,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           } else {
             
             if (hs) {
-              vb <- locus_dual_horseshoe_info_core_(Y, X, V, list_hyper, 
+              vb <- epispot_dual_horseshoe_info_core_(Y, X, V, list_hyper, 
                                                     list_init$gam_vb,
                                                     list_init$mu_beta_vb,
                                                     list_init$sig2_beta_vb, 
@@ -619,7 +619,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
                                                     list_struct, eb, tol, maxit, 
                                                     anneal, verbose)
             } else {
-              vb <- locus_dual_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
+              vb <- epispot_dual_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                           list_init$mu_beta_vb,
                                           list_init$sig2_beta_vb, list_init$tau_vb,
                                           list_struct, eb, tol, maxit, anneal, verbose)
@@ -629,14 +629,14 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           
         } else if (nq) {
           
-          vb <- locus_dual_group_core_(Y, X, list_hyper, list_init$gam_vb,
+          vb <- epispot_dual_group_core_(Y, X, list_hyper, list_init$gam_vb,
                                        list_init$mu_beta_vb, list_init$sig2_inv_vb,
                                        list_init$tau_vb, tol, maxit, verbose)
         }
         
       } else { # list_struct non-null, and only predictor propensity control.
         
-        vb <- locus_struct_core_(Y, X, list_hyper, list_init$gam_vb,
+        vb <- epispot_struct_core_(Y, X, list_hyper, list_init$gam_vb,
                                  list_init$mu_beta_vb, list_init$sig2_beta_vb,
                                  list_init$tau_vb, list_struct, tol, maxit, verbose)
       }
@@ -645,13 +645,13 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
       if(nr) {
         
-        vb <- locus_logit_core_(Y, X, Z, list_hyper, list_init$chi_vb,
+        vb <- epispot_logit_core_(Y, X, Z, list_hyper, list_init$chi_vb,
                                 list_init$gam_vb, list_init$mu_alpha_vb,
                                 list_init$mu_beta_vb, list_init$sig2_alpha_vb,
                                 list_init$sig2_beta_vb, tol, maxit, verbose)
       } else {
         
-        vb <- locus_logit_info_core_(Y, X, Z, V, list_hyper, list_init$chi_vb,
+        vb <- epispot_logit_info_core_(Y, X, Z, V, list_hyper, list_init$chi_vb,
                                      list_init$gam_vb, list_init$mu_alpha_vb,
                                      list_init$mu_beta_vb, list_init$sig2_alpha_vb,
                                      list_init$sig2_beta_vb, tol, maxit,
@@ -663,14 +663,14 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
       if (nr) {
         
-        vb <- locus_probit_core_(Y, X, Z, list_hyper, list_init$gam_vb,
+        vb <- epispot_probit_core_(Y, X, Z, list_hyper, list_init$gam_vb,
                                  list_init$mu_alpha_vb, list_init$mu_beta_vb,
                                  list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
                                  tol, maxit, verbose)
         
       } else {
         
-        vb <- locus_probit_info_core_(Y, X, Z, V, list_hyper, list_init$gam_vb,
+        vb <- epispot_probit_info_core_(Y, X, Z, V, list_hyper, list_init$gam_vb,
                                       list_init$mu_alpha_vb, list_init$mu_beta_vb,
                                       list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
                                       tol, maxit, verbose)
@@ -680,13 +680,13 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
       if (nr) {
         
-        vb <- locus_mix_core_(Y, X, Z, ind_bin, list_hyper, list_init$gam_vb,
+        vb <- epispot_mix_core_(Y, X, Z, ind_bin, list_hyper, list_init$gam_vb,
                               list_init$mu_alpha_vb, list_init$mu_beta_vb,
                               list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
                               list_init$tau_vb, tol, maxit, verbose)
       } else {
         
-        vb <- locus_mix_info_core_(Y, X, Z, V, ind_bin, list_hyper, list_init$gam_vb,
+        vb <- epispot_mix_info_core_(Y, X, Z, V, ind_bin, list_hyper, list_init$gam_vb,
                                    list_init$mu_alpha_vb, list_init$mu_beta_vb,
                                    list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
                                    list_init$tau_vb, tol, maxit, verbose)
@@ -750,7 +750,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
     
     
     
-    locus_bl_ <- function(bl) {
+    epispot_bl_ <- function(bl) {
       
       if (n_bl_y > 1) {
         
@@ -870,7 +870,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       
       if (dual & eb & nq & link == "identity") {
         
-        vb_bl <- locus_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
+        vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
                                             list_init_bl$tau_vb, list_struct, bool_blocks = TRUE, 
                                             hs, df, tol, maxit, anneal, verbose = TRUE)
@@ -881,21 +881,21 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           
           if (nq & nr) {
             
-            vb_bl <- locus_core_(Y_bl, X_bl, list_hyper_bl,
+            vb_bl <- epispot_core_(Y_bl, X_bl, list_hyper_bl,
                                  list_init_bl$gam_vb, list_init_bl$mu_beta_vb,
                                  list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
                                  tol, maxit, anneal, verbose = FALSE)
             
           } else if (nq) { # r non-null
             
-            vb_bl <- locus_info_core_(Y_bl, X_bl, V_bl, list_hyper_bl,
+            vb_bl <- epispot_info_core_(Y_bl, X_bl, V_bl, list_hyper_bl,
                                       list_init_bl$gam_vb, list_init_bl$mu_beta_vb,
                                       list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
                                       tol, maxit, verbose = FALSE)
             
           } else if (nr) { # q non-null
             
-            vb_bl <- locus_z_core_(Y_bl, X_bl, Z, list_hyper_bl, list_init_bl$gam_vb,
+            vb_bl <- epispot_z_core_(Y_bl, X_bl, Z, list_hyper_bl, list_init_bl$gam_vb,
                                    list_init_bl$mu_alpha_vb,list_init_bl$mu_beta_vb,
                                    list_init_bl$sig2_alpha_vb,
                                    list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
@@ -903,7 +903,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
             
           } else { # both q and r non - null
             
-            vb_bl <- locus_z_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
+            vb_bl <- epispot_z_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
                                         list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
                                         list_init_bl$mu_beta_vb, list_init_bl$sig2_alpha_vb,
                                         list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
@@ -915,7 +915,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           
           if(nr) {
             
-            vb_bl <- locus_logit_core_(Y_bl, X_bl, Z, list_hyper_bl,
+            vb_bl <- epispot_logit_core_(Y_bl, X_bl, Z, list_hyper_bl,
                                        list_init_bl$chi_vb, list_init_bl$gam_vb,
                                        list_init_bl$mu_alpha_vb, list_init_bl$mu_beta_vb,
                                        list_init_bl$sig2_alpha_vb,
@@ -924,7 +924,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
             
           } else {
             
-            vb_bl <- locus_logit_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
+            vb_bl <- epispot_logit_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
                                             list_init_bl$chi_vb, list_init_bl$gam_vb,
                                             list_init_bl$mu_alpha_vb, list_init_bl$mu_beta_vb,
                                             list_init_bl$sig2_alpha_vb,
@@ -936,7 +936,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         } else  if (link == "probit") {
           
           if (nr) {
-            vb_bl <- locus_probit_core_(Y_bl, X_bl, Z, list_hyper_bl,
+            vb_bl <- epispot_probit_core_(Y_bl, X_bl, Z, list_hyper_bl,
                                         list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
                                         list_init_bl$mu_beta_vb,
                                         list_init_bl$sig2_alpha_vb,
@@ -945,7 +945,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
             
           } else {
             
-            vb_bl <- locus_probit_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
+            vb_bl <- epispot_probit_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
                                              list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
                                              list_init_bl$mu_beta_vb,
                                              list_init_bl$sig2_alpha_vb,
@@ -958,7 +958,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           
           if (nr) {
             
-            vb_bl <- locus_mix_core_(Y_bl, X_bl, Z, ind_bin, list_hyper_bl,
+            vb_bl <- epispot_mix_core_(Y_bl, X_bl, Z, ind_bin, list_hyper_bl,
                                      list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
                                      list_init_bl$mu_beta_vb,
                                      list_init_bl$sig2_alpha_vb,
@@ -967,7 +967,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
             
           } else {
             
-            vb_bl <- locus_mix_info_core_(Y_bl, X_bl, Z, V_bl, ind_bin, list_hyper_bl,
+            vb_bl <- epispot_mix_info_core_(Y_bl, X_bl, Z, V_bl, ind_bin, list_hyper_bl,
                                           list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
                                           list_init_bl$mu_beta_vb, list_init_bl$sig2_alpha_vb,
                                           list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
@@ -1003,7 +1003,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
       vb_bl
     }
     
-    list_vb <- parallel::mclapply(1:(n_bl_x * n_bl_y), function(bl) locus_bl_(bl), mc.cores = n_cpus)
+    list_vb <- parallel::mclapply(1:(n_bl_x * n_bl_y), function(bl) epispot_bl_(bl), mc.cores = n_cpus)
     
     if (!dual) {
       
@@ -1064,7 +1064,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         
         if (n_bl_y > 1) {
           
-          vb <- locus_dual_horseshoe_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x, 
+          vb <- epispot_dual_horseshoe_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x, 
                                                                vec_fac_bl_y,
                                                                list_hyper, list_init$gam_vb, 
                                                                list_init$mu_beta_vb, 
@@ -1074,7 +1074,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           
         } else {
           
-          vb <- locus_dual_horseshoe_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, 
+          vb <- epispot_dual_horseshoe_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, 
                                                        list_hyper, list_init$gam_vb, 
                                                        list_init$mu_beta_vb, 
                                                        list_init$sig2_beta_vb, 
@@ -1087,7 +1087,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
         
         if (n_bl_y > 1) {
           
-          vb <- locus_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
+          vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
                                                      vec_fac_bl_y, list_hyper, 
                                                      list_init$gam_vb, list_init$mu_beta_vb, 
                                                      list_init$sig2_beta_vb, list_init$tau_vb,
@@ -1096,7 +1096,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
           
         } else {
           
-          vb <- locus_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
+          vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
                                              list_init$gam_vb, list_init$mu_beta_vb, 
                                              list_init$sig2_beta_vb, list_init$tau_vb,
                                              list_struct, tol, maxit, anneal, verbose)
@@ -1132,7 +1132,7 @@ locus <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity"
   if (save_hyper) vb$list_hyper <- list_hyper
   if (save_init) vb$list_init <- list_init
   
-  class(vb) <- "locus"
+  class(vb) <- "epispot"
   
   
   if (verbose) cat("... done. == \n\n")

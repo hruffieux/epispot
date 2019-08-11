@@ -1,11 +1,11 @@
-# This file is part of the `locus` R package:
-#     https://github.com/hruffieux/locus
+# This file is part of the `epispot` R package:
+#     https://github.com/hruffieux/epispot
 #
 # Internal core function to call the variational algorithm for dual propensity
 # control. Sparse regression with identity link, no fixed covariates.
-# See help of `locus` function for details.
+# See help of `epispot` function for details.
 #
-locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, 
+epispot_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, 
                                                    list_hyper, gam_vb, mu_beta_vb, 
                                                    sig2_beta_vb, tau_vb, df, 
                                                    tol, maxit, anneal, verbose, 
@@ -456,7 +456,7 @@ locus_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
 
 
 # Internal function which implements the marginal log-likelihood variational
-# lower bound (ELBO) corresponding to the `locus_struct_core` algorithm.
+# lower bound (ELBO) corresponding to the `epispot_struct_core` algorithm.
 #
 elbo_dual_horseshoe_info_blocks_ <- function(Y, list_V, a_inv_vb, A2_inv,  
                                              bhs_vb, eta, eta_vb, G_vb, 

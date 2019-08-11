@@ -1,11 +1,11 @@
-# This file is part of the `locus` R package:
-#     https://github.com/hruffieux/locus
+# This file is part of the `epispot` R package:
+#     https://github.com/hruffieux/epispot
 #
 # Internal core function to call the variational algorithm for identity link,
 # fixed covariates and no external annotation variables.
-# See help of `locus` function for details.
+# See help of `epispot` function for details.
 #
-locus_z_core_ <- function(Y, X, Z, list_hyper, gam_vb, mu_alpha_vb, mu_beta_vb,
+epispot_z_core_ <- function(Y, X, Z, list_hyper, gam_vb, mu_alpha_vb, mu_beta_vb,
                           sig2_alpha_vb, sig2_beta_vb, tau_vb, tol, maxit, anneal,
                           verbose, batch = "y", full_output = FALSE, debug = TRUE) {
 
@@ -286,7 +286,7 @@ locus_z_core_ <- function(Y, X, Z, list_hyper, gam_vb, mu_alpha_vb, mu_beta_vb,
 
 
 # Internal function which implements the marginal log-likelihood variational
-# lower bound (ELBO) corresponding to the `locus_z_core` algorithm.
+# lower bound (ELBO) corresponding to the `epispot_z_core` algorithm.
 #
 elbo_z_ <- function(Y, Z, a, a_vb, b, b_vb, eta, gam_vb, kappa, lambda,
                     mu_alpha_vb, nu, phi, phi_vb, sig2_alpha_vb, sig2_beta_vb,
