@@ -1034,6 +1034,12 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
       if (n_bl_y > 1) {
         
         if (!hyper) {
+          if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
+            stop(paste0("For at least one of the block, no hyperparameter ",
+                        "values matching the expectation and variance ",
+                        "of the number of active predictors per responses supplied in p0_av. ",
+                        "Please change p0_av."))
+          }
           list_hyper$s02 <- matrix(unlist(lapply(list_vb, `[[`, "s02")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s02 corresponding to each predicor block (rows) and modules
           rownames(list_hyper$s02) <- paste0("block_", 1:n_bl_x)
           colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
@@ -1051,6 +1057,12 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
       } else {
         
         if (!hyper) {
+          if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
+            stop(paste0("For at least one of the block, no hyperparameter ",
+                        "values matching the expectation and variance ",
+                        "of the number of active predictors per responses supplied in p0_av. ",
+                        "Please change p0_av."))
+          }
           list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
         }
         list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
