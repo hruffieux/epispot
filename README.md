@@ -9,13 +9,20 @@ trait locus mapping, with several thousand molecular levels (responses), genetic
 markers (candidate predictors) and epigenomic annotation marks (predictor-level 
 covariates) and individuals (samples).
 
+## Warning
+
+**This is a development branch**, it is not guaranteed to be stable at any given 
+time and features are subject to change. Please use the 
+[stable version](https://github.com/hruffieux/epispot), unless you want to test 
+and report issues.
+
 ## Installation
 
 To install, run the following commands in R:
 
 ``` r
 # after having installed devtools (install.packages("devtools"))
-devtools::install_github("hruffieux/epispot")
+devtools::install_github("hruffieux/epispot", ref = "devel")
 ```
 
 ## License and authors
