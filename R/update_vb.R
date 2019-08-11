@@ -149,9 +149,9 @@ update_g_m1_btXtXb_ <- function(list_X, gam_vb, list_mu_beta_vb, list_sig2_beta_
 }
 
 
-####################
+#################
 ## b's updates ##
-####################
+#################
 
 
 update_annealed_b_vb_ <- function(G_vb, c, df) { # here G_vb <- c * G_vb / df
