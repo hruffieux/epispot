@@ -1,6 +1,6 @@
-Package: locus
+Package: epispot
 Type: Package
-Title: Parallel variational EM inference for epigenome-driven hotspot selection 
+Title: Parallel variational EM inference for EPIgenome-driven hotSPOT selection 
     in molecular QTL mapping
 Version: 0.1.0
 Date: 2019-08-11

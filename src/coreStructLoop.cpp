@@ -1,7 +1,7 @@
 /*
  *
- * This file is part of the `locus` R package:
- *     https://github.com/hruffieux/locus
+ * This file is part of the `epispot` R package:
+ *     https://github.com/hruffieux/epispot
  *
  * Functions for computationally expensive updates for structured regression.
  *
@@ -13,7 +13,7 @@
 
 #include "utils.h"
 
-// for locus_struct_core function
+// for epispot_struct_core function
 // [[Rcpp::export]]
 void coreStructLoop(const MapMat X,
                     const MapMat Y,
@@ -53,7 +53,7 @@ void coreStructLoop(const MapMat X,
 
 
 
-// for locus_dual_core function
+// for epispot_dual_core function
 // [[Rcpp::export]]
 void coreDualLoop(const MapMat X,
                   const MapMat Y,

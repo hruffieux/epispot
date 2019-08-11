@@ -1,52 +1,37 @@
-## locus – large-scale variational inference for combined covariate and response selection in sparse regression models
-
-[![Travis-CI Build Status](https://travis-ci.org/hruffieux/locus.svg?branch=master)](https://travis-ci.org/hruffieux/locus)
+## epispot – Parallel variational EM inference for EPIgenome-driven hotSPOT selection in molecular QTL mapping
 
 ## Overview
 
-**locus** is an R package providing efficient variational algorithms for
-simultaneous variable selection of covariates and associated responses based
-on multivariate regression models. Dependence across responses linked to the 
-same covariates is captured through the model hierarchical structure 
-(H. Ruffieux, A. C. Davison, J. Hager, I. Irincheeva, Efficient inference 
-for genetic association studies with multiple outcomes, *Biostatistics*, 2017). 
+**epispot** is an R package for parallel variational expectation-maximisation in 
+sparse regression with hierarchically-related responses and predictor-level 
+information. A notable application is in the context of molecular quantitative 
+trait locus mapping, with several thousand molecular levels (responses), genetic 
+markers (candidate predictors) and epigenomic annotation marks (predictor-level 
+covariates) and individuals (samples).
 
 ## Warning
 
-**This is a development branch**, it is not guaranteed to be stable at any given time 
-and features are subject to change. Please use the [stable version](https://github.com/hruffieux/locus),
-unless you want to test and report issues.
+**This is a development branch**, it is not guaranteed to be stable at any given 
+time and features are subject to change. Please use the 
+[stable version](https://github.com/hruffieux/epispot), unless you want to test 
+and report issues.
 
 ## Installation
 
 To install, run the following commands in R:
 
 ``` r
-install.packages("devtools")
-devtools::install_github("hruffieux/locus", ref = "devel")
+# after having installed devtools (install.packages("devtools"))
+devtools::install_github("hruffieux/epispot", ref = "devel")
 ```
-
-## Algorithms
-
-The algorithms for joint covariate and response selection provided in **locus**
-implement inference for regression models with 
-
-* identity link;
-* logistic link;
-* probit link;
-* identity-probit link.
-
-Inference on models for group selection and based on a spatial Gaussian process to 
-encode the dependence structure of the candidate predictors are also implemented. 
-Moreover, covariate-level external information variables can be incorporated to 
-inform the selection.
 
 ## License and authors
 
-This software uses the GPL v2 license, see [LICENSE](LICENSE).
-Authors and copyright are provided in [DESCRIPTION](DESCRIPTION). Loris Michel
-has also contributed to the development of this project.
+This software uses the GPL v3 license, see [LICENSE](LICENSE).
+Authors and copyright are provided in [DESCRIPTION](DESCRIPTION). 
 
 ## Issues
 
-To report an issue, please use the [locus issue tracker](https://github.com/hruffieux/locus/issues) at github.com.
+To report an issue, please use the 
+[epispot issue tracker](https://github.com/hruffieux/epispot/issues) at 
+github.com.
