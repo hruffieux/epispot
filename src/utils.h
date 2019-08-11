@@ -1,8 +1,8 @@
-#ifndef LOCUS_UTILS_H_
-#define LOCUS_UTILS_H_
+#ifndef EPISPOT_UTILS_H_
+#define EPISPOT_UTILS_H_
 
 #include <RcppEigen.h>
-#include "locus_types.h"
+#include "epispot_types.h"
 
 // [[Rcpp::depends(RcppEigen)]]
 
@@ -12,4 +12,4 @@ Arr1D logOnePlusExp(const  Arr1D& x);
 
 Arr2D logOnePlusExpMat(const  Arr2D& x);
 
-#endif // LOCUS_UTILS_H_
+#endif // EPISPOT_UTILS_H_

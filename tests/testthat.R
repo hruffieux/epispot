@@ -1,4 +1,4 @@
 library(testthat)
-library(locus)
+library(epispot)
 
-test_check("locus")
+test_check("epispot")
