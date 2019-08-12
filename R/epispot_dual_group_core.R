@@ -29,6 +29,11 @@ epispot_dual_group_core_ <- function(Y, list_X, list_hyper, gam_vb, list_mu_beta
     mu_theta_vb <- rnorm(G, mean = m0, sd = abs(m0) / 5)
     mu_rho_vb <- rnorm(d, mean = n0, sd = abs(n0) / 5) 
     
+    theta_plus_rho_vb <- sweep(tcrossprod(mu_theta_vb, rep(1, d)), 2, mu_rho_vb, `+`)
+    log_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE)
+    log_1_min_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE, lower.tail = FALSE) 
+    
+    
     # Covariate-specific parameters: objects derived from s02, list_struct (possible block-wise in parallel)
     #
     obj_theta_vb <- update_sig2_theta_vb_(d, G, list_struct = NULL, s02, X = NULL)
@@ -105,18 +110,13 @@ epispot_dual_group_core_ <- function(Y, list_X, list_hyper, gam_vb, list_mu_beta
       
       if (batch == "y") { # optimal scheme
         
-        log_Phi_mu_theta_plus_rho <- sapply(mu_rho_vb, function(mu_rho_k) {
-          pnorm(mu_theta_vb + mu_rho_k, log.p = TRUE)})
-        
-        log_1_min_Phi_mu_theta_plus_rho <- sapply(mu_rho_vb, function(mu_rho_k) {
-          pnorm(mu_theta_vb + mu_rho_k, lower.tail = FALSE, log.p = TRUE)})
         
         for (g in sample(1:G)) {
           mat_x_m1 <- mat_x_m1 - list_X[[g]] %*% list_m1_beta[[g]]
           
           list_mu_beta_vb[[g]] <- list_sig2_beta_star[[g]] %*% crossprod(list_X[[g]], Y - mat_x_m1)
           
-          gam_vb[g, ] <- exp(-log_one_plus_exp_(log_1_min_Phi_mu_theta_plus_rho[g, ] - log_Phi_mu_theta_plus_rho[g, ] -
+          gam_vb[g, ] <- exp(-log_one_plus_exp_(log_1_min_Phi_theta_plus_rho[g, ] - log_Phi_theta_plus_rho[g, ] -
                                                   g_sizes[g] * (log_sig2_inv_vb + log_tau_vb - log(tau_vb)) / 2 - # |g| * log(tau_vb) /2 came out of the determinant
                                                   colSums(list_mu_beta_vb[[g]] *
                                                             (list_sig2_beta_star_inv[[g]] %*% list_mu_beta_vb[[g]])) * tau_vb / 2 -
@@ -175,11 +175,16 @@ epispot_dual_group_core_ <- function(Y, list_X, list_hyper, gam_vb, list_mu_beta
       list_m1_btXtXb <- update_g_m1_btXtXb_(list_X, gam_vb, list_mu_beta_vb,
                                             list_sig2_beta_star, tau_vb)
       
-      W <- update_W_info_(gam_vb, sweep(tcrossprod(mu_theta_vb, rep(1, d)), 2, mu_rho_vb, `+`)) # we use info_ so that the second argument is a matrix
+      W <- update_W_info_(gam_vb, theta_plus_rho_vb, log_1_min_Phi_theta_plus_rho, log_Phi_theta_plus_rho) # we use info_ so that the second argument is a matrix
       
       mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv, sig2_theta_vb, vec_fac_st, mu_rho_vb, is_mat = FALSE)
       
       mu_rho_vb <- update_mu_rho_vb_(W, mu_theta_vb, n0, sig2_rho_vb, T0_inv, is_mat = FALSE) # update_mu_rho_vb_(W, mu_theta_vb, sig2_rho_vb)
+      
+      theta_plus_rho_vb <- sweep(tcrossprod(mu_theta_vb, rep(1, d)), 2, mu_rho_vb, `+`)
+      log_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE)
+      log_1_min_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE, lower.tail = FALSE) 
+      
       
       # % #
       eta_vb <- update_g_eta_vb_(n, eta, g_sizes, gam_vb)
@@ -189,7 +194,9 @@ epispot_dual_group_core_ <- function(Y, list_X, list_hyper, gam_vb, list_mu_beta
       
       lb_new <- elbo_dual_group_(Y, list_X, eta, eta_vb, g_sizes, gam_vb, kappa, 
                                  kappa_vb, lambda, lambda_vb, list_m1_beta, list_m1_btb,
-                                 list_m1_btXtXb, list_sig2_beta_star, m0,  mat_x_m1, 
+                                 list_m1_btXtXb, list_sig2_beta_star, 
+                                 log_1_min_Phi_theta_plus_rho, log_Phi_theta_plus_rho, 
+                                 m0,  mat_x_m1, 
                                  mu_rho_vb, mu_theta_vb, n0, nu, nu_vb, rs_gam, S0_inv, 
                                  sig2_inv_vb, sig2_rho_vb, sig2_theta_vb, T0_inv, tau_vb,
                                  vec_log_det, vec_sum_log_det_rho, vec_sum_log_det_theta)
@@ -254,7 +261,8 @@ epispot_dual_group_core_ <- function(Y, list_X, list_hyper, gam_vb, list_mu_beta
 #
 elbo_dual_group_ <- function(Y, list_X, eta, eta_vb, g_sizes, gam_vb, kappa, 
                              kappa_vb, lambda, lambda_vb, list_m1_beta, list_m1_btb,
-                             list_m1_btXtXb, list_sig2_beta_star, m0, mat_x_m1, 
+                             list_m1_btXtXb, list_sig2_beta_star, 
+                             log_1_min_Phi_theta_plus_rho, log_Phi_theta_plus_rho, m0, mat_x_m1, 
                              mu_rho_vb, mu_theta_vb, n0, nu, nu_vb, rs_gam, S0_inv, 
                              sig2_inv_vb, sig2_rho_vb, sig2_theta_vb, T0_inv, tau_vb,
                              vec_log_det, vec_sum_log_det_rho, vec_sum_log_det_theta) {
@@ -263,17 +271,11 @@ elbo_dual_group_ <- function(Y, list_X, eta, eta_vb, g_sizes, gam_vb, kappa,
   log_tau_vb <- digamma(eta_vb) - log(kappa_vb)
   log_sig2_inv_vb <- digamma(lambda_vb) - log(nu_vb)
   
-  log_Phi_mu_theta_plus_rho <- sapply(mu_rho_vb, function(mu_rho_k) {
-    pnorm(mu_theta_vb + mu_rho_k, log.p = TRUE)})
-  
-  log_1_min_Phi_mu_theta_plus_rho <- sapply(mu_rho_vb, function(mu_rho_k) {
-    pnorm(mu_theta_vb + mu_rho_k, lower.tail = FALSE, log.p = TRUE)})
-
   
   elbo_A <- e_g_y_(n, kappa, kappa_vb, list_m1_btb, log_tau_vb, sig2_inv_vb, tau_vb)
   
-  elbo_B <- e_dual_g_beta_gamma_(gam_vb, g_sizes, log_Phi_mu_theta_plus_rho, 
-                                 log_1_min_Phi_mu_theta_plus_rho, log_sig2_inv_vb, 
+  elbo_B <- e_dual_g_beta_gamma_(gam_vb, g_sizes, log_1_min_Phi_theta_plus_rho, 
+                                 log_Phi_theta_plus_rho, log_sig2_inv_vb, 
                                  log_tau_vb, list_m1_btb, list_sig2_beta_star, 
                                  sig2_inv_vb, tau_vb, vec_log_det)
   

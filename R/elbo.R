@@ -73,7 +73,7 @@ e_g_beta_gamma_ <- function(gam_vb, g_sizes, log_om_vb, log_1_min_om_vb,
   
 }
 
-e_dual_g_beta_gamma_ <- function(gam_vb, g_sizes, log_Phi_mat, log_1_min_Phi_mat,
+e_dual_g_beta_gamma_ <- function(gam_vb, g_sizes, log_1_min_Phi_mat, log_Phi_mat, 
                                  log_sig2_inv_vb, log_tau_vb, list_m1_btb,
                                  list_sig2_beta_star, sig2_inv_vb, tau_vb, vec_log_det) {
   

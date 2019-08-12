@@ -174,7 +174,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       
       m2_beta <- update_m2_beta_(gam_vb, mu_beta_vb, sig2_beta_vb, sweep = TRUE)
       
-      W <- update_W_info_(gam_vb, mat_v_mu, c = c) # we use info_ so that the second argument is a matrix
+      W <- update_W_info_(gam_vb, mat_v_mu, log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, c = c) # we use info_ so that the second argument is a matrix
       
       mat_v_mu <- sweep(mat_v_mu, 1, mu_theta_vb, `-`)
       mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv, sig2_theta_vb,

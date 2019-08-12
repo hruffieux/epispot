@@ -179,7 +179,8 @@ epispot_dual_horseshoe_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb,
       
       m2_beta <- update_m2_beta_(gam_vb, mu_beta_vb, sig2_beta_vb, sweep = TRUE)
       
-      W <- update_W_info_(gam_vb, theta_plus_rho_vb, c = c) # we use info_ so that the second argument is a matrix
+      W <- update_W_info_(gam_vb, theta_plus_rho_vb, log_1_min_Phi_theta_plus_rho, 
+                          log_Phi_theta_plus_rho, c = c) # we use info_ so that the second argument is a matrix
       
       # keep this order!
       #

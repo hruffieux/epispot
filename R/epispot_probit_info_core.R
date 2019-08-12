@@ -74,7 +74,7 @@ epispot_probit_info_core_ <- function(Y, X, Z, V, list_hyper, gam_vb, mu_alpha_v
 
       log_sig2_inv_vb <- update_log_sig2_inv_vb_(lambda_vb, nu_vb)
 
-      W <- update_W_info_(gam_vb, mat_v_mu)
+      W <- update_W_info_(gam_vb, mat_v_mu, log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu)
 
 
       # different possible batch-coordinate ascent schemes:
