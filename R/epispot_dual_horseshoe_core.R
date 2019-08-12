@@ -207,22 +207,18 @@ epispot_dual_horseshoe_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb,
         
       } else {
         
+        Q_app <- Q_approx_vec(G_vb)
+        
         if (df == 1) {
-          
-          Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))  # TODO implement a Q_approx for vectors
           
           b_vb <- 1 / (Q_app * G_vb) - 1
           
         } else if (df == 3) {
           
-          Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))
-          
           b_vb <- exp(-log(3) - log(G_vb) + log(1 - G_vb * Q_app) - log(Q_app * (1 + G_vb) - 1)) - 1 / 3
           
         } else {
           # also works for df = 3 but might be slightly less efficient than the above
-          
-          Q_app <- sapply(G_vb, function(G_vb_s) Q_approx(G_vb_s))
           
           exponent <- (df + 1) / 2
           
