@@ -553,21 +553,34 @@ update_W_info_ <- function(gam_vb, mat_v_mu, c = 1) {
 
   sqrt_c <- sqrt(c)
 
-  (gam_vb * (inv_mills_ratio_(1, sqrt_c * mat_v_mu) - inv_mills_ratio_(0, sqrt_c * mat_v_mu)) +
-     inv_mills_ratio_(0, sqrt_c * mat_v_mu)) / sqrt_c + mat_v_mu
+  log_pnorm <- pnorm(sqrt_c * mat_v_mu, log.p = TRUE)
+  log_1_pnorm <- pnorm(sqrt_c * mat_v_mu, log.p = TRUE, lower.tail = FALSE)
+
+  imr0 <- inv_mills_ratio_(0, sqrt_c * mat_v_mu, log_1_pnorm, log_pnorm)
+  
+  (gam_vb * (inv_mills_ratio_(1, sqrt_c * mat_v_mu, log_1_pnorm, log_pnorm) - imr0) + imr0) / sqrt_c + mat_v_mu
 
 }
 
+update_W_probit_ <- function(Y, mat_z_mu, mat_x_m1) {
 
-update_W_probit_ <- function(Y, mat_z_mu, mat_x_m1) mat_z_mu + mat_x_m1 + inv_mills_ratio_(Y, mat_z_mu + mat_x_m1)
+  mat_z_mu + mat_x_m1 + inv_mills_ratio_matrix_(Y, mat_z_mu + mat_x_m1)
+
+}
 
 
 update_W_struct_ <- function(gam_vb, mu_theta_vb) {
 
-  sweep(sweep(gam_vb, 1, (inv_mills_ratio_(1, mu_theta_vb) - inv_mills_ratio_(0, mu_theta_vb)), `*`),
-        1,  mu_theta_vb + inv_mills_ratio_(0, mu_theta_vb), `+`)
+  log_pnorm <- pnorm(mu_theta_vb, log.p = TRUE)
+  log_1_pnorm <- pnorm(mu_theta_vb, log.p = TRUE, lower.tail = FALSE)
+
+  imr0 <- inv_mills_ratio_(0, mu_theta_vb, log_1_pnorm, log_pnorm)
+
+  sweep(sweep(gam_vb, 1, (inv_mills_ratio_(1, mu_theta_vb, log_1_pnorm, log_pnorm) - imr0), `*`),
+        1,  mu_theta_vb + imr0, `+`)
 
 }
+
 
 
 ####################

@@ -6,6 +6,9 @@
 *.pdf
 .DS_Store
 
+# ignore temporary file system files
+.nfs*
+
 # temporary files emacs
 *~
 [#]*[#]

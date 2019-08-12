@@ -1,14 +1,12 @@
 #' epispot: a package for combined predictor and outcome selection in
 #' high-dimensional set-ups using variational inference
 #'
-#' The epispot package provides an efficient variational algorithm for
-#' simultaneous variable selection of predictors and associated outcomes based
-#' on a sparse multivariate regression model (H. Ruffieux, A. C. Davison,
-#' J. Hager, I. Irincheeva, Efficient inference for genetic association studies
-#' with multiple outcomes, Biostatistics, 2017). The methods from this package
-#' have been used on large genetic datasets from molecular quantitative trait
-#' epispot (QTL) problems with over 200K single nucleotide polymorphisms (SNPs),
-#' hundreds of molecular expression levels and hundreds of samples.
+#' The epispot package provides a parallel variational expectation-maximisation 
+#' algorithm for sparse regression with hierarchically-related responses and 
+#' predictor-level information. This software has been used in the context of 
+#' molecular quantitative trait locus mapping, with several thousand molecular 
+#' levels (responses), genetic markers (candidate predictors) and epigenomic 
+#' annotation marks (predictor-level covariates) and individuals (samples).
 #'
 #' @section epispot functions: set_hyper, set_init, generate_null, epispot,
 #'   set_blocks, set_cv, set_groups, set_struct.
