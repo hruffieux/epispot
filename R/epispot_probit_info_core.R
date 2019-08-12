@@ -34,6 +34,9 @@ epispot_probit_info_core_ <- function(Y, X, Z, V, list_hyper, gam_vb, mu_alpha_v
     mat_z_mu <- update_mat_z_mu_(Z, mu_alpha_vb)
     mat_v_mu <- update_mat_v_mu_(V, mu_c0_vb, mu_c_vb)
 
+    log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
+    log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
+    
     sig2_c0_vb <- update_sig2_c0_vb_(d, s02)
     sig2_c_vb <-  update_sig2_c_vb_(p, s2)
 
@@ -87,9 +90,6 @@ epispot_probit_info_core_ <- function(Y, X, Z, V, list_hyper, gam_vb, mu_alpha_v
           mat_z_mu <- mat_z_mu + tcrossprod(Z[, i], mu_alpha_vb[i, ])
 
         }
-
-        log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
-        log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
 
         # C++ Eigen call for expensive updates
         shuffled_ind <- as.numeric(sample(0:(p-1))) # Zero-based index in C++
@@ -172,18 +172,22 @@ epispot_probit_info_core_ <- function(Y, X, Z, V, list_hyper, gam_vb, mu_alpha_v
         stop ("Batch scheme not defined. Exit.")
 
       }
+      
+      log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
+      log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
 
       m2_alpha <- update_m2_alpha_(mu_alpha_vb, sig2_alpha_vb, sweep = TRUE)
       m2_beta <- update_m2_beta_(gam_vb, mu_beta_vb, sig2_beta_vb)
 
       Wy <- update_W_probit_(Y, mat_z_mu, mat_x_m1)
 
-      lb_new <- elbo_probit_info_(Y, X, V, Z, gam_vb, lambda, m0, mu_alpha_vb,
-                                  mu_c0_vb, mu_c_vb, nu, phi, phi_vb,
+      lb_new <- elbo_probit_info_(Y, X, V, Z, gam_vb, lambda, 
+                                  log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, m0, 
+                                  mu_alpha_vb, mu_c0_vb, mu_c_vb, nu, phi, phi_vb,
                                   sig2_alpha_vb, sig2_beta_vb, sig2_c0_vb,
                                   sig2_c_vb, sig2_inv_vb, s02, s2, xi,
                                   zeta2_inv_vb, m2_alpha, m1_beta, m2_beta,
-                                  mat_x_m1, mat_v_mu, mat_z_mu)
+                                  mat_x_m1, mat_z_mu)
 
       if (verbose & (it == 1 | it %% 5 == 0))
         cat(paste("ELBO = ", format(lb_new), "\n\n", sep = ""))
@@ -246,11 +250,12 @@ epispot_probit_info_core_ <- function(Y, X, Z, V, list_hyper, gam_vb, mu_alpha_v
 # Internal function which implements the marginal log-likelihood variational
 # lower bound (ELBO) corresponding to the `epispot_probit_info_core` algorithm.
 #
-elbo_probit_info_ <- function(Y, X, V, Z, gam_vb, lambda, m0, mu_alpha_vb,
+elbo_probit_info_ <- function(Y, X, V, Z, gam_vb, lambda, log_1_min_Phi_mat_v_mu, 
+                              log_Phi_mat_v_mu, m0, mu_alpha_vb,
                               mu_c0_vb, mu_c_vb, nu, phi, phi_vb, sig2_alpha_vb,
                               sig2_beta_vb, sig2_c0_vb, sig2_c_vb, sig2_inv_vb,
                               s02, s2, xi, zeta2_inv_vb, m2_alpha, m1_beta,
-                              m2_beta, mat_x_m1, mat_v_mu, mat_z_mu) {
+                              m2_beta, mat_x_m1, mat_z_mu) {
 
   xi_vb <- update_xi_bin_vb_(xi, m2_alpha)
 
@@ -263,7 +268,8 @@ elbo_probit_info_ <- function(Y, X, V, Z, gam_vb, lambda, m0, mu_alpha_vb,
 
   elbo_A <- e_y_probit_(X, Y, Z, m1_beta, m2_beta, mat_x_m1, mat_z_mu, sig2_alpha_vb)
 
-  elbo_B <- e_beta_gamma_info_bin_(V, gam_vb, log_sig2_inv_vb, mat_v_mu, m2_beta,
+  elbo_B <- e_beta_gamma_info_bin_(V, gam_vb, log_sig2_inv_vb, 
+                                   log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, m2_beta,
                                    sig2_beta_vb, sig2_c0_vb, sig2_c_vb, sig2_inv_vb)
 
   elbo_C <- e_c0_(m0, mu_c0_vb, s02, sig2_c0_vb)
@@ -276,7 +282,7 @@ elbo_probit_info_ <- function(Y, X, V, Z, gam_vb, lambda, m0, mu_alpha_vb,
 
   elbo_G <- e_zeta2_inv_(log_zeta2_inv_vb, phi, phi_vb, xi, xi_vb, zeta2_inv_vb)
 
-  elbo_A + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G
+  as.numeric(elbo_A + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G)
 
 }
 

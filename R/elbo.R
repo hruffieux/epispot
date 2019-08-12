@@ -106,7 +106,8 @@ e_beta_gamma_bin_ <- function(gam_vb, log_om_vb, log_1_min_om_vb, log_sig2_inv_v
 }
 
 
-e_beta_gamma_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb, mat_v_mu,
+e_beta_gamma_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb, 
+                               log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu,
                                m2_beta, sig2_beta_vb, sig2_c0_vb, sig2_c_vb,
                                sig2_inv_vb, tau_vb) {
   
@@ -115,8 +116,8 @@ e_beta_gamma_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb, mat_v_mu,
   sum(log_sig2_inv_vb * gam_vb / 2 +
         sweep(gam_vb, 2, log_tau_vb, `*`) / 2 -
         sweep(m2_beta, 2, tau_vb, `*`) * sig2_inv_vb / 2 +
-        gam_vb * pnorm(mat_v_mu, log.p = TRUE) +
-        sweep((1 - gam_vb) * pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE), 1,
+        gam_vb * log_Phi_mat_v_mu +
+        sweep((1 - gam_vb) * log_1_min_Phi_mat_v_mu, 1,
               sig2_c_vb * rowSums(V^2) / 2, `-`) -
         sig2_c0_vb / 2 + 1 / 2 * sweep(gam_vb, 2, log(sig2_beta_vb) + 1, `*`) -
         gam_vb * log(gam_vb + eps) - (1 - gam_vb) * log(1 - gam_vb + eps))
@@ -124,21 +125,23 @@ e_beta_gamma_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb, mat_v_mu,
 }
 
 
-e_beta_gamma_info_bin_ <- function(V, gam_vb, log_sig2_inv_vb, mat_v_mu, m2_beta,
+e_beta_gamma_info_bin_ <- function(V, gam_vb, log_sig2_inv_vb, 
+                                   log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, m2_beta,
                                    sig2_beta_vb, sig2_c0_vb, sig2_c_vb, sig2_inv_vb) {
   
   eps <- .Machine$double.eps^0.75 # to control the argument of the log when gamma is very small
   
   sum(gam_vb * log_sig2_inv_vb / 2 - m2_beta * sig2_inv_vb / 2 +
-        gam_vb * pnorm(mat_v_mu, log.p = TRUE) +
-        sweep((1 - gam_vb) * pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE), 1, sig2_c_vb * rowSums(V^2) / 2, `-`) -
+        gam_vb * log_Phi_mat_v_mu +
+        sweep((1 - gam_vb) * log_1_min_Phi_mat_v_mu, 1, sig2_c_vb * rowSums(V^2) / 2, `-`) -
         sig2_c0_vb / 2 + gam_vb * (log(sig2_beta_vb) + 1) / 2 -
         gam_vb * log(gam_vb + eps) - (1 - gam_vb) * log(1 - gam_vb + eps))
   
 }
 
 
-e_beta_gamma_struct_ <- function(gam_vb, log_sig2_inv_vb, log_tau_vb, mu_theta_vb,
+e_beta_gamma_struct_ <- function(gam_vb, log_sig2_inv_vb, log_tau_vb, 
+                                 log_1_min_Phi_mu_theta_vb, log_Phi_mu_theta_vb,
                                  m2_beta, sig2_beta_vb, list_sig2_theta_vb,
                                  sig2_inv_vb, tau_vb) {
   
@@ -149,8 +152,8 @@ e_beta_gamma_struct_ <- function(gam_vb, log_sig2_inv_vb, log_tau_vb, mu_theta_v
   sum(log_sig2_inv_vb * gam_vb / 2 +
         sweep(gam_vb, 2, log_tau_vb, `*`) / 2 -
         sweep(m2_beta, 2, tau_vb, `*`) * sig2_inv_vb / 2 +
-        sweep(gam_vb, 1, pnorm(mu_theta_vb, log.p = TRUE), `*`) +
-        sweep(sweep((1 - gam_vb), 1, pnorm(mu_theta_vb, lower.tail = FALSE, log.p = TRUE), `*`), 1, diag_sig2_theta_vb / 2, `-`) +
+        sweep(gam_vb, 1, log_Phi_mu_theta_vb, `*`) +
+        sweep(sweep((1 - gam_vb), 1, log_1_min_Phi_mu_theta_vb, `*`), 1, diag_sig2_theta_vb / 2, `-`) +
         1 / 2 * sweep(gam_vb, 2, log(sig2_beta_vb) + 1, `*`) -
         gam_vb * log(gam_vb + eps) - (1 - gam_vb) * log(1 - gam_vb + eps))
   
@@ -158,21 +161,17 @@ e_beta_gamma_struct_ <- function(gam_vb, log_sig2_inv_vb, log_tau_vb, mu_theta_v
 
 
 e_beta_gamma_dual_ <- function(gam_vb, log_sig2_inv_vb, log_tau_vb,
-                               mu_rho_vb, mu_theta_vb, m2_beta,
-                               sig2_beta_vb, sig2_rho_vb,
+                               log_1_min_Phi_theta_plus_rho, log_Phi_theta_plus_rho,
+                               m2_beta, sig2_beta_vb, sig2_rho_vb,
                                list_sig2_theta_vb, sig2_inv_vb, tau_vb) {
   
   eps <- .Machine$double.eps^0.75 # to control the argument of the log when gamma is very small
-  
-  d <- length(tau_vb)
-  
-  mat_struct <- sweep(tcrossprod(mu_theta_vb, rep(1, d)), 2, mu_rho_vb, `+`)
-  
+
   arg <- log_sig2_inv_vb * gam_vb / 2 +
     sweep(gam_vb, 2, log_tau_vb, `*`) / 2 -
     sweep(m2_beta, 2, tau_vb, `*`) * sig2_inv_vb / 2 +
-    gam_vb * pnorm(mat_struct, log.p = TRUE) +
-    (1 - gam_vb) * pnorm(mat_struct, lower.tail = FALSE, log.p = TRUE) -
+    gam_vb * log_Phi_theta_plus_rho +
+    (1 - gam_vb) * log_1_min_Phi_theta_plus_rho -
     sig2_rho_vb / 2 + 1 / 2 * sweep(gam_vb, 2, log(sig2_beta_vb) + 1, `*`) -
     gam_vb * log(gam_vb + eps) - (1 - gam_vb) * log(1 - gam_vb + eps)
   

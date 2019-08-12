@@ -24,7 +24,9 @@ epispot_struct_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta
     #
     mu_theta_vb <- m0
 
-
+    log_Phi_mu_theta_vb <- pnorm(mu_theta_vb, log.p = TRUE)
+    log_1_min_Phi_mu_theta_vb <- pnorm(mu_theta_vb, lower.tail = FALSE, log.p = TRUE)
+    
     # Covariate-specific parameters: objects derived from s02, list_struct (possible block-wise in parallel)
     #
     obj_theta_vb <- update_sig2_theta_vb_(d, p, list_struct, s02, X)
@@ -80,9 +82,6 @@ epispot_struct_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta
 
       if (batch == "y") { # optimal scheme
 
-        log_Phi_mu_theta_vb <- pnorm(mu_theta_vb, log.p = TRUE)
-        log_1_min_Phi_mu_theta_vb <- pnorm(mu_theta_vb, lower.tail = FALSE, log.p = TRUE)
-
         # C++ Eigen call for expensive updates
         shuffled_ind <- as.numeric(sample(0:(p-1))) # Zero-based index in C++
 
@@ -128,10 +127,13 @@ epispot_struct_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta
 
       mu_theta_vb <- update_mu_theta_vb_(W, m0, list_S0_inv, list_sig2_theta_vb, vec_fac_st)
 
+      log_Phi_mu_theta_vb <- pnorm(mu_theta_vb, log.p = TRUE)
+      log_1_min_Phi_mu_theta_vb <- pnorm(mu_theta_vb, lower.tail = FALSE, log.p = TRUE)
 
       lb_new <- elbo_struct_(Y, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
-                             lambda_vb, m0, mu_theta_vb, nu, nu_vb, sig2_beta_vb,
-                             list_S0_inv, list_sig2_theta_vb, sig2_inv_vb, tau_vb,
+                             lambda_vb, log_1_min_Phi_mu_theta_vb, log_Phi_mu_theta_vb, 
+                             m0, mu_theta_vb, nu, nu_vb, sig2_beta_vb, list_S0_inv, 
+                             list_sig2_theta_vb, sig2_inv_vb, tau_vb,
                              m1_beta, m2_beta, mat_x_m1, vec_fac_st, vec_sum_log_det)
 
       if (verbose & (it == 1 | it %% 5 == 0))
@@ -188,7 +190,8 @@ epispot_struct_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta
 # lower bound (ELBO) corresponding to the `epispot_struct_core` algorithm.
 #
 elbo_struct_ <- function(Y, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
-                         lambda_vb, m0, mu_theta_vb, nu, nu_vb, sig2_beta_vb,
+                         lambda_vb, log_1_min_Phi_mu_theta_vb, log_Phi_mu_theta_vb,
+                         m0, mu_theta_vb, nu, nu_vb, sig2_beta_vb,
                          list_S0_inv, list_sig2_theta_vb, sig2_inv_vb, tau_vb,
                          m1_beta, m2_beta, mat_x_m1, vec_fac_st, vec_sum_log_det) {
 
@@ -210,7 +213,8 @@ elbo_struct_ <- function(Y, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
   elbo_A <- e_y_(n, kappa, kappa_vb, log_tau_vb, m2_beta, sig2_inv_vb, tau_vb)
 
   elbo_B <- e_beta_gamma_struct_(gam_vb, log_sig2_inv_vb, log_tau_vb,
-                                 mu_theta_vb, m2_beta, sig2_beta_vb,
+                                 log_1_min_Phi_mu_theta_vb, log_Phi_mu_theta_vb,
+                                 m2_beta, sig2_beta_vb,
                                  list_sig2_theta_vb, sig2_inv_vb, tau_vb)
 
   elbo_C <- e_theta_(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_st, vec_sum_log_det)

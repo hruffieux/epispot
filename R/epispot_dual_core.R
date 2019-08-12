@@ -37,6 +37,10 @@ epispot_dual_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta_v
     mu_theta_vb <- rnorm(p, mean = m0, sd = abs(m0) / 5)
     mu_rho_vb <- rnorm(d, mean = n0, sd = abs(n0) / 5) 
 
+    theta_plus_rho_vb <- sweep(tcrossprod(mu_theta_vb, rep(1, d)), 2, mu_rho_vb, `+`)
+    log_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE)
+    log_1_min_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE, lower.tail = FALSE) 
+    
     # Covariate-specific parameters: objects derived from s02, list_struct (possible block-wise in parallel)
     #
     obj_theta_vb <- update_sig2_theta_vb_(d, p, list_struct, s02, X, c = c)
@@ -100,17 +104,11 @@ epispot_dual_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta_v
 
       if (batch == "y") { # optimal scheme
 
-        log_Phi_mu_theta_plus_rho <- sapply(mu_rho_vb, function(mu_rho_k) {
-          pnorm(mu_theta_vb + mu_rho_k, log.p = TRUE)})
-
-        log_1_min_Phi_mu_theta_plus_rho <- sapply(mu_rho_vb, function(mu_rho_k) {
-          pnorm(mu_theta_vb + mu_rho_k, lower.tail = FALSE, log.p = TRUE)})
-
         # C++ Eigen call for expensive updates
         shuffled_ind <- as.numeric(sample(0:(p-1))) # Zero-based index in C++
-
-        coreDualLoop(X, Y, gam_vb, log_Phi_mu_theta_plus_rho,
-                    log_1_min_Phi_mu_theta_plus_rho, log_sig2_inv_vb,
+        
+        coreDualLoop(X, Y, gam_vb, log_Phi_theta_plus_rho,
+                    log_1_min_Phi_theta_plus_rho, log_sig2_inv_vb,
                     log_tau_vb, m1_beta, mat_x_m1, mu_beta_vb,
                     sig2_beta_vb, tau_vb, shuffled_ind, c = c)
 
@@ -148,12 +146,16 @@ epispot_dual_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta_v
 
       m2_beta <- update_m2_beta_(gam_vb, mu_beta_vb, sig2_beta_vb, sweep = TRUE)
 
-      W <- update_W_info_(gam_vb, sweep(tcrossprod(mu_theta_vb, rep(1, d)), 2, mu_rho_vb, `+`), c = c) # we use info_ so that the second argument is a matrix
+      W <- update_W_info_(gam_vb, theta_plus_rho_vb, c = c) # we use info_ so that the second argument is a matrix
 
       mu_theta_vb <- update_mu_theta_vb_(W, m0, S0_inv, sig2_theta_vb, vec_fac_st, mu_rho_vb, is_mat = FALSE, c = c)
 
       mu_rho_vb <- update_mu_rho_vb_(W, mu_theta_vb, n0, sig2_rho_vb, T0_inv, is_mat = FALSE, c = c) # update_mu_rho_vb_(W, mu_theta_vb, sig2_rho_vb)
 
+      theta_plus_rho_vb <- sweep(tcrossprod(mu_theta_vb, rep(1, d)), 2, mu_rho_vb, `+`)
+      log_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE)
+      log_1_min_Phi_theta_plus_rho <- pnorm(theta_plus_rho_vb, log.p = TRUE, lower.tail = FALSE) 
+      
       if (annealing) {
 
         if (verbose & (it == 1 | it %% 5 == 0))
@@ -178,7 +180,8 @@ epispot_dual_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta_v
       } else {
 
         lb_new <- elbo_dual_(Y, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
-                             lambda_vb, m0, n0, mu_rho_vb, mu_theta_vb, nu, nu_vb,
+                             lambda_vb, log_1_min_Phi_theta_plus_rho, 
+                             log_Phi_theta_plus_rho, m0, n0, mu_rho_vb, mu_theta_vb, nu, nu_vb,
                              sig2_beta_vb, S0_inv, sig2_theta_vb,
                              sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, m1_beta,
                              m2_beta, mat_x_m1, vec_fac_st, vec_sum_log_det_rho,
@@ -246,7 +249,8 @@ epispot_dual_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta_v
 # lower bound (ELBO) corresponding to the `epispot_struct_core` algorithm.
 #
 elbo_dual_ <- function(Y, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
-                       lambda_vb, m0, n0, mu_rho_vb, mu_theta_vb, nu, nu_vb,
+                       lambda_vb, log_1_min_Phi_theta_plus_rho, 
+                       log_Phi_theta_plus_rho, m0, n0, mu_rho_vb, mu_theta_vb, nu, nu_vb,
                        sig2_beta_vb, S0_inv, sig2_theta_vb,
                        sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, m1_beta,
                        m2_beta, mat_x_m1, vec_fac_st, vec_sum_log_det_rho,
@@ -269,9 +273,9 @@ elbo_dual_ <- function(Y, eta, eta_vb, gam_vb, kappa, kappa_vb, lambda,
   elbo_A <- e_y_(n, kappa, kappa_vb, log_tau_vb, m2_beta, sig2_inv_vb, tau_vb)
 
   elbo_B <- e_beta_gamma_dual_(gam_vb, log_sig2_inv_vb, log_tau_vb,
-                                        mu_rho_vb, mu_theta_vb, m2_beta,
-                                        sig2_beta_vb, sig2_rho_vb,
-                                        sig2_theta_vb, sig2_inv_vb, tau_vb)
+                               log_1_min_Phi_theta_plus_rho, log_Phi_theta_plus_rho,
+                               m2_beta, sig2_beta_vb, sig2_rho_vb,
+                               sig2_theta_vb, sig2_inv_vb, tau_vb)
 
   elbo_C <- e_theta_(m0, mu_theta_vb, S0_inv, sig2_theta_vb, vec_fac_st,
                      vec_sum_log_det_theta)

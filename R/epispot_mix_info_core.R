@@ -38,6 +38,9 @@ epispot_mix_info_core_ <- function(Y, X, Z, V, ind_bin, list_hyper, gam_vb,
     mat_x_m1 <- update_mat_x_m1_(X, m1_beta)
     mat_z_mu <- update_mat_z_mu_(Z, mu_alpha_vb)
     mat_v_mu <- update_mat_v_mu_(V, mu_c0_vb, mu_c_vb)
+    
+    log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
+    log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
 
     sig2_c0_vb <- update_sig2_c0_vb_(d, s02)
     sig2_c_vb <-  update_sig2_c_vb_(p, s2)
@@ -117,9 +120,6 @@ epispot_mix_info_core_ <- function(Y, X, Z, V, ind_bin, list_hyper, gam_vb,
           mat_z_mu <- mat_z_mu + tcrossprod(Z[, i], mu_alpha_vb[i, ])
 
         }
-
-        log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
-        log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
 
         # C++ Eigen call for expensive updates
         shuffled_ind <- as.numeric(sample(0:(p-1))) # Zero-based index in C++
@@ -206,6 +206,9 @@ epispot_mix_info_core_ <- function(Y, X, Z, V, ind_bin, list_hyper, gam_vb,
         stop ("Batch scheme not defined. Exit.")
 
       }
+      
+      log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
+      log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
 
       m2_alpha <- update_m2_alpha_(mu_alpha_vb, sig2_alpha_vb)
       m2_beta <- update_m2_beta_(gam_vb, mu_beta_vb, sig2_beta_vb, sweep = TRUE)
@@ -217,12 +220,13 @@ epispot_mix_info_core_ <- function(Y, X, Z, V, ind_bin, list_hyper, gam_vb,
       sum_gam <- sum(rs_gam)
 
       lb_new <- elbo_mix_info_(Y_bin, Y_cont, ind_bin, X, V, Z, eta, gam_vb,
-                               kappa, lambda, m0, mu_alpha_vb, mu_c0_vb,
+                               kappa, lambda, log_1_min_Phi_mat_v_mu, 
+                               log_Phi_mat_v_mu, m0, mu_alpha_vb, mu_c0_vb,
                                mu_c_vb, nu, phi, phi_vb, sig2_alpha_vb,
                                sig2_beta_vb, sig2_c0_vb, sig2_c_vb, sig2_inv_vb,
                                s02, s2, tau_vb, log_tau_vb, xi, zeta2_inv_vb,
-                               m2_alpha, m1_beta, m2_beta, mat_x_m1, mat_v_mu,
-                               mat_z_mu, sum_gam)
+                               m2_alpha, m1_beta, m2_beta, mat_x_m1, mat_z_mu, 
+                               sum_gam)
 
       if (verbose & (it == 1 | it %% 5 == 0))
         cat(paste("ELBO = ", format(lb_new), "\n\n", sep = ""))
@@ -287,11 +291,12 @@ epispot_mix_info_core_ <- function(Y, X, Z, V, ind_bin, list_hyper, gam_vb,
 # (ELBO) corresponding to the `epispot_mix_info_core` algorithm.
 #
 elbo_mix_info_ <- function(Y_bin, Y_cont, ind_bin, X, V, Z, eta, gam_vb, kappa,
-                           lambda, m0, mu_alpha_vb, mu_c0_vb, mu_c_vb, nu, phi,
+                           lambda, log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, m0, 
+                           mu_alpha_vb, mu_c0_vb, mu_c_vb, nu, phi,
                            phi_vb, sig2_alpha_vb, sig2_beta_vb, sig2_c0_vb,
                            sig2_c_vb, sig2_inv_vb, s02, s2, tau_vb, log_tau_vb,
                            xi, zeta2_inv_vb, m2_alpha, m1_beta, m2_beta,
-                           mat_x_m1, mat_v_mu, mat_z_mu, sum_gam) {
+                           mat_x_m1, mat_z_mu, sum_gam) {
 
   n <- nrow(Z)
   q <- ncol(Z)
@@ -330,9 +335,10 @@ elbo_mix_info_ <- function(Y_bin, Y_cont, ind_bin, X, V, Z, eta, gam_vb, kappa,
                             sig2_alpha_vb[, ind_bin, drop = FALSE], sweep = FALSE)
 
 
-  elbo_B <- e_beta_gamma_info_(V, gam_vb, log_sig2_inv_vb, log_tau_vb, mat_v_mu,
-                                     m2_beta, sig2_beta_vb, sig2_c0_vb, sig2_c_vb,
-                                     sig2_inv_vb, tau_vb)
+  elbo_B <- e_beta_gamma_info_(V, gam_vb, log_sig2_inv_vb, log_tau_vb, 
+                               log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
+                               m2_beta, sig2_beta_vb, sig2_c0_vb, sig2_c_vb,
+                               sig2_inv_vb, tau_vb)
 
   elbo_C <- e_tau_(eta, eta_vb, kappa, kappa_vb, log_tau_vb[-ind_bin], tau_vb[-ind_bin])
 
@@ -347,7 +353,7 @@ elbo_mix_info_ <- function(Y_bin, Y_cont, ind_bin, X, V, Z, eta, gam_vb, kappa,
 
   elbo_H <- e_zeta2_inv_(log_zeta2_inv_vb, phi, phi_vb, xi, xi_vb, zeta2_inv_vb)
 
-  elbo_A_cont + elbo_A_bin + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G + elbo_H
+  as.numeric(elbo_A_cont + elbo_A_bin + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G + elbo_H)
 
 }
 
