@@ -188,10 +188,11 @@ e_beta_gamma_dual_ <- function(gam_vb, log_sig2_inv_vb, log_tau_vb,
 
 
 e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
-                                    mat_v_mu, mu_c_vb, m2_beta,
-                                    sig2_beta_vb, sig2_c_vb, sig2_rho_vb,
-                                    list_sig2_theta_vb, sig2_inv_vb, tau_vb,
-                                    zeta_vb, resp_spec = FALSE, bool_blocks = FALSE,
+                                    log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
+                                    mu_c_vb, m2_beta, sig2_beta_vb, sig2_c_vb, 
+                                    sig2_rho_vb, list_sig2_theta_vb, 
+                                    sig2_inv_vb, tau_vb, zeta_vb, 
+                                    resp_spec = FALSE, bool_blocks = FALSE,
                                     bool_modules = FALSE, vec_fac_bl_y = NULL,
                                     vec_fac_bl_theta = NULL) {
   
@@ -202,8 +203,8 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
   arg <- log_sig2_inv_vb * gam_vb / 2 +
     sweep(gam_vb, 2, log_tau_vb, `*`) / 2 -
     sweep(m2_beta, 2, tau_vb, `*`) * sig2_inv_vb / 2 +
-    gam_vb * pnorm(mat_v_mu, log.p = TRUE) +
-    (1 - gam_vb) * pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE) -
+    gam_vb * log_Phi_mat_v_mu +
+    (1 - gam_vb) * log_1_min_Phi_mat_v_mu -
     sig2_rho_vb / 2 + 1 / 2 * sweep(gam_vb, 2, log(sig2_beta_vb) + 1, `*`) -
     gam_vb * log(gam_vb + eps) - (1 - gam_vb) * log(1 - gam_vb + eps)
   

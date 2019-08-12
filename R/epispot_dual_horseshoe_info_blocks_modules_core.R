@@ -128,6 +128,9 @@ epispot_dual_horseshoe_info_blocks_modules_core_ <- function(Y, X, list_V,
     mat_x_m1 <- update_mat_x_m1_(X, m1_beta)
     mat_v_mu <- update_mat_v_mu_block_modules_(list_V, mu_theta_vb, mu_rho_vb, m1_c, vec_fac_bl_x, vec_fac_bl_y)
     
+    log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
+    log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
+    
     # Fixed VB parameter
     #
     lambda_a_inv_vb <- 1 # no change with annealing 
@@ -169,9 +172,8 @@ epispot_dual_horseshoe_info_blocks_modules_core_ <- function(Y, X, list_V,
       #
       if (batch == "y") { # optimal scheme
         
-        log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
-        
-        log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
+        # log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
+        # log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
         
         # C++ Eigen call for expensive updates
         shuffled_ind <- as.numeric(sample(0:(p-1))) # Zero-based index in C++
@@ -343,6 +345,9 @@ epispot_dual_horseshoe_info_blocks_modules_core_ <- function(Y, X, list_V,
         }
       }  
       
+      log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
+      log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
+      
       if (verbose & (it == 1 | it %% 5 == 0)) {
         
         cat(paste0("Updated global variance: ", format(nu_s0_vb / (lambda_s0_vb - 1) / shr_fac_inv, digits = 4), ".\n"))
@@ -390,7 +395,8 @@ epispot_dual_horseshoe_info_blocks_modules_core_ <- function(Y, X, list_V,
                                                    gam_vb, kappa, kappa_vb, lambda,
                                                    lambda_vb, lambda_a_inv_vb,
                                                    lambda_s0_vb, log_1_min_om_vb,
-                                                   log_om_vb, m0, n0, mu_c_vb,
+                                                   log_om_vb, log_1_min_Phi_mat_v_mu, 
+                                                   log_Phi_mat_v_mu, m0, n0, mu_c_vb,
                                                    mu_rho_vb, mu_theta_vb, nu,
                                                    nu_vb, nu_a_inv_vb, nu_s0_vb,
                                                    Q_app, sig2_beta_vb, S0_inv_vb,
@@ -398,7 +404,7 @@ epispot_dual_horseshoe_info_blocks_modules_core_ <- function(Y, X, list_V,
                                                    sig2_inv_vb, sig2_rho_vb,
                                                    T0_inv, tau_vb, zeta_vb,
                                                    m1_beta, m2_beta, mat_x_m1,
-                                                   mat_v_mu, vec_sum_log_det_rho,
+                                                   vec_sum_log_det_rho,
                                                    df, shr_fac_inv, vec_fac_bl_y)
 
         if (verbose & (it == 1 | it %% 5 == 0))
@@ -491,7 +497,8 @@ elbo_dual_horseshoe_info_blocks_modules_ <- function(Y, list_V, a_inv_vb, A2_inv
                                                      gam_vb, kappa, kappa_vb, lambda,
                                                      lambda_vb, lambda_a_inv_vb, 
                                                      lambda_s0_vb, log_1_min_om_vb, 
-                                                     log_om_vb, m0, n0, mu_c_vb, 
+                                                     log_om_vb, log_1_min_Phi_mat_v_mu, 
+                                                     log_Phi_mat_v_mu, m0, n0, mu_c_vb, 
                                                      mu_rho_vb, mu_theta_vb, nu, 
                                                      nu_vb, nu_a_inv_vb, nu_s0_vb, 
                                                      Q_app, sig2_beta_vb, S0_inv_vb, 
@@ -499,7 +506,7 @@ elbo_dual_horseshoe_info_blocks_modules_ <- function(Y, list_V, a_inv_vb, A2_inv
                                                      sig2_inv_vb, sig2_rho_vb,
                                                      T0_inv, tau_vb, zeta_vb, 
                                                      m1_beta, m2_beta, mat_x_m1, 
-                                                     mat_v_mu, vec_sum_log_det_rho, df, 
+                                                    vec_sum_log_det_rho, df, 
                                                      shr_fac_inv, vec_fac_bl_y) {
           
   
@@ -528,7 +535,8 @@ elbo_dual_horseshoe_info_blocks_modules_ <- function(Y, list_V, a_inv_vb, A2_inv
   elbo_A <- e_y_(n, kappa, kappa_vb, log_tau_vb, m2_beta, sig2_inv_vb, tau_vb)
   
   elbo_B <- e_beta_gamma_dual_info_(list_V, gam_vb, log_sig2_inv_vb, log_tau_vb,
-                                    mat_v_mu, mu_c_vb, m2_beta, sig2_beta_vb,
+                                    log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
+                                    mu_c_vb, m2_beta, sig2_beta_vb,
                                     sig2_c_vb, sig2_rho_vb, sig2_theta_vb,
                                     sig2_inv_vb, tau_vb, zeta_vb, 
                                     bool_modules = TRUE, 
@@ -555,7 +563,7 @@ elbo_dual_horseshoe_info_blocks_modules_ <- function(Y, list_V, a_inv_vb, A2_inv
   
   elbo_I <- e_sig2_inv_(lambda, lambda_vb, log_sig2_inv_vb, nu, nu_vb, sig2_inv_vb)
   
-  elbo_A + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G + elbo_H + elbo_I 
+  as.numeric(elbo_A + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G + elbo_H + elbo_I) 
   
 }
 
