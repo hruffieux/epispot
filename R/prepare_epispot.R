@@ -709,7 +709,8 @@ prepare_cv_ <- function(list_cv, n, p, r, bool_rmvd_x, p0_av, link, list_hyper,
 # Internal function implementing sanity checks and needed preprocessing to the
 # settings provided by the user for block-wise parallel inference.
 #
-prepare_blocks_ <- function(list_blocks, d, eb, bool_rmvd_x, dual, list_cv, list_groups, list_struct) {
+prepare_blocks_ <- function(list_blocks, d, eb, bool_rmvd_x, dual, list_cv, 
+                            list_groups, list_struct) {
 
   if (!inherits(list_blocks, "blocks"))
     stop(paste("The provided list_blocks must be an object of class ``blocks''. \n",
