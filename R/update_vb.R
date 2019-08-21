@@ -208,7 +208,7 @@ update_mat_v_mu_block_ <- function(list_V, mu_0_s, mu_0_t, list_mat_c, vec_fac_b
   
   d <- length(mu_0_t)
   
-  bl_ids <- unique(vec_fac_bl)
+  bl_ids <- as.numeric(levels(vec_fac_bl))
   n_bl <- length(bl_ids)
   
   list_bl <- lapply(1:n_bl, function(bl) {
@@ -224,10 +224,10 @@ update_mat_v_mu_block_ <- function(list_V, mu_0_s, mu_0_t, list_mat_c, vec_fac_b
 
 update_mat_v_mu_block_modules_ <- function(list_V, mu_0_s, mu_0_t, list_mat_c, vec_fac_bl_x, vec_fac_bl_y) {
   
-  bl_ids_x <- unique(vec_fac_bl_x)
+  bl_ids_x <- as.numeric(levels(vec_fac_bl_x))
   n_bl_x <- length(bl_ids_x)
   
-  bl_ids_y <- unique(vec_fac_bl_y)
+  bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
   n_bl_y <- length(bl_ids_y)
   
   vec_d_bl <- table(vec_fac_bl_y)
@@ -423,7 +423,7 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
       
       if (eb_local_scale) {
         
-        bl_ids <- unique(vec_fac_bl)
+        bl_ids <- as.numeric(levels(vec_fac_bl))
         n_bl <- length(bl_ids)
         
         if (is_mat) {
@@ -440,7 +440,7 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
         
       } else {
         
-        bl_ids <- unique(vec_fac_bl)
+        bl_ids <- as.numeric(levels(vec_fac_bl))
         n_bl <- length(bl_ids)
         
         if (is_mat) {
@@ -460,10 +460,10 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
       
     # } else {
     #   
-    #   bl_ids_x <- unique(vec_fac_bl)
+    #   bl_ids_x <- as.numeric(levels(vec_fac_bl))
     #   n_bl_x <- length(bl_ids_x)
     #   
-    #   bl_ids_y <- unique(vec_fac_bl_y)
+    #   bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
     #   n_bl_y <- length(bl_ids_y)
     #   
     #   if (is_mat) {
@@ -493,7 +493,7 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
     if (eb_local_scale)
       stop("Empirical Bayes estimation with local scales not implemented when Sigma_0 is not the identity matrix.")
     
-    bl_ids <- unique(vec_fac_st)
+    bl_ids <- as.numeric(levels(vec_fac_st))
     n_bl <- length(bl_ids)
 
     if (is_mat) {
@@ -544,7 +544,7 @@ update_sig2_theta_vb_ <- function(d, p, list_struct, s02, X = NULL, c = 1, eb_lo
     vec_fac_st <- list_struct$vec_fac_st
     n_cpus <- list_struct$n_cpus
 
-    S0_inv <- parallel::mclapply(unique(vec_fac_st), function(bl) {
+    S0_inv <- parallel::mclapply(as.numeric(levels(vec_fac_st)), function(bl) {
 
       corX <- cor(X[, vec_fac_st == bl, drop = FALSE])
       corX <- as.matrix(Matrix::nearPD(corX, corr = TRUE, do2eigen = TRUE)$mat) # regularization in case of non-positive definiteness.

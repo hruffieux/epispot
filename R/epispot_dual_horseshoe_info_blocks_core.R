@@ -51,7 +51,7 @@ epispot_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
     
     eps <- .Machine$double.eps^0.5
     
-    bl_ids <- unique(vec_fac_bl)
+    bl_ids <- as.numeric(levels(vec_fac_bl))
     n_bl <- length(bl_ids)
     
     vec_p_bl <- table(vec_fac_bl)

@@ -50,7 +50,7 @@ epispot_dual_horseshoe_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb,
       bl_lgths <- p
     } else {
       vec_fac_bl <- list_struct$vec_fac_st
-      bl_ids <- list_struct$bl_ids <- unique(vec_fac_bl)
+      bl_ids <- list_struct$bl_ids <- as.numeric(levels(vec_fac_bl))
       n_bl <- list_struct$n_bl <- length(bl_ids) 
       bl_lgths <- list_struct$bl_lgths <- table(vec_fac_bl)
     }

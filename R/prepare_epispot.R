@@ -417,8 +417,8 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, q, r, dual, link, ind_
 
         } else {
 
-          list_hyper$a <- list_hyper$a[unique(vec_fac_gr)]
-          list_hyper$b <- list_hyper$b[unique(vec_fac_gr)]
+          list_hyper$a <- list_hyper$a[as.numeric(levels(vec_fac_gr))]
+          list_hyper$b <- list_hyper$b[as.numeric(levels(vec_fac_gr))]
 
         }
       }
@@ -597,7 +597,7 @@ prepare_list_init_ <- function(list_init, Y, p, p_star, q,  dual, link, ind_bin,
         list_init$gam_vb <- list_init$gam_vb[!bool_rmvd_x,, drop = FALSE]
       } else {
         # drops the rows corresponding to the empty groups (if any)
-        list_init$gam_vb <- list_init$gam_vb[unique(vec_fac_gr),, drop = FALSE]
+        list_init$gam_vb <- list_init$gam_vb[as.numeric(levels(vec_fac_gr)),, drop = FALSE]
       }
 
       list_init$mu_beta_vb <- list_init$mu_beta_vb[!bool_rmvd_x,, drop = FALSE]
@@ -639,7 +639,7 @@ prepare_list_init_ <- function(list_init, Y, p, p_star, q,  dual, link, ind_bin,
 
 
   if (!is.null(G)) { # converts mu_beta_vb to a list of matrices by groups
-    list_init$mu_beta_vb <- lapply(unique(vec_fac_gr),
+    list_init$mu_beta_vb <- lapply(as.numeric(levels(vec_fac_gr)),
                                    function(g) list_init$mu_beta_vb[vec_fac_gr == g,, drop = FALSE])
   }
 
@@ -997,7 +997,7 @@ prepare_groups_ <- function(list_groups, X, q, r, bool_rmvd_x, dual, link, list_
 
 
   vec_fac_gr <- list_groups$vec_fac_gr[!bool_rmvd_x] # some groups may disappear here, but this is not a problem
-  X <- lapply(unique(vec_fac_gr), function(g) X[, vec_fac_gr == g, drop = FALSE])
+  X <- lapply(as.numeric(levels(vec_fac_gr)), function(g) X[, vec_fac_gr == g, drop = FALSE])
 
   create_named_list_(X, vec_fac_gr) # X is now a list in which the matrix is split across groups
 

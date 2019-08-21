@@ -217,7 +217,7 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
     
     if (bool_blocks) {
       
-      bl_ids <- unique(vec_fac_bl_theta)
+      bl_ids <- as.numeric(levels(vec_fac_bl_theta))
       n_bl <- length(bl_ids)
       
       vec_p_bl <- table(vec_fac_bl_theta)
@@ -233,12 +233,12 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
       
       stopifnot(!is.null(vec_fac_bl_y))
       
-      bl_ids_x <- unique(vec_fac_bl_theta)
+      bl_ids_x <- as.numeric(levels(vec_fac_bl_theta))
       n_bl_x <- length(bl_ids_x)
       
       vec_p_bl <- table(vec_fac_bl_theta)
       
-      bl_ids_y <- unique(vec_fac_bl_y)
+      bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
       n_bl_y <- length(bl_ids_y)
       
       for(bl_y in 1:n_bl_y){
@@ -272,7 +272,7 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
     
     n_bl_x <- length(V)
     
-    bl_ids_y <- unique(vec_fac_bl_y)
+    bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
     n_bl_y <- length(bl_ids_y)
     
     for(bl_y in 1:n_bl_y){
@@ -441,12 +441,12 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_s
       
     } else if (!is.null(vec_fac_bl_y)){
       
-      bl_ids_x <- unique(vec_fac_bl)
+      bl_ids_x <- as.numeric(levels(vec_fac_bl))
       n_bl_x <- length(bl_ids_x)
       
       vec_p_bl <- table(vec_fac_bl)
       
-      bl_ids_y <- unique(vec_fac_bl_y)
+      bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
       n_bl_y <- length(bl_ids_y)
       
       if (eb_local_scale) {
@@ -481,7 +481,7 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_s
       
     } else {
       
-      bl_ids <- unique(vec_fac_bl)
+      bl_ids <- as.numeric(levels(vec_fac_bl))
       n_bl <- length(bl_ids)
       
       vec_p_bl <- table(vec_fac_bl)
@@ -511,7 +511,7 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_s
     if (eb_local_scale)
       stop("Empirical Bayes estimation with local scales not implemented for structured sparsity.")
     
-    bl_ids <- unique(vec_fac_st)
+    bl_ids <- as.numeric(levels(vec_fac_st))
     n_bl <- length(list_S0_inv)
     
     arg <- unlist(lapply(1:n_bl, function(bl) {

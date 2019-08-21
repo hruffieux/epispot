@@ -9,9 +9,10 @@ epispot(Y, X, p0_av, Z = NULL, V = NULL, s02 = 0.01,
   list_init = NULL, list_cv = NULL, list_blocks = NULL,
   list_groups = NULL, list_struct = NULL, dual = FALSE,
   hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
-  user_seed = NULL, tol = 0.001, maxit = 1000, anneal = NULL,
-  save_hyper = FALSE, save_init = FALSE, verbose = TRUE,
-  checkpoint_path = NULL, trace_path = NULL)
+  eb_local_scale = FALSE, user_seed = NULL, tol = 0.001,
+  maxit = 1000, anneal = NULL, save_hyper = FALSE,
+  save_init = FALSE, verbose = TRUE, checkpoint_path = NULL,
+  trace_path = NULL)
 }
 \arguments{
 \item{Y}{Response data matrix of dimension n x d, where n is the number of
@@ -108,6 +109,10 @@ to 7. Not used if hs is \code{FALSE}.}
 hyperparameters selected via an empirical Bayes procedure. Only used if 
 \code{dual} is \code{TRUE} and \code{V} is non-\code{NULL}. Default is 
 \code{FALSE}.}
+
+\item{eb_local_scale}{If \code{TRUE}, local hotspot variances estimated by 
+empirical Bayes (and module-specific if modules). Must be \code{FALSE} if 
+\code{eb} is \code{FALSE} or \code{hyper} is \code{TRUE} .}
 
 \item{user_seed}{Seed set for reproducible default choices of hyperparameters
 (if \code{list_hyper} is \code{NULL}) and initial variational parameters

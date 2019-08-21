@@ -39,12 +39,12 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     eps <- .Machine$double.eps^0.5
     
     
-    bl_ids_x <- unique(vec_fac_bl_x)
+    bl_ids_x <- as.numeric(levels(vec_fac_bl_x))
     n_bl_x <- length(bl_ids_x)
     
     vec_p_bl <- table(vec_fac_bl_x)
     
-    bl_ids_y <- unique(vec_fac_bl_y)
+    bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
     n_bl_y <- length(bl_ids_y)
     
     vec_d_bl <- table(vec_fac_bl_y)
@@ -452,7 +452,7 @@ elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa
   
   n <- nrow(Y)
   n_bl_x <- length(list_V)
-  bl_ids_y <- unique(vec_fac_bl_y)
+  bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
   n_bl_y <- length(bl_ids_y)
   
   d <- ncol(Y)

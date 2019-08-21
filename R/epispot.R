@@ -435,7 +435,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
       # remove the entries corresponding to the removed constant covariates in X (if any)
       if (length(p_star) > 1 & !dual) {
         if (is.null(list_groups)) p_star <- p_star[!bool_rmvd_x]
-        else p_star <- p_star[unique(vec_fac_gr)]
+        else p_star <- p_star[as.numeric(levels(vec_fac_gr))]
       }
       
       
