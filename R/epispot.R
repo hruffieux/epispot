@@ -101,6 +101,9 @@
 #'   hyperparameters selected via an empirical Bayes procedure. Only used if 
 #'   \code{dual} is \code{TRUE} and \code{V} is non-\code{NULL}. Default is 
 #'   \code{FALSE}.
+#' @param eb_local_scale If \code{TRUE}, local hotspot variances estimated by 
+#'   empirical Bayes (and module-specific if modules). Must be \code{FALSE} if 
+#'   \code{eb} is \code{FALSE} or \code{hyper} is \code{TRUE} .
 #' @param user_seed Seed set for reproducible default choices of hyperparameters
 #'   (if \code{list_hyper} is \code{NULL}) and initial variational parameters
 #'   (if \code{list_init} is \code{NULL}). Also used at the cross-validation
@@ -304,7 +307,8 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
                   ind_bin = NULL, list_hyper = NULL, list_init = NULL,
                   list_cv = NULL, list_blocks = NULL, list_groups = NULL,
                   list_struct = NULL, dual = FALSE, hyper = FALSE, hs = FALSE, 
-                  df = 1, eb = FALSE, user_seed = NULL, tol = 1e-3, maxit = 1000, 
+                  df = 1, eb = FALSE, eb_local_scale = FALSE, user_seed = NULL, 
+                  tol = 1e-3, maxit = 1000, 
                   anneal = NULL, save_hyper = FALSE, save_init = FALSE, 
                   verbose = TRUE, checkpoint_path = NULL, trace_path = NULL) {
   
@@ -374,6 +378,10 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
     
     if (eb & (!dual | is.null(V)))
       stop("Argument eb must be FALSE if dual is FALSE or if V is NULL.")
+    
+    if (eb_local_scale & (!eb | hyper))
+      stop("Argument eb_local_scale must be FALSE if eb is FALSE or hyper is TRUE.")
+    
     
     if (!is.null(list_blocks)) {
       
@@ -607,7 +615,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
                                              list_init$mu_beta_vb,
                                              list_init$sig2_beta_vb, list_init$tau_vb,
                                              list_struct, bool_blocks = FALSE, hs, df,
-                                             tol, maxit, anneal, verbose)
+                                             eb_local_scale, tol, maxit, anneal, verbose)
           } else {
             
             if (hs) {
@@ -622,7 +630,8 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
               vb <- epispot_dual_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                           list_init$mu_beta_vb,
                                           list_init$sig2_beta_vb, list_init$tau_vb,
-                                          list_struct, eb, tol, maxit, anneal, verbose)
+                                          list_struct, eb, eb_local_scale, tol, 
+                                          maxit, anneal, verbose)
             }
             
           }
@@ -873,7 +882,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
         vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
                                             list_init_bl$tau_vb, list_struct, bool_blocks = TRUE, 
-                                            hs, df, tol, maxit, anneal, verbose = TRUE)
+                                            hs, df, eb_local_scale, tol, maxit, anneal, verbose = TRUE)
         
       } else if (!dual) {
         
@@ -1040,9 +1049,21 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
                         "of the number of active predictors per responses supplied in p0_av. ",
                         "Please change p0_av."))
           }
-          list_hyper$s02 <- matrix(unlist(lapply(list_vb, `[[`, "s02")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s02 corresponding to each predicor block (rows) and modules
-          rownames(list_hyper$s02) <- paste0("block_", 1:n_bl_x)
-          colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
+          
+          if (eb_local_scale) {
+            if (n_bl_x > 1)
+              stop("EB local scales not implemented for n_bl_x > 1. Exit")
+            
+            list_hyper$s02 <- sapply(list_vb, `[[`, "s02")
+            rownames(list_hyper$s02) <- paste0("snp_", 1:p)
+            colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
+
+          } else {
+            list_hyper$s02 <- matrix(unlist(lapply(list_vb, `[[`, "s02")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s02 corresponding to each predicor block (rows) and modules
+            rownames(list_hyper$s02) <- paste0("block_", 1:n_bl_x)
+            colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
+          }
+
         }
         list_hyper$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
         
@@ -1103,7 +1124,8 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
                                                      vec_fac_bl_y, list_hyper, 
                                                      list_init$gam_vb, list_init$mu_beta_vb, 
                                                      list_init$sig2_beta_vb, list_init$tau_vb,
-                                                     list_struct, tol, maxit, anneal, verbose)
+                                                     list_struct, eb_local_scale, tol, 
+                                                     maxit, anneal, verbose)
           
           
         } else {
@@ -1111,7 +1133,8 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
           vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
                                              list_init$gam_vb, list_init$mu_beta_vb, 
                                              list_init$sig2_beta_vb, list_init$tau_vb,
-                                             list_struct, tol, maxit, anneal, verbose)
+                                             list_struct, eb_local_scale, tol, 
+                                             maxit, anneal, verbose)
           
           
         }

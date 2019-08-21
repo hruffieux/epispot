@@ -1,6 +1,10 @@
 epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
-                                       sig2_beta_vb, tau_vb, list_struct, 
-                                       bool_blocks, hs, df, tol, maxit, anneal, verbose) {
+                                         sig2_beta_vb, tau_vb, list_struct, 
+                                         bool_blocks, hs, df, eb_local_scale,
+                                         tol, maxit, anneal, verbose) {
+
+  if (eb_local_scale & !is.null(list_struct))
+    stop("EB local scale not implemented with structured sparsity")
   
   r <- ncol(V)
   
@@ -33,11 +37,15 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     } else {
       vb <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                   vb$sig2_beta_vb, vb$tau_vb, list_struct, 
-                                  eb = TRUE, tol_em, maxit, anneal,
+                                  eb = TRUE, eb_local_scale, tol_em, maxit, anneal,
                                   verbose = FALSE, full_output = TRUE)
       
-      list_hyper$s02 <- sum(vb$sig2_theta_vb + vb$mu_theta_vb^2) / ncol(X)
-      
+      if (eb_local_scale) {
+        list_hyper$s02 <- vb$sig2_theta_vb + vb$mu_theta_vb^2 # vector of size lenght(vb$mu_theta_vb)
+      } else {
+        list_hyper$s02 <- sum(vb$sig2_theta_vb + vb$mu_theta_vb^2) / ncol(X) # scalaer
+      }
+
     }
    
     
@@ -51,9 +59,15 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
       
       cat(paste0("EM iteration ", it_em, ". \n"))
       
-      if (!is.null(list_hyper$s02))
-        cat(paste0("New value for hyperparameter s02 : ", format(list_hyper$s02, digits = 4),". \n"))
-      
+      if (!is.null(list_hyper$s02)) {
+        
+        if (eb_local_scale) {
+          cat("New value for hyperparameter s02 : ")
+          print(summary(list_hyper$s02))
+        } else {
+          cat(paste0("New value for hyperparameter s02 : ", format(list_hyper$s02, digits = 4),". \n"))
+        }
+      }
       cat(paste0("New value for hyperparameter s2 : ", format(list_hyper$s2, digits = 4), ". \n"))
       cat("New values for hyperparameter omega : \n")
       print(summary(list_hyper$om_vb))
@@ -100,7 +114,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     } else {
       out <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                    vb$sig2_beta_vb, vb$tau_vb, list_struct, 
-                                   eb = TRUE, tol, maxit, anneal, verbose)
+                                   eb = TRUE, eb_local_scale, tol, maxit, anneal, verbose)
     }
    
   

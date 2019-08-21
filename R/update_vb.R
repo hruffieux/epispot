@@ -402,12 +402,10 @@ update_log_tau_vb_ <- function(eta_vb, kappa_vb) digamma(eta_vb) - log(kappa_vb)
 
 update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
                                 mat_add = 0, is_mat = FALSE, c = 1, 
-                                vec_fac_bl = NULL) {
+                                vec_fac_bl = NULL, eb_local_scale = FALSE) {
                                 #, vec_fac_bl_y = NULL) {
 
   if (is.null(vec_fac_st)) {
-
-    # S0_inv and sig2_rho_vb are stored as scalars which represent the values on the diagonal of the corresponding diagonal matrix
 
     if (is.null(vec_fac_bl)) {
       
@@ -423,20 +421,42 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
       
     } else { #if (is.null(vec_fac_bl_y)){
       
-      bl_ids <- unique(vec_fac_bl)
-      n_bl <- length(bl_ids)
-      
-      if (is_mat) {
+      if (eb_local_scale) {
         
-        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[bl] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
-                                                                            S0_inv[bl] * m0[vec_fac_bl == bl_ids[bl]] - rowSums(mat_add[vec_fac_bl == bl_ids[bl], , drop = FALSE])))) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+        bl_ids <- unique(vec_fac_bl)
+        n_bl <- length(bl_ids)
+        
+        if (is_mat) {
+          
+          unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[vec_fac_bl == bl_ids[bl]] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
+                                                                        S0_inv[vec_fac_bl == bl_ids[bl]] * m0[vec_fac_bl == bl_ids[bl]] - rowSums(mat_add[vec_fac_bl == bl_ids[bl], , drop = FALSE])))) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+          
+        } else {
+          
+          unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[vec_fac_bl == bl_ids[bl]] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
+                                                                        S0_inv[vec_fac_bl == bl_ids[bl]] * m0[vec_fac_bl == bl_ids[bl]] - sum(mat_add)))) # mat_add = mu_rho_vb
+          
+        }
         
       } else {
         
-        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[bl] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
-                                                                            S0_inv[bl] * m0[vec_fac_bl == bl_ids[bl]] - sum(mat_add)))) # mat_add = mu_rho_vb
+        bl_ids <- unique(vec_fac_bl)
+        n_bl <- length(bl_ids)
+        
+        if (is_mat) {
+          
+          unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[bl] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
+                                                                        S0_inv[bl] * m0[vec_fac_bl == bl_ids[bl]] - rowSums(mat_add[vec_fac_bl == bl_ids[bl], , drop = FALSE])))) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+          
+        } else {
+          
+          unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[bl] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
+                                                                        S0_inv[bl] * m0[vec_fac_bl == bl_ids[bl]] - sum(mat_add)))) # mat_add = mu_rho_vb
+          
+        }
         
       }
+
       
     # } else {
     #   
@@ -470,6 +490,9 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
     if (c != 1)
       stop("Annealing not implemented when Sigma_0 is not the identity matrix.")
 
+    if (eb_local_scale)
+      stop("Empirical Bayes estimation with local scales not implemented when Sigma_0 is not the identity matrix.")
+    
     bl_ids <- unique(vec_fac_st)
     n_bl <- length(bl_ids)
 
@@ -494,7 +517,7 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb, vec_fac_st,
 }
 
 
-update_sig2_theta_vb_ <- function(d, p, list_struct, s02, X = NULL, c = 1) {
+update_sig2_theta_vb_ <- function(d, p, list_struct, s02, X = NULL, c = 1, eb_local_scale = FALSE) {
 
   if (is.null(list_struct)) {
 
@@ -502,8 +525,13 @@ update_sig2_theta_vb_ <- function(d, p, list_struct, s02, X = NULL, c = 1) {
 
     S0_inv <- 1 / s02 # stands for a diagonal matrix of size p with this value on the (constant) diagonal
     sig2_theta_vb <- as.numeric(update_sig2_c0_vb_(d, s02, c = c)) # idem
+    
+    if (eb_local_scale) {
+      vec_sum_log_det_theta <- - sum(log(s02) + log(d + S0_inv))
+    } else {
+      vec_sum_log_det_theta <- - p * (log(s02) + log(d + S0_inv))
+    }
 
-    vec_sum_log_det_theta <- - p * (log(s02) + log(d + S0_inv))
 
   } else {
 

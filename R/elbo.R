@@ -166,7 +166,7 @@ e_beta_gamma_dual_ <- function(gam_vb, log_sig2_inv_vb, log_tau_vb,
                                list_sig2_theta_vb, sig2_inv_vb, tau_vb) {
   
   eps <- .Machine$double.eps^0.75 # to control the argument of the log when gamma is very small
-
+  
   arg <- log_sig2_inv_vb * gam_vb / 2 +
     sweep(gam_vb, 2, log_tau_vb, `*`) / 2 -
     sweep(m2_beta, 2, tau_vb, `*`) * sig2_inv_vb / 2 +
@@ -193,7 +193,7 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
                                     sig2_inv_vb, tau_vb, zeta_vb, 
                                     resp_spec = FALSE, bool_blocks = FALSE,
                                     bool_modules = FALSE, vec_fac_bl_y = NULL,
-                                    vec_fac_bl_theta = NULL) {
+                                    vec_fac_bl_theta = NULL, eb_local_scale = FALSE) {
   
   stopifnot(!(bool_blocks & bool_modules))
   
@@ -221,7 +221,13 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
       n_bl <- length(bl_ids)
       
       vec_p_bl <- table(vec_fac_bl_theta)
-      arg <- sweep(arg, 1, unlist(sapply(1:n_bl, function(bl) rep(list_sig2_theta_vb[bl], vec_p_bl[bl]))), `-`)
+      
+      if (eb_local_scale) {
+        arg <- sweep(arg, 1, unlist(sapply(1:n_bl, function(bl) list_sig2_theta_vb[vec_fac_bl_theta == bl_ids[bl]])), `-`)
+      } else {
+        arg <- sweep(arg, 1, unlist(sapply(1:n_bl, function(bl) rep(list_sig2_theta_vb[bl], vec_p_bl[bl]))), `-`)
+      }
+      
       
     } else { # bool_modules
       
@@ -237,12 +243,18 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
       
       for(bl_y in 1:n_bl_y){
         
-        arg[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(arg[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
-                                                       as.vector(unlist(sapply(1:n_bl_x, function(bl_x) rep(list_sig2_theta_vb[bl_x, bl_y], vec_p_bl[bl_x])))), `-`)
+        if (eb_local_scale) {
+          
+          arg[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(arg[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
+                                                         as.vector(unlist(sapply(1:n_bl_x, function(bl_x) list_sig2_theta_vb[vec_fac_bl_theta == bl_ids_x[bl_x], bl_y]))), `-`)
+        } else {   
+          arg[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(arg[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1,
+                                                         as.vector(unlist(sapply(1:n_bl_x, function(bl_x) rep(list_sig2_theta_vb[bl_x, bl_y], vec_p_bl[bl_x])))), `-`)
+          
+        }
+        
       }
-      
     }
-   
     
   } else {
     arg <- arg - list_sig2_theta_vb / 2
@@ -259,20 +271,20 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
   } else if (bool_modules) {
     
     n_bl_x <- length(V)
-
+    
     bl_ids_y <- unique(vec_fac_bl_y)
     n_bl_y <- length(bl_ids_y)
-
+    
     for(bl_y in 1:n_bl_y){
-
+      
       vec_arg <- as.vector(unlist(sapply(1:n_bl_x, function(bl_x) {
-
+        
         V[[bl_x]]^2 %*% (zeta_vb[[bl_x]][, bl_y] * (sig2_c_vb[bl_x, bl_y] + mu_c_vb[[bl_x]][, bl_y]^2) - (mu_c_vb[[bl_x]][, bl_y] * zeta_vb[[bl_x]][, bl_y])^2) / 2
       })))
-
+      
       arg[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(arg[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1, vec_arg, `-`)
     }
-
+    
     
   } else {
     
@@ -358,8 +370,8 @@ e_rho_ <- function(mu_rho_vb, n0, sig2_rho_vb, T0_inv, vec_sum_log_det_rho) {
   
   d <- length(mu_rho_vb)
   (vec_sum_log_det_rho - # vec_sum_log_det_rho = log(det(T0_inv)) + log(det(sig2_rho_vb))
-    T0_inv * crossprod(mu_rho_vb - n0) -
-    d * T0_inv * sig2_rho_vb + d) / 2 # trace of a product
+      T0_inv * crossprod(mu_rho_vb - n0) -
+      d * T0_inv * sig2_rho_vb + d) / 2 # trace of a product
   
 }
 
@@ -403,7 +415,8 @@ e_tau_ <- function(eta, eta_vb, kappa, kappa_vb, log_tau_vb, tau_vb) {
 
 # S0_inv is assumed to be block-diagonal
 e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_st, 
-                     vec_sum_log_det, vec_fac_bl = NULL, vec_fac_bl_y = NULL) {
+                     vec_sum_log_det, vec_fac_bl = NULL, vec_fac_bl_y = NULL,
+                     eb_local_scale = FALSE) {
   
   if (is.null(vec_fac_st)) {
     
@@ -411,10 +424,21 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_s
     
     if (is.null(vec_fac_bl)) {
       
-      arg <- (vec_sum_log_det - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
-                list_S0_inv * crossprod(mu_theta_vb - m0) -
-                p * list_S0_inv * list_sig2_theta_vb + p) / 2 # trace of a product
-  
+      if (eb_local_scale) {
+        
+        arg <- vec_sum_log_det / 2 - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
+          sum(list_S0_inv * (mu_theta_vb - m0)^2 +
+                list_S0_inv * list_sig2_theta_vb) / 2 + p / 2 # trace of a product
+        
+      } else {
+        
+        arg <- (vec_sum_log_det - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
+                  list_S0_inv * crossprod(mu_theta_vb - m0) -
+                  p * list_S0_inv * list_sig2_theta_vb + p) / 2 # trace of a product
+        
+      }
+      
+      
     } else if (!is.null(vec_fac_bl_y)){
       
       bl_ids_x <- unique(vec_fac_bl)
@@ -425,34 +449,67 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_s
       bl_ids_y <- unique(vec_fac_bl_y)
       n_bl_y <- length(bl_ids_y)
       
-      arg <-  sapply(1:n_bl_y, function(bl_y) {
+      if (eb_local_scale) {
         
-        sapply(1:n_bl_x, function(bl_x) {
+        arg <-  sapply(1:n_bl_y, function(bl_y) {
           
-          (vec_sum_log_det[bl_x, bl_y] - 
-             list_S0_inv[bl_x, bl_y] * crossprod(mu_theta_vb[vec_fac_bl == bl_ids_x[bl_x], bl_y] - m0[vec_fac_bl == bl_ids_x[bl_x]]) -
-             vec_p_bl[bl_x] * list_S0_inv[bl_x, bl_y] * list_sig2_theta_vb[bl_x, bl_y] + vec_p_bl[bl_x]) / 2 # trace of a product
+          sapply(1:n_bl_x, function(bl_x) {
+            
+            vec_sum_log_det[bl_x, bl_y] / 2 - 
+              sum(list_S0_inv[vec_fac_bl == bl_ids_x[bl_x], bl_y] * (mu_theta_vb[vec_fac_bl == bl_ids_x[bl_x], bl_y] - m0[vec_fac_bl == bl_ids_x[bl_x]])^2 +
+                    list_S0_inv[vec_fac_bl == bl_ids_x[bl_x], bl_y] * list_sig2_theta_vb[vec_fac_bl == bl_ids_x[bl_x], bl_y] ) / 2 + vec_p_bl[bl_x] / 2 # trace of a product
+            
+          }) 
+        })
+        
+      } else {
+        
+        arg <-  sapply(1:n_bl_y, function(bl_y) {
           
-        }) 
-      })
+          sapply(1:n_bl_x, function(bl_x) {
+            
+            (vec_sum_log_det[bl_x, bl_y] - 
+               list_S0_inv[bl_x, bl_y] * crossprod(mu_theta_vb[vec_fac_bl == bl_ids_x[bl_x], bl_y] - m0[vec_fac_bl == bl_ids_x[bl_x]]) -
+               vec_p_bl[bl_x] * list_S0_inv[bl_x, bl_y] * list_sig2_theta_vb[bl_x, bl_y] + vec_p_bl[bl_x]) / 2 # trace of a product
+            
+          }) 
+        })
+        
+      }
+      
       
       
     } else {
-  
+      
       bl_ids <- unique(vec_fac_bl)
       n_bl <- length(bl_ids)
       
       vec_p_bl <- table(vec_fac_bl)
       
-      arg <- sapply(1:n_bl, function(bl) {
-        (vec_sum_log_det[bl] - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
-           list_S0_inv[bl] * crossprod(mu_theta_vb[vec_fac_bl == bl_ids[bl]] - m0[vec_fac_bl == bl_ids[bl]]) -
-           vec_p_bl[bl] * list_S0_inv[bl] * list_sig2_theta_vb[bl] + vec_p_bl[bl]) / 2 # trace of a product
-      })
-      
+      if (eb_local_scale) {
+        
+        arg <- sapply(1:n_bl, function(bl) {
+          vec_sum_log_det[bl] / 2 - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
+            sum(list_S0_inv[vec_fac_bl == bl_ids[bl]] * (mu_theta_vb[vec_fac_bl == bl_ids[bl]] - m0[vec_fac_bl == bl_ids[bl]])^2 +
+                  list_S0_inv[vec_fac_bl == bl_ids[bl]] * list_sig2_theta_vb[vec_fac_bl == bl_ids[bl]]) / 2 + vec_p_bl[bl] / 2 # trace of a product
+          
+        })
+        
+      } else {
+        
+        arg <- sapply(1:n_bl, function(bl) {
+          (vec_sum_log_det[bl] - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
+             list_S0_inv[bl] * crossprod(mu_theta_vb[vec_fac_bl == bl_ids[bl]] - m0[vec_fac_bl == bl_ids[bl]]) -
+             vec_p_bl[bl] * list_S0_inv[bl] * list_sig2_theta_vb[bl] + vec_p_bl[bl]) / 2 # trace of a product
+          
+        })
+      }
     }
     
   } else {
+    
+    if (eb_local_scale)
+      stop("Empirical Bayes estimation with local scales not implemented for structured sparsity.")
     
     bl_ids <- unique(vec_fac_st)
     n_bl <- length(list_S0_inv)
@@ -465,9 +522,9 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_s
       sig2_theta_vb_bl <- list_sig2_theta_vb[[bl]]
       
       (vec_sum_log_det[bl] - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
-        crossprod((mu_theta_vb_bl - m0_bl),
-                  S0_inv_bl %*% (mu_theta_vb_bl - m0_bl)) -
-        sum(S0_inv_bl * sig2_theta_vb_bl) + ncol(S0_inv_bl)) / 2 # trace of a product
+          crossprod((mu_theta_vb_bl - m0_bl),
+                    S0_inv_bl %*% (mu_theta_vb_bl - m0_bl)) -
+          sum(S0_inv_bl * sig2_theta_vb_bl) + ncol(S0_inv_bl)) / 2 # trace of a product
     }))
   }
   
@@ -479,23 +536,23 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, vec_fac_s
 e_theta_hs_ <- function(b_vb, G_vb, log_S0_inv_vb, m0, mu_theta_vb, Q_app, S0_inv_vb, sig2_theta_vb, df) {
   
   if (df == 1) {
-   
+    
     sum(log_S0_inv_vb / 2 - S0_inv_vb * b_vb *
           (mu_theta_vb^2 + sig2_theta_vb - 2 * m0 * mu_theta_vb + m0^2) / 2 +
           (log(sig2_theta_vb) + 1) / 2 - log(pi) + G_vb * b_vb + log(Q_app))
     
- 
+    
   } else if (df == 3) {
-
+    
     # G_vb is tilde G_vb, i.e., G_vb / df
-
+    
     log_B <- log(9) - log(Q_app * (1 + G_vb) - 1)
-
+    
     sum(log(6) + log(3) / 2 - log(pi) - log_B + df * G_vb * b_vb +
           log_S0_inv_vb / 2  - S0_inv_vb * b_vb *
           (mu_theta_vb^2 + sig2_theta_vb - 2 * m0 * mu_theta_vb + m0^2) / 2 +
           (log(sig2_theta_vb) + 1) / 2)
-
+    
   } else {
     
     # valid for df = odd number, so should also be valid for df = 1 and 3, 
