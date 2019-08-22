@@ -101,9 +101,17 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
       cat(paste0("Empirical-Bayes hyperparameters, s2 : ", format(list_hyper$s2, digits = 4), ", omega :\n"))
       print(summary(list_hyper$om_vb))
       
-      if (!is.null(list_hyper$s02))
-        cat(paste0("s02 : ", format(list_hyper$s02, digits = 4)," \n"))
-      cat("\n\n")
+      if (!is.null(list_hyper$s02)) {
+        
+        if (eb_local_scale) {
+          cat("s02 : ")
+          print(summary(list_hyper$s02))
+        } else {
+          cat(paste0("s02 : ", format(list_hyper$s02, digits = 4),". \n"))
+        }
+        cat("\n\n")
+      }
+
     }
   
     if (hs) {
