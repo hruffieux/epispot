@@ -12,7 +12,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
   converged_em <- FALSE
   it_em <- 0
   tol_em <- min(tol * 10, 1) # 1e-3
-  s2_min <- 1e-6
+  s2_min <- 1e-12
   lb_old <- -Inf
   list_hyper$om_vb <- rep(1 / 2, r) # prior proportion of active annotations 
   
