@@ -121,6 +121,8 @@
 #'   spacing or 3 = linear spacing, the second entry is the initial temperature,
 #'   and the third entry is the ladder size. If \code{NULL} (default), no
 #'   annealing is performed.
+#' @param anneal_vb_em Parameters for annealing scheme for the internal runs of the 
+#'   variational EM algorithm. Must be \code{NULL} if \code{eb} is \code{FALSE}.
 #' @param save_hyper If \code{TRUE}, the hyperparameters used for the model are
 #'   saved as output.
 #' @param save_init If \code{TRUE}, the initial variational parameters used for
@@ -316,12 +318,19 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
                   list_struct = NULL, dual = FALSE, hyper = FALSE, hs = FALSE, 
                   df = 1, eb = FALSE, eb_local_scale = FALSE, user_seed = NULL, 
                   tol = 1e-3, maxit = 1000, 
-                  anneal = NULL, save_hyper = FALSE, save_init = FALSE, 
+                  anneal = NULL, anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
                   verbose = TRUE, checkpoint_path = NULL, trace_path = NULL) {
   
   if (verbose) cat("== Preparing the data ... \n")
   
   check_annealing_(anneal, link, Z, V, list_groups, list_struct, dual)
+  
+  if (eb) {
+    check_annealing_(anneal_vb_em, link, Z, V, list_groups, list_struct, dual)
+  } else {
+    stopifnot(is.null(anneal_vb_em))
+  }
+
   
   dat <- prepare_data_(Y, X, Z, V, link, ind_bin, s02, hs, df, user_seed, tol, 
                        maxit, verbose, checkpoint_path, trace_path)
@@ -632,7 +641,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
                                              list_init$sig2_beta_vb, list_init$tau_vb,
                                              om,
                                              list_struct, bool_blocks = FALSE, hs, df,
-                                             eb_local_scale, tol, maxit, anneal, verbose)
+                                             eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose)
           } else {
             
             if (hs) {
@@ -899,7 +908,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
                                             list_init_bl$tau_vb, om, list_struct, bool_blocks = TRUE, 
-                                            hs, df, eb_local_scale, tol, maxit, anneal, verbose = TRUE)
+                                            hs, df, eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose = TRUE)
         
       } else if (!dual) {
         

@@ -1,7 +1,7 @@
 epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
                                          sig2_beta_vb, tau_vb, om, list_struct, 
                                          bool_blocks, hs, df, eb_local_scale,
-                                         tol, maxit, anneal, verbose) {
+                                         tol, maxit, anneal, anneal_vb_em, verbose) {
 
   if (eb_local_scale & !is.null(list_struct))
     stop("EB local scale not implemented with structured sparsity")
@@ -30,14 +30,14 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
       vb <- epispot_dual_horseshoe_info_core_(Y, X, V, list_hyper, vb$gam_vb, 
                                             vb$mu_beta_vb, vb$sig2_beta_vb, 
                                             vb$tau_vb, df, list_struct, eb = TRUE, 
-                                            tol_em, maxit, anneal, verbose = FALSE, 
+                                            tol_em, maxit, anneal_vb_em, verbose = FALSE, 
                                             full_output = TRUE)
       list_hyper$s02 <- NULL
       
     } else {
       vb <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                   vb$sig2_beta_vb, vb$tau_vb, list_struct, 
-                                  eb = TRUE, eb_local_scale, tol_em, maxit, anneal,
+                                  eb = TRUE, eb_local_scale, tol_em, maxit, anneal_vb_em,
                                   verbose = FALSE, full_output = TRUE)
       
       if (eb_local_scale) {

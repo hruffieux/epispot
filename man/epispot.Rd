@@ -10,9 +10,9 @@ epispot(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1/ncol(Y),
   list_blocks = NULL, list_groups = NULL, list_struct = NULL,
   dual = FALSE, hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
   eb_local_scale = FALSE, user_seed = NULL, tol = 0.001,
-  maxit = 1000, anneal = NULL, save_hyper = FALSE,
-  save_init = FALSE, verbose = TRUE, checkpoint_path = NULL,
-  trace_path = NULL)
+  maxit = 1000, anneal = NULL, anneal_vb_em = NULL,
+  save_hyper = FALSE, save_init = FALSE, verbose = TRUE,
+  checkpoint_path = NULL, trace_path = NULL)
 }
 \arguments{
 \item{Y}{Response data matrix of dimension n x d, where n is the number of
@@ -136,6 +136,9 @@ entry is sets the type of ladder: 1 = geometric spacing, 2 = harmonic
 spacing or 3 = linear spacing, the second entry is the initial temperature,
 and the third entry is the ladder size. If \code{NULL} (default), no
 annealing is performed.}
+
+\item{anneal_vb_em}{Parameters for annealing scheme for the internal runs of the 
+variational EM algorithm. Must be \code{NULL} if \code{eb} is \code{FALSE}.}
 
 \item{save_hyper}{If \code{TRUE}, the hyperparameters used for the model are
 saved as output.}
