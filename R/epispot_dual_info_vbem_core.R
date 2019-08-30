@@ -1,5 +1,5 @@
 epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
-                                         sig2_beta_vb, tau_vb, list_struct, 
+                                         sig2_beta_vb, tau_vb, om, list_struct, 
                                          bool_blocks, hs, df, eb_local_scale,
                                          tol, maxit, anneal, verbose) {
 
@@ -14,7 +14,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
   tol_em <- min(tol * 10, 1) # 1e-3
   s2_min <- 1e-12
   lb_old <- -Inf
-  list_hyper$om_vb <- rep(1 / 2, r) # prior proportion of active annotations 
+  list_hyper$om_vb <- om #rep(1 / 2, r) # prior proportion of active annotations 
   
   vb <- create_named_list_(gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb)
   

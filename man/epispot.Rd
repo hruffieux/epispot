@@ -4,11 +4,11 @@
 \alias{epispot}
 \title{Fit sparse multivariate regression models using variational inference.}
 \usage{
-epispot(Y, X, p0_av, Z = NULL, V = NULL, s02 = 0.01,
-  link = "identity", ind_bin = NULL, list_hyper = NULL,
-  list_init = NULL, list_cv = NULL, list_blocks = NULL,
-  list_groups = NULL, list_struct = NULL, dual = FALSE,
-  hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
+epispot(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1/ncol(Y),
+  s2 = NULL, om = NULL, link = "identity", ind_bin = NULL,
+  list_hyper = NULL, list_init = NULL, list_cv = NULL,
+  list_blocks = NULL, list_groups = NULL, list_struct = NULL,
+  dual = FALSE, hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
   eb_local_scale = FALSE, user_seed = NULL, tol = 0.001,
   maxit = 1000, anneal = NULL, save_hyper = FALSE,
   save_init = FALSE, verbose = TRUE, checkpoint_path = NULL,
@@ -46,6 +46,13 @@ information.}
 responses per active predictor (degree of pleiotropy in a genetic context). 
 Used only if \code{dual} is \code{TRUE} or \code{V} or \code{list_struct} 
 is non-\code{NULL}.}
+
+\item{s2}{Variance hyperparameter for the annotation spike-and-slab. 
+Used only if \code{dual} is \code{TRUE} and \code{V}.}
+
+\item{om}{Initial value for the annotation inclusion probabilities (of size
+r or 1, in which case repeated). 
+Used only if \code{dual}, \code{V} and \code{eb} are \code{TRUE}.}
 
 \item{link}{Response link. Must be "\code{identity}" for linear regression,
 "\code{logit}" for logistic regression, "\code{probit}" for probit
@@ -309,8 +316,8 @@ vb_g_z <- epispot(Y = Y, X = X, p0_av = p0,  Z = Z, link = "identity",
 
 # With external annotation variables
 #
-vb_g_v <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, V = V, link = "identity",
-                user_seed = seed)
+vb_g_v <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, V = V, s2 = 0.1, 
+                  link = "identity", user_seed = seed)
 
 ## Binary responses
 ##

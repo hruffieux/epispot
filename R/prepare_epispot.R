@@ -329,7 +329,7 @@ check_annealing_ <- function(anneal, link, Z, V, list_groups, list_struct, dual)
 #
 prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, q, r, dual, link, ind_bin,
                                 vec_fac_gr, vec_fac_st, bool_rmvd_x, bool_rmvd_z,
-                                bool_rmvd_v, names_x, names_y, names_z, verbose, s02) {
+                                bool_rmvd_v, names_x, names_y, names_z, verbose, s02, s2) {
 
   d <- ncol(Y)
   if (!is.null(vec_fac_gr)) {
@@ -344,7 +344,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, q, r, dual, link, ind_
 
     if (verbose) cat("list_hyper set automatically. \n")
 
-    list_hyper <- auto_set_hyper_(Y, p, p_star, q, r, dual, link, ind_bin, !ns, vec_fac_gr, s02)
+    list_hyper <- auto_set_hyper_(Y, p, p_star, q, r, dual, link, ind_bin, !ns, vec_fac_gr, s02, s2)
 
   } else {
 

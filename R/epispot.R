@@ -51,6 +51,11 @@
 #'   responses per active predictor (degree of pleiotropy in a genetic context). 
 #'   Used only if \code{dual} is \code{TRUE} or \code{V} or \code{list_struct} 
 #'   is non-\code{NULL}.
+#' @param s2 Variance hyperparameter for the annotation spike-and-slab. 
+#'   Used only if \code{dual} is \code{TRUE} and \code{V}.
+#' @param om Initial value for the annotation inclusion probabilities (of size
+#'   r or 1, in which case repeated). 
+#'   Used only if \code{dual}, \code{V} and \code{eb} are \code{TRUE}.
 #' @param link Response link. Must be "\code{identity}" for linear regression,
 #'   "\code{logit}" for logistic regression, "\code{probit}" for probit
 #'   regression, or "\code{mix}" for a mix of identity and probit link functions
@@ -269,8 +274,8 @@
 #'
 #' # With external annotation variables
 #' #
-#' vb_g_v <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, V = V, link = "identity",
-#'                 user_seed = seed)
+#' vb_g_v <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, V = V, s2 = 0.1, 
+#'                   link = "identity", user_seed = seed)
 #'
 #' ## Binary responses
 #' ##
@@ -303,7 +308,9 @@
 #'
 #' @export
 #'
-epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identity",
+epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NULL, 
+                    om = NULL, 
+                    link = "identity",
                   ind_bin = NULL, list_hyper = NULL, list_init = NULL,
                   list_cv = NULL, list_blocks = NULL, list_groups = NULL,
                   list_struct = NULL, dual = FALSE, hyper = FALSE, hs = FALSE, 
@@ -347,9 +354,18 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
   if (!is.null(V)) {
     r <- ncol(V)
     names_v <- colnames(V)
+    if (eb) {
+      check_structure_(om, "vector", "numeric", c(1, r))
+      check_positive_(om)
+      if (length(om) == 1) om <- rep(om, r)
+    } else {
+      stopifnot(is.null(om))
+    }
   } else {
     r <- NULL
     names_v <- NULL
+    stopifnot(is.null(om))
+    stopifnot(is.null(s2))
   }
   
   if (verbose) cat("... done. == \n\n")
@@ -455,7 +471,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
   
   list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, q, r, dual, link, ind_bin,
                                     vec_fac_gr, vec_fac_st, bool_rmvd_x, bool_rmvd_z,
-                                    bool_rmvd_v, names_x, names_y, names_z, verbose, s02)
+                                    bool_rmvd_v, names_x, names_y, names_z, verbose, s02, s2)
   
   if(dual && (link != "identity" | !is.null(q)))
     stop(paste("Dual propensity control (p0_av is a list) enabled only for ",
@@ -614,6 +630,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
             vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                              list_init$mu_beta_vb,
                                              list_init$sig2_beta_vb, list_init$tau_vb,
+                                             om,
                                              list_struct, bool_blocks = FALSE, hs, df,
                                              eb_local_scale, tol, maxit, anneal, verbose)
           } else {
@@ -881,7 +898,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1e-2, link = "identit
         
         vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
-                                            list_init_bl$tau_vb, list_struct, bool_blocks = TRUE, 
+                                            list_init_bl$tau_vb, om, list_struct, bool_blocks = TRUE, 
                                             hs, df, eb_local_scale, tol, maxit, anneal, verbose = TRUE)
         
       } else if (!dual) {

@@ -388,7 +388,8 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, link = "identity",
 # Internal function setting default model hyperparameters when not provided by
 # the user.
 #
-auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct, vec_fac_gr, s02) {
+auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct, 
+                            vec_fac_gr, s02, s2 = NULL) {
 
   d <- ncol(Y)
 
@@ -516,7 +517,8 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct, vec
 
     # hyperparameters external info model
     if (!is.null(r)){
-      s2 <- 0.1 #now as s02 (s02_av = 0.1 provided as argument to epispot) # 1e-2 # 0.01 used for thesis
+      check_positive_(s2)
+      s2 <- s2 
     } else {
       s2 <- NULL
     }
