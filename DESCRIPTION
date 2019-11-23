@@ -2,8 +2,8 @@ Package: epispot
 Type: Package
 Title: Parallel variational EM inference for EPIgenome-driven hotSPOT selection 
     in molecular QTL mapping
-Version: 0.1.0
-Date: 2019-08-11
+Version: 0.1.1
+Date: 2019-11-23
 Authors@R: c(
     person("Helene", "Ruffieux", email = "helene.ruffieux@mrc-bsu.cam.ac.uk",
             role = c("aut", "cre")),
