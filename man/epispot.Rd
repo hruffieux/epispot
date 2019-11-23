@@ -10,9 +10,9 @@ epispot(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1/ncol(Y),
   list_blocks = NULL, list_groups = NULL, list_struct = NULL,
   dual = FALSE, hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
   eb_local_scale = FALSE, user_seed = NULL, tol = 0.001,
-  maxit = 1000, anneal = NULL, anneal_vb_em = NULL,
-  save_hyper = FALSE, save_init = FALSE, verbose = TRUE,
-  checkpoint_path = NULL, trace_path = NULL)
+  adaptive_tol_em = FALSE, maxit = 1000, anneal = NULL,
+  anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE,
+  verbose = TRUE, checkpoint_path = NULL, trace_path = NULL)
 }
 \arguments{
 \item{Y}{Response data matrix of dimension n x d, where n is the number of
@@ -128,6 +128,10 @@ stage (if \code{list_cv} is non-\code{NULL}). Default is \code{NULL}, no
 seed set.}
 
 \item{tol}{Tolerance for the stopping criterion.}
+
+\item{adaptive_tol_em}{Boolean indicating whether the tolerance for the 
+within-EM variational runs should be controlled adaptively depending on the
+EM-convergence status.}
 
 \item{maxit}{Maximum number of iterations allowed.}
 

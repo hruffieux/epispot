@@ -115,6 +115,9 @@
 #'   stage (if \code{list_cv} is non-\code{NULL}). Default is \code{NULL}, no
 #'   seed set.
 #' @param tol Tolerance for the stopping criterion.
+#' @param adaptive_tol_em Boolean indicating whether the tolerance for the 
+#'   within-EM variational runs should be controlled adaptively depending on the
+#'   EM-convergence status.
 #' @param maxit Maximum number of iterations allowed.
 #' @param anneal Parameters for annealing scheme. Must be a vector whose first
 #'   entry is sets the type of ladder: 1 = geometric spacing, 2 = harmonic
@@ -317,7 +320,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
                   list_cv = NULL, list_blocks = NULL, list_groups = NULL,
                   list_struct = NULL, dual = FALSE, hyper = FALSE, hs = FALSE, 
                   df = 1, eb = FALSE, eb_local_scale = FALSE, user_seed = NULL, 
-                  tol = 1e-3, maxit = 1000, 
+                  tol = 1e-3, adaptive_tol_em = FALSE, maxit = 1000, 
                   anneal = NULL, anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
                   verbose = TRUE, checkpoint_path = NULL, trace_path = NULL) {
   
@@ -641,7 +644,8 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
                                              list_init$sig2_beta_vb, list_init$tau_vb,
                                              om,
                                              list_struct, bool_blocks = FALSE, hs, df,
-                                             eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose)
+                                             eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose,
+                                             adaptive_tol_em = adaptive_tol_em)
           } else {
             
             if (hs) {
@@ -908,7 +912,8 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
                                             list_init_bl$tau_vb, om, list_struct, bool_blocks = TRUE, 
-                                            hs, df, eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose = TRUE)
+                                            hs, df, eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
+                                            adaptive_tol_em = adaptive_tol_em)
         
       } else if (!dual) {
         
