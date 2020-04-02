@@ -385,15 +385,15 @@ epispot_dual_horseshoe_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb,
       names_x <- colnames(X)
       names_y <- colnames(Y)
       
-      rownames(gam_vb) <- names_x
-      colnames(gam_vb) <- names_y
+      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
+      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
       names(mu_theta_vb) <- names_x
       names(mu_rho_vb) <- names_y
       names(b_vb) <- names_x
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(gam_vb, mu_theta_vb, mu_rho_vb, converged, it, lb_opt,
+      create_named_list_(gam_vb, mu_beta_vb, mu_theta_vb, mu_rho_vb, converged, it, lb_opt,
                          diff_lb, S0_inv_vb, s02_vb, b_vb, df, trace_ind_max, 
                          trace_var_max, shr_fac_inv)
       

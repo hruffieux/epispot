@@ -230,14 +230,14 @@ epispot_dual_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta_v
       names_x <- colnames(X)
       names_y <- colnames(Y)
 
-      rownames(gam_vb) <- names_x
-      colnames(gam_vb) <- names_y
+      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
+      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
       names(mu_theta_vb) <- names_x
       names(mu_rho_vb) <- names_y
 
       diff_lb <- abs(lb_opt - lb_old)
 
-      create_named_list_(gam_vb, mu_theta_vb, mu_rho_vb, converged, it, lb_opt, diff_lb)
+      create_named_list_(gam_vb, mu_beta_vb, mu_theta_vb, mu_rho_vb, converged, it, lb_opt, diff_lb)
 
     }
   })

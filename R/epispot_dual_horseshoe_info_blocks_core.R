@@ -423,8 +423,8 @@ epispot_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
       names_y <- colnames(Y)
       names_v <- lapply(list_V, function(V) colnames(V))
       
-      rownames(gam_vb) <- names_x
-      colnames(gam_vb) <- names_y
+      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
+      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
       
       names(mu_theta_vb) <- names_x
       names(mu_rho_vb) <- names_y
@@ -446,7 +446,7 @@ epispot_dual_horseshoe_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl,
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(bhs_vb, gam_vb, mu_c_vb, mu_theta_vb, mu_rho_vb, 
+      create_named_list_(bhs_vb, gam_vb, mu_beta_vb, mu_c_vb, mu_theta_vb, mu_rho_vb, 
                          om_vb, S0_inv_vb, s02_vb, zeta_vb, converged, it, 
                          lb_opt, diff_lb, df, trace_ind_max, 
                          trace_var_max, shr_fac_inv)

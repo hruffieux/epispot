@@ -268,8 +268,8 @@ epispot_mix_info_core_ <- function(Y, X, Z, V, ind_bin, list_hyper, gam_vb,
       rownames(mu_alpha_vb) <- names_z
       colnames(mu_alpha_vb) <- names_y
 
-      rownames(gam_vb) <- names_x
-      colnames(gam_vb) <- names_y
+      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
+      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
 
       names(mu_c0_vb) <- names_x
 
@@ -278,7 +278,7 @@ epispot_mix_info_core_ <- function(Y, X, Z, V, ind_bin, list_hyper, gam_vb,
 
       diff_lb <- abs(lb_opt - lb_old)
 
-      create_named_list_(gam_vb, mu_c0_vb, mu_c_vb, mu_alpha_vb, converged, it,
+      create_named_list_(gam_vb, mu_beta_vb, mu_c0_vb, mu_c_vb, mu_alpha_vb, converged, it,
                          lb_opt, diff_lb)
 
     }

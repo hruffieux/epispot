@@ -171,13 +171,13 @@ epispot_struct_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta
       names_x <- colnames(X)
       names_y <- colnames(Y)
 
-      rownames(gam_vb) <- names_x
-      colnames(gam_vb) <- names_y
+      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
+      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
       names(mu_theta_vb) <- names_x
 
       diff_lb <- abs(lb_opt - lb_old)
 
-      create_named_list_(gam_vb, mu_theta_vb, converged, it, lb_opt, diff_lb)
+      create_named_list_(gam_vb, mu_beta_vb, mu_theta_vb, converged, it, lb_opt, diff_lb)
 
     }
   })

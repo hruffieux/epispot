@@ -235,15 +235,15 @@ epispot_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_beta_vb,
       names_x <- colnames(X)
       names_y <- colnames(Y)
 
-      rownames(gam_vb) <- names_x
-      colnames(gam_vb) <- names_y
+      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
+      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
       names(om_vb) <- names_x
 
       diff_lb <- abs(lb_opt - lb_old)
 
       annealing <- ifelse(is.null(anneal), FALSE, anneal[1])
 
-      create_named_list_(gam_vb, om_vb, converged, it, lb_opt, diff_lb, annealing)
+      create_named_list_(gam_vb, mu_beta_vb, om_vb, converged, it, lb_opt, diff_lb, annealing)
     }
   })
 

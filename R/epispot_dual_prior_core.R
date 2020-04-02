@@ -297,14 +297,14 @@ epispot_dual_prior_core_ <- function(Y, X, list_hyper, gam_vb, mu_beta_vb, sig2_
       names_x <- colnames(X)
       names_y <- colnames(Y)
       
-      rownames(gam_vb) <- names_x
-      colnames(gam_vb) <- names_y
+      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
+      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
       names(mu_theta_vb) <- names_x
       names(mu_rho_vb) <- names_y
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(gam_vb, mu_theta_vb, mu_rho_vb, converged, it, lb_opt,
+      create_named_list_(gam_vb, mu_beta_vb, mu_theta_vb, mu_rho_vb, converged, it, lb_opt,
                          diff_lb, S0_inv_vb, s02_vb, shr_fac_inv)
       
     }
