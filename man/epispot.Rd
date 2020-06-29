@@ -4,15 +4,41 @@
 \alias{epispot}
 \title{Fit sparse multivariate regression models using variational inference.}
 \usage{
-epispot(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1/ncol(Y),
-  s2 = NULL, om = NULL, link = "identity", ind_bin = NULL,
-  list_hyper = NULL, list_init = NULL, list_cv = NULL,
-  list_blocks = NULL, list_groups = NULL, list_struct = NULL,
-  dual = FALSE, hyper = FALSE, hs = FALSE, df = 1, eb = FALSE,
-  eb_local_scale = FALSE, user_seed = NULL, tol = 0.001,
-  adaptive_tol_em = FALSE, maxit = 1000, anneal = NULL,
-  anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE,
-  verbose = TRUE, checkpoint_path = NULL, trace_path = NULL)
+epispot(
+  Y,
+  X,
+  p0_av,
+  Z = NULL,
+  V = NULL,
+  s02 = 1/ncol(Y),
+  s2 = NULL,
+  om = NULL,
+  link = "identity",
+  ind_bin = NULL,
+  list_hyper = NULL,
+  list_init = NULL,
+  list_cv = NULL,
+  list_blocks = NULL,
+  list_groups = NULL,
+  list_struct = NULL,
+  dual = FALSE,
+  hyper = FALSE,
+  hs = FALSE,
+  df = 1,
+  eb = FALSE,
+  eb_local_scale = FALSE,
+  user_seed = NULL,
+  tol = 0.001,
+  adaptive_tol_em = FALSE,
+  maxit = 1000,
+  anneal = NULL,
+  anneal_vb_em = NULL,
+  save_hyper = FALSE,
+  save_init = FALSE,
+  verbose = TRUE,
+  checkpoint_path = NULL,
+  trace_path = NULL
+)
 }
 \arguments{
 \item{Y}{Response data matrix of dimension n x d, where n is the number of
