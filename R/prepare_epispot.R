@@ -56,48 +56,37 @@ prepare_data_ <- function(Y, X, V, s02, user_seed, tol, maxit, verbose) {
   bool_rmvd_x <- bool_cst_x
   bool_rmvd_x[!bool_cst_x] <- bool_coll_x
 
-  if (!is.null(V)) {
+  check_structure_(V, "matrix", "numeric")
 
-    check_structure_(V, "matrix", "numeric")
+  r <- ncol(V)
+  if (nrow(V) != p) stop("The number of rows of V must match the number of candidate predictors in X.")
 
-    r <- ncol(V)
-    if (nrow(V) != p) stop("The number of rows of V must match the number of candidate predictors in X.")
+  V <- V[!bool_rmvd_x, , drop = FALSE] # remove the rows corresponding to the removed candidate predictors
 
-    V <- V[!bool_rmvd_x, , drop = FALSE] # remove the rows corresponding to the removed candidate predictors
+  if (is.null(rownames(V))) rownames(V) <- colnames(X)
+  else if(any(rownames(V) != colnames(X)))
+    stop("The provided rownames of V must be the same than those of X and Y or NULL.")
 
-    if (is.null(rownames(V))) rownames(V) <- colnames(X)
-    else if(any(rownames(V) != colnames(X)))
-      stop("The provided rownames of V must be the same than those of X and Y or NULL.")
+  if (is.null(colnames(V))) colnames(V) <- paste("Annot_", 1:r, sep="")
 
-    if (is.null(colnames(V))) colnames(V) <- paste("Annot_", 1:r, sep="")
+  V <- scale(V)
 
-    V <- scale(V)
+  list_V_cst <- rm_constant_(V, verbose)
+  V <- list_V_cst$mat
+  bool_cst_v <- list_V_cst$bool_cst
+  rmvd_cst_v <- list_V_cst$rmvd_cst
 
-    list_V_cst <- rm_constant_(V, verbose)
-    V <- list_V_cst$mat
-    bool_cst_v <- list_V_cst$bool_cst
-    rmvd_cst_v <- list_V_cst$rmvd_cst
+  list_V_coll <- rm_collinear_(V, verbose)
+  V <- list_V_coll$mat
+  r <- ncol(V)
+  bool_coll_v <- list_V_coll$bool_coll
+  rmvd_coll_v <- list_V_coll$rmvd_coll
 
-    list_V_coll <- rm_collinear_(V, verbose)
-    V <- list_V_coll$mat
-    r <- ncol(V)
-    bool_coll_v <- list_V_coll$bool_coll
-    rmvd_coll_v <- list_V_coll$rmvd_coll
+  bool_rmvd_v <- bool_cst_v
+  bool_rmvd_v[!bool_cst_v] <- bool_coll_v
 
-    bool_rmvd_v <- bool_cst_v
-    bool_rmvd_v[!bool_cst_v] <- bool_coll_v
-
-    if (sum(!bool_rmvd_v) == 0)
-      stop("All variables provided in V are constants and hence useless. Please set V to NULL.")
-
-  } else {
-
-    r <- NULL
-    bool_rmvd_v <- NULL
-    rmvd_cst_v <- NULL
-    rmvd_coll_v <- NULL
-
-  }
+  if (sum(!bool_rmvd_v) == 0)
+    stop("All variables provided in V are constants and hence useless. Please set V to NULL.")
 
   p <- ncol(X)
   if (p < 1) stop(paste("There must be at least 1 non-constant candidate predictor ",

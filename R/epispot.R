@@ -33,11 +33,6 @@
 #'   variables representing external information on the candidate predictors
 #'   which may make their selection more or less likely. \code{NULL} if no such
 #'   information.
-#' @param s02 Variance hyperparameter informing the proportion of active 
-#'   responses per active predictor (degree of pleiotropy in a genetic context). 
-#' @param s2 Variance hyperparameter for the annotation spike-and-slab. 
-#' @param om Initial value for the annotation inclusion probabilities (of size
-#'   r or 1, in which case repeated).
 #' @param list_hyper An object of class "\code{hyper}" containing the model
 #'   hyperparameters. Must be filled using the \code{\link{set_hyper}}
 #'   function or must be \code{NULL} for default hyperparameters.
@@ -219,12 +214,18 @@
 #'
 #' @export
 #'
-epispot <- function(Y, X, p0, V = NULL, s02 = 1 / ncol(Y), s2 = NULL, 
-                    om = NULL, list_hyper = NULL, list_init = NULL,
+epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
                     list_blocks = NULL, user_seed = NULL, 
                     tol = 1e-3, adaptive_tol_em = FALSE, maxit = 1000, 
-                    anneal = NULL, anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
+                    anneal = NULL, anneal_vb_em = NULL, 
+                    save_hyper = FALSE, save_init = FALSE, 
                     verbose = TRUE) {
+  
+  
+  s02 <- 1 / ncol(Y) # TODO: put in set init <- auto_init.
+  s2 <- 0.1
+  om <- 1 / ncol(V) 
+
   
   if (verbose) cat("== Preparing the data ... \n")
   
@@ -248,18 +249,12 @@ epispot <- function(Y, X, p0, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
   names_x <- colnames(X)
   names_y <- colnames(Y)
   
-  if (!is.null(V)) {
-    r <- ncol(V)
-    names_v <- colnames(V)
-    check_structure_(om, "vector", "numeric", c(1, r))
-    check_positive_(om)
-    if (length(om) == 1) om <- rep(om, r)
-  } else {
-    r <- NULL
-    names_v <- NULL
-    stopifnot(is.null(om))
-    stopifnot(is.null(s2))
-  }
+  r <- ncol(V)
+  names_v <- colnames(V)
+  check_structure_(om, "vector", "numeric", c(1, r))
+  check_positive_(om)
+  if (length(om) == 1) om <- rep(om, r)
+
   
   if (verbose) cat("... done. == \n\n")
   
@@ -295,14 +290,15 @@ epispot <- function(Y, X, p0, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
   if (verbose) cat("== Preparing the hyperparameters ... \n\n")
   
   list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, r,
-                                    bool_rmvd_x, 
-                                    bool_rmvd_v, names_x, names_y, verbose, s02, s2)
+                                    bool_rmvd_x, bool_rmvd_v, 
+                                    names_x, names_y, verbose, s02, s2)
   
   if (verbose) cat("... done. == \n\n")
   
   if (verbose) cat("== Preparing the parameter initialization ... \n\n")
   
-  list_init <- prepare_list_init_(list_init, Y, p, p_star, bool_rmvd_x, bool_rmvd_v, user_seed, verbose)
+  list_init <- prepare_list_init_(list_init, Y, p, p_star, 
+                                  bool_rmvd_x, bool_rmvd_v, user_seed, verbose)
   
   if (verbose) cat("... done. == \n\n")
   
