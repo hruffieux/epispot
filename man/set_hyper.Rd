@@ -13,20 +13,13 @@ set_hyper(
   b,
   eta,
   kappa,
-  link = "identity",
-  ind_bin = NULL,
-  q = NULL,
-  phi = NULL,
-  xi = NULL,
   r = NULL,
   m0 = NULL,
   n0 = NULL,
   s02 = NULL,
   s2 = NULL,
   t02 = NULL,
-  G = NULL,
-  dual = FALSE,
-  struct = FALSE
+  G = NULL
 )
 }
 \arguments{
@@ -52,75 +45,34 @@ If of length 1, the provided value is repeated p times.}
 associated with each candidate predictor, \eqn{\omega} (vector of length p).
 If of length 1, the provided value is repeated p times.}
 
-\item{eta}{Vector of length 1 or d for \code{link = "identity"}, and of
-length 1 or d_cont = d - length(ind_bin) (the number of continuous response
-variables) for \code{link = "mix"}. Provides the values of
+\item{eta}{Vector of length 1 or d. Provides the values of
 hyperparameter \eqn{\eta} for the prior distributions of the continuous
 response residual precisions, \eqn{\tau}. If of length 1, the provided
-value is repeated d, resp. d_cont, times. Must be \code{NULL} for
-\code{link = "logit"} and \code{link = "probit"}.}
+value is repeated d times.}
 
-\item{kappa}{Vector of length 1 or d for \code{link = "identity"}, and of
-length 1 or d_cont = d - length(ind_bin) (the number of continuous response
-variables) for \code{link = "mix"}. Provides the values of hyperparameter
+\item{kappa}{Vector of length 1 or d. Provides the values of hyperparameter
 \eqn{\kappa} for the prior distributions of the response residual
-precisions, \eqn{\tau}. If of length 1, the provided value is repeated d,
-resp. d_cont, times. Must be \code{NULL} for \code{link = "logit"} and
-\code{link = "probit"}.}
-
-\item{link}{Response link. Must be "\code{identity}" for linear regression,
-"\code{logit}" for logistic regression, "\code{probit}"
-for probit regression, or "\code{mix}" for a mix of identity and probit
-link functions (in this case, the indices of the binary responses must be
-gathered in argument \code{ind_bin}, see below).}
-
-\item{ind_bin}{If \code{link = "mix"}, vector of indices corresponding to
-the binary variables in \code{Y}. Must be \code{NULL} if
-\code{link != "mix"}.}
-
-\item{q}{Number of covariates. Default is \code{NULL}, for \code{Z}
-\code{NULL}.}
-
-\item{phi}{Vector of length 1 or q providing the values of hyperparameter
-\eqn{\phi} for the prior distributions for the sizes of the nonzero
-covariate effects, \eqn{\zeta}. If of length 1, the provided value is
-repeated q times. Default is \code{NULL}, for \code{Z} \code{NULL}.}
-
-\item{xi}{Vector of length 1 or q providing the values of hyperparameter
-\eqn{\xi} for the prior distributions for the sizes of the nonzero
-covariate effects, \eqn{\zeta}. If of length 1, the provided value is
-repeated q times. Default is \code{NULL}, for \code{Z} \code{NULL}.}
+precisions, \eqn{\tau}. If of length 1, the provided value is repeated d 
+times.}
 
 \item{r}{Number of variables representing external information on the
 candidate predictors. Default is \code{NULL}, for \code{V} \code{NULL}.}
 
-\item{m0}{Vector of length 1 or p. Hyperparameter when \code{V},
-\code{list_struct} or \code{dual} is non-\code{NULL}. Default is
-\code{NULL}.}
+\item{m0}{Vector of length 1 or p. Hyperparameter when \code{V}. Default is \code{NULL}.}
 
-\item{n0}{Vector of length 1 or d. Hyperparameter when \code{dual} is
-non-\code{NULL}. Default is \code{NULL}.}
+\item{n0}{Vector of length 1 or d.}
 
-\item{s02}{Variance hyperparameter when \code{V}, \code{list_struct} or
-\code{dual} is non-\code{NULL} non-\code{NULL}. Default is \code{NULL}.}
+\item{s02}{Variance hyperparameter when \code{V} is 
+non-\code{NULL} non-\code{NULL}. Default is \code{NULL}.}
 
 \item{s2}{Variance hyperparameter when \code{V} is non-\code{NULL}
 non-\code{NULL}. Default is \code{NULL}.}
 
-\item{t02}{Variance hyperparameter when \code{dual} is non-\code{NULL}
-non-\code{NULL}. Default is \code{NULL}.}
+\item{t02}{Variance hyperparameter.}
 
 \item{G}{Number of candidate predictor groups when using the group selection
 model from the \code{\link{epispot}} function. Default is \code{NULL},
 for no group selection.}
-
-\item{dual}{If \code{TRUE}, dual propensity control (by candidate predictors
-and by responses). Functionality under development and with limited
-associated functionalities. Default is \code{FALSE}.}
-
-\item{struct}{Boolean indicating the use of structured sparse priors
-set through the \code{\link{set_struct}} function. Default is \code{FALSE},
-for no structured selection.}
 }
 \value{
 An object of class "\code{hyper}" preparing user hyperparameter in a

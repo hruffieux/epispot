@@ -416,53 +416,14 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb,
 }
 
 
-update_sig2_theta_vb_ <- function(d, p, list_struct, s02, X = NULL, c = 1) {
+update_sig2_theta_vb_ <- function(d, p, s02, c = 1) {
   
-  if (is.null(list_struct)) {
-    
-    vec_fac_st <- NULL
-    
     S0_inv <- 1 / s02 # stands for a diagonal matrix of size p with this value on the (constant) diagonal
     sig2_theta_vb <- as.numeric(update_sig2_c0_vb_(d, s02, c = c)) # idem
     
     vec_sum_log_det_theta <- - sum(log(s02) + log(d + S0_inv))
-    
-  } else {
-    
-    if (c != 1)
-      stop("Annealing not implemented when Sigma_0 is not the identity matrix.")
-    
-    if (is.null(X))
-      stop("X must be passed to the update_sig2_theta_function.")
-    
-    vec_fac_st <- list_struct$vec_fac_st
-    n_cpus <- list_struct$n_cpus
-    
-    S0_inv <- parallel::mclapply(as.numeric(levels(vec_fac_st)), function(bl) {
-      
-      corX <- cor(X[, vec_fac_st == bl, drop = FALSE])
-      corX <- as.matrix(Matrix::nearPD(corX, corr = TRUE, do2eigen = TRUE)$mat) # regularization in case of non-positive definiteness.
-      
-      as.matrix(solve(corX) / s02)
-    }, mc.cores = n_cpus)
-    
-    if (is.list(S0_inv)) {
-      
-      sig2_theta_vb <- parallel::mclapply(S0_inv, function(mat) {
-        as.matrix(solve(mat + diag(d, nrow(mat))))
-      }, mc.cores = n_cpus)
-      
-    } else {
-      
-      sig2_theta_vb <- 1 / (S0_inv + d)
-      
-    }
-    
-    vec_sum_log_det_theta <- log_det(S0_inv) + log_det(sig2_theta_vb) # vec_sum_log_det_theta[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
-    
-  }
   
-  create_named_list_(S0_inv, sig2_theta_vb, vec_sum_log_det_theta, vec_fac_st)
+  create_named_list_(S0_inv, sig2_theta_vb, vec_sum_log_det_theta)
 }
 
 

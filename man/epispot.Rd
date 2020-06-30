@@ -8,25 +8,13 @@ epispot(
   Y,
   X,
   p0_av,
-  Z = NULL,
   V = NULL,
   s02 = 1/ncol(Y),
   s2 = NULL,
   om = NULL,
-  link = "identity",
-  ind_bin = NULL,
   list_hyper = NULL,
   list_init = NULL,
-  list_cv = NULL,
   list_blocks = NULL,
-  list_groups = NULL,
-  list_struct = NULL,
-  dual = FALSE,
-  hyper = FALSE,
-  hs = FALSE,
-  df = 1,
-  eb = FALSE,
-  eb_local_scale = FALSE,
   user_seed = NULL,
   tol = 0.001,
   adaptive_tol_em = FALSE,
@@ -35,9 +23,7 @@ epispot(
   anneal_vb_em = NULL,
   save_hyper = FALSE,
   save_init = FALSE,
-  verbose = TRUE,
-  checkpoint_path = NULL,
-  trace_path = NULL
+  verbose = TRUE
 )
 }
 \arguments{
@@ -47,21 +33,10 @@ samples and d is the number of response variables.}
 \item{X}{Input matrix of dimension n x p, where p is the number of candidate
 predictors. \code{X} cannot contain NAs. No intercept must be supplied.}
 
-\item{p0_av}{If \code{dual} is \code{FALSE} (default), prior average number
-of predictors (or groups of predictors if \code{list_groups} is
-non-\code{NULL}) expected to be included in the model.  Can also
-be a vector of length p (resp. of length the number of groups) with entry s
-corresponding to the prior probability that candidate predictor s (resp.
-group s) is associated with at least one response. If \code{dual} is
-\code{TRUE}, vector of size 2 whose arguments are the expectation and the
+\item{p0_av}{Vector of size 2 whose arguments are the expectation and the
 variance of the number of active predictors per response.
 Must be \code{NULL} if \code{list_init} and \code{list_hyper}
-are both non-\code{NULL} or if \code{list_cv} is non-\code{NULL}.}
-
-\item{Z}{Covariate matrix of dimension n x q, where q is the number of
-covariates. Variables in \code{Z} are not subject to selection. \code{NULL}
-if no covariate. Factor covariates must be supplied after transformation to
-dummy coding. No intercept must be supplied.}
+are both non-\code{NULL}.}
 
 \item{V}{Annotation matrix of dimension p x r, where r is the number of
 variables representing external information on the candidate predictors
@@ -69,26 +44,12 @@ which may make their selection more or less likely. \code{NULL} if no such
 information.}
 
 \item{s02}{Variance hyperparameter informing the proportion of active 
-responses per active predictor (degree of pleiotropy in a genetic context). 
-Used only if \code{dual} is \code{TRUE} or \code{V} or \code{list_struct} 
-is non-\code{NULL}.}
+responses per active predictor (degree of pleiotropy in a genetic context).}
 
-\item{s2}{Variance hyperparameter for the annotation spike-and-slab. 
-Used only if \code{dual} is \code{TRUE} and \code{V}.}
+\item{s2}{Variance hyperparameter for the annotation spike-and-slab.}
 
 \item{om}{Initial value for the annotation inclusion probabilities (of size
-r or 1, in which case repeated). 
-Used only if \code{dual}, \code{V} and \code{eb} are \code{TRUE}.}
-
-\item{link}{Response link. Must be "\code{identity}" for linear regression,
-"\code{logit}" for logistic regression, "\code{probit}" for probit
-regression, or "\code{mix}" for a mix of identity and probit link functions
-(in this case, the indices of the binary responses must be gathered in
-argument \code{ind_bin}, see below).}
-
-\item{ind_bin}{If \code{link = "mix"}, vector of indices corresponding to
-the binary variables in \code{Y}. Must be \code{NULL} if
-\code{link != "mix"}.}
+r or 1, in which case repeated).}
 
 \item{list_hyper}{An object of class "\code{hyper}" containing the model
 hyperparameters. Must be filled using the \code{\link{set_hyper}}
@@ -98,59 +59,14 @@ function or must be \code{NULL} for default hyperparameters.}
 variational parameters. Must be filled using the \code{\link{set_init}}
 function or be \code{NULL} for a default initialization.}
 
-\item{list_cv}{An object of class "\code{cv}" containing settings for
-choosing the prior average number of predictors expected to be included in
-the model, \code{p0_av}, by cross-validation. Must be filled using the
-\code{\link{set_cv}} function or must be \code{NULL} for no
-cross-validation. If non-\code{NULL}, \code{p0_av}, \code{list_init} and
-\code{list_hyper} must all be \code{NULL}. Cross-validation only available
-for \code{link = "identity"}.}
-
 \item{list_blocks}{An object of class "\code{blocks}" containing settings for
 parallel inference on a partitioned predictor space. Must be filled using
 the \code{\link{set_blocks}} function or must be \code{NULL} for no
 partitioning.}
 
-\item{list_groups}{An object of class "\code{groups}" containing settings for
-group selection of candidate predictors. Must be filled using the
-\code{\link{set_groups}} function or must be \code{NULL} for group
-selection.}
-
-\item{list_struct}{An object of class "\code{struct}" containing settings for
-structure sparsity priors. Must be filled using the
-\code{\link{set_struct}} function or must be \code{NULL} for structured
-selection.}
-
-\item{dual}{If \code{TRUE}, dual propensity control (by candidate predictors
-and by responses). Functionality under development and with limited
-associated functionalities. Default is \code{FALSE}.}
-
-\item{hyper}{If \code{TRUE}, hyperprior specification on the predictor 
-propensity variance. Only if \code{dual} is \code{TRUE}; must be 
-\code{FALSE} otherwise. Default is \code{FALSE}.}
-
-\item{hs}{If \code{TRUE}, hyperprior giving rise to a Horseshoe distribution
-for the predictor propensities; else, Cauchy distribution. Only if 
-\code{hyper} is \code{TRUE}; must be \code{FALSE} otherwise. Default is 
-\code{FALSE}.}
-
-\item{df}{Degrees of freedom for the local scale parameter of the Horseshoe 
-prior. Must be either 1 (default, classical Horseshoe), or an odd number up
-to 7. Not used if hs is \code{FALSE}.}
-
-\item{eb}{If \code{TRUE}, annotation spike-and-slab variance and probability 
-hyperparameters selected via an empirical Bayes procedure. Only used if 
-\code{dual} is \code{TRUE} and \code{V} is non-\code{NULL}. Default is 
-\code{FALSE}.}
-
-\item{eb_local_scale}{If \code{TRUE}, local hotspot variances estimated by 
-empirical Bayes (and module-specific if modules). Must be \code{FALSE} if 
-\code{eb} is \code{FALSE} or \code{hyper} is \code{TRUE} .}
-
 \item{user_seed}{Seed set for reproducible default choices of hyperparameters
 (if \code{list_hyper} is \code{NULL}) and initial variational parameters
-(if \code{list_init} is \code{NULL}). Also used at the cross-validation
-stage (if \code{list_cv} is non-\code{NULL}). Default is \code{NULL}, no
+(if \code{list_init} is \code{NULL}). Default is \code{NULL}, no
 seed set.}
 
 \item{tol}{Tolerance for the stopping criterion.}
@@ -168,7 +84,7 @@ and the third entry is the ladder size. If \code{NULL} (default), no
 annealing is performed.}
 
 \item{anneal_vb_em}{Parameters for annealing scheme for the internal runs of the 
-variational EM algorithm. Must be \code{NULL} if \code{eb} is \code{FALSE}.}
+variational EM algorithm.}
 
 \item{save_hyper}{If \code{TRUE}, the hyperparameters used for the model are
 saved as output.}
@@ -177,13 +93,6 @@ saved as output.}
 the inference are saved as output.}
 
 \item{verbose}{If \code{TRUE}, messages are displayed during execution.}
-
-\item{checkpoint_path}{Path where to save temporary checkpoint outputs. 
-Default is \code{NULL}, for no checkpointing.}
-
-\item{trace_path}{Path where to save trace plot for the variance of hotspot
-propensities. Only used for the Horseshoe model, is ignored if \code{hs} is
-\code{FALSE}. Default is \code{NULL}, for no trace saved.}
 }
 \value{
 An object of class "\code{vb}" containing the following variational
@@ -191,39 +100,21 @@ An object of class "\code{vb}" containing the following variational
  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x d.
                Entry (s, t) corresponds to the posterior probability of
                association between candidate predictor s and response t.}
- \item{mu_alpha_vb}{Matrix of dimension q x d whose entries are the posterior
-                    mean regression coefficients for the covariates provided
-                    in \code{Z} (if \code{link = "logit"},
-                    \code{link = "logit"} or
-                    \code{link = "mix"} also for the intercept).
-                    \code{NULL} if \code{Z} is \code{NULL}.}
- \item{mu_c0_vb}{Vector of length p whose entries are the posterior intercept
-                 coefficients at the level of probabilities of associations.
-                 Entry s represents the control of the proportion of
-                 responses associated with candidate predictor s which is not
-                 due to external annotations. \code{NULL} if \code{V} is
-                 \code{NULL} or if \code{dual} is \code{TRUE}.}
- \item{mu_c_vb}{If \code{dual} is \code{FALSE}, matrix of dimension r x d,
-                where entry (l, k) contains the effect of annotation l for
-                response k on the probabilities of associations. If
-                \code{dual} is \code{TRUE}, vector of size r, where entry l
-                contains the overall effect of annotation l on the
+ \item{mu_c_vb}{Vector of size r, where entry l contains the overall effect 
+                of annotation l on the
                 probabilities of associations.\code{NULL} if \code{V} is
                 \code{NULL}.}
  \item{mu_rho_vb}{Vector of length d containing the posterior mean of rho.
                   Entry t controls the proportion of predictors associated
-                  with response t. \code{NULL} if \code{dual} is
-                  \code{FALSE}.}
+                  with response t.}
  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
                     theta. Entry s corresponds to the propensity of candidate
-                    predictor s to be included in the model. \code{NULL} if
-                    \code{dual} is \code{FALSE}.}
+                    predictor s to be included in the model.}
  \item{om_vb}{Vector of length p containing the posterior mean of omega.
               Entry s controls the proportion of responses associated with
               candidate predictor s. NULL if \code{V} is non-\code{NULL}.}
  \item{zeta_vb}{Posterior inclusion probability vector of size r for the
-                annotation variables. \code{NULL} if \code{V} is \code{NULL}
-                or if \code{dual} is \code{FALSE}.}
+                annotation variables. \code{NULL} if \code{V} is \code{NULL}.}
  \item{converged}{A boolean indicating whether the algorithm has converged
                   before reaching \code{maxit} iterations.}
  \item{it}{Final number of iterations.}
@@ -233,11 +124,11 @@ An object of class "\code{vb}" containing the following variational
                 iterations. This may be a useful diagnostic information when
                 convergence has not been reached before \code{maxit}.}
  \item{p_star}{Vector of length 1 or p defining the applied sparsity control.}
- \item{rmvd_cst_x, rmvd_cst_z}{Vectors containing the indices of constant
-                               variables in \code{X} (resp. \code{Z}) removed
+ \item{rmvd_cst_x}{Vectors containing the indices of constant
+                               variables in \code{X} removed
                                prior to the analysis.}
- \item{rmvd_coll_x, rmvd_coll_z}{Vectors containing the indices of variables
-                                 in \code{X} (resp. \code{Z}) removed prior
+ \item{rmvd_coll_x}{Vectors containing the indices of variables
+                                 in \code{X} removed prior
                                  to the analysis because collinear to other
                                  variables. The entry name indicates the
                                  corresponding variable kept in the analysis
@@ -247,11 +138,6 @@ An object of class "\code{vb}" containing the following variational
                               \code{TRUE}, hyperparameters, resp. initial
                               variational parameters, used for inference are
                               saved as output.}
- \item{group_labels}{If \code{list_groups} is non-\code{NULL}, labels of the
-                     groups to which the candidate predictor belong (these
-                     labels are gathered after removal of constant and
-                     collinear predictors, whose indices are stored in
-                     \code{rmvd_cst_x} and \code{rmvd_coll_x}).}
  \item{...}{Other specific outputs are possible depending on the model used.}
 }
 \description{
@@ -259,8 +145,6 @@ Variational approximation procedure fitting sparse multivariate regression
 models for combined selection of predictors and associated responses in
 high-dimensional set-ups. Dependence across responses linked to the same
 predictors is captured through the model hierarchical structure.
-The responses can be purely continuous, purely binary (logit or probit link
-fits), or a mix of continuous and binary variables.
 }
 \details{
 The optimization is made using efficient block coordinate ascent schemes, for
@@ -271,9 +155,7 @@ below).
 
 The continuous response variables in \code{Y} (if any) will be centered
 before application of the variational algorithm, and the candidate predictors
-and covariates resp. in \code{X} and \code{Z} will be standardized. An
-intercept will be added if \code{link} is \code{"logit"}, \code{"probit"} or
-\code{"mix"} (do not supply it in \code{X} or \code{Z}).
+in \code{X} will be standardized.
 }
 \examples{
 seed <- 123; set.seed(seed)
@@ -333,10 +215,6 @@ V[bool_x_act, ] <- rnorm(p0 * r, mean = 2)
 
 ## Continuous responses
 ##
-# We take p0_av = p0 (known here); this choice may, in some cases, result in
-# (too) conservative variable selections. In practice, it is advised to set
-# p0_av as a slightly overestimated guess of p0, or perform cross-validation
-# using function `set_cv'.
 
 # No covariate
 #
@@ -380,6 +258,6 @@ Y. Xu, and W. Yin. A block coordinate descent method for
 }
 \seealso{
 \code{\link{set_hyper}}, \code{\link{set_init}},
-  \code{\link{set_cv}}, \code{\link{set_blocks}}, \code{\link{set_groups}}
+  \code{\link{set_blocks}}, \code{\link{set_groups}}
   and \code{\link{set_struct}}.
 }

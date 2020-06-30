@@ -5,8 +5,7 @@
 # Internal function implementing sanity checks and needed preprocessing before
 # the application of the different `epispot_*_core` algorithms.
 #
-prepare_data_ <- function(Y, X, Z, V, s02, user_seed, tol, 
-                          maxit, verbose, checkpoint_path) {
+prepare_data_ <- function(Y, X, V, s02, user_seed, tol, maxit, verbose) {
 
   check_structure_(s02, "vector", "numeric", 1)
   check_positive_(s02)
@@ -22,17 +21,6 @@ prepare_data_ <- function(Y, X, Z, V, s02, user_seed, tol,
   check_structure_(verbose, "vector", "logical", 1)
 
   check_structure_(X, "matrix", "numeric")
-  
-  if (!is.null(checkpoint_path)) {
-    
-    if (!dir.exists(checkpoint_path)) {
-      stop("The directory specified in checkpoint_path doesn't exist. Please make sure to provide a valid path.")
-    }
-    
-    if (!is.null(Z) | !is.null(V))
-      warning("Checkpointing only implemented for Z and V NULL. Path specified in checkpoint_path is ignored.")
-    
-  }
   
   n <- nrow(X)
   p <- ncol(X)
@@ -51,47 +39,6 @@ prepare_data_ <- function(Y, X, Z, V, s02, user_seed, tol,
 
   if (is.null(colnames(X))) colnames(X) <- paste("Cov_x_", 1:p, sep="")
   if (is.null(colnames(Y))) colnames(Y) <- paste("Resp_", 1:d, sep="")
-
-  if (!is.null(Z)) {
-
-    if (verbose) cat(paste("Each factor variables must be provided by adding ",
-                           "to Z (nb levels - 1) variables representing their ",
-                           "levels. \n", sep=""))
-
-    check_structure_(Z, "matrix", "numeric")
-
-    q <- ncol(Z)
-
-    if (nrow(Z) != n) stop("Z must have the same number of samples as Y and X.")
-
-    if (is.null(rownames(Z))) rownames(Z) <- rownames(X)
-    else if(any(rownames(Z) != rownames(X)))
-      stop("The provided rownames of Z must be the same than those of X and Y or NULL.")
-
-    if (is.null(colnames(Z))) colnames(Z) <- paste("Cov_z_", 1:q, sep="")
-
-    Z <- scale(Z)
-
-    list_Z_cst <- rm_constant_(Z, verbose)
-    Z <- list_Z_cst$mat
-    bool_cst_z <- list_Z_cst$bool_cst
-    rmvd_cst_z <- list_Z_cst$rmvd_cst
-
-    list_Z_coll <- rm_collinear_(Z, verbose)
-    Z <- list_Z_coll$mat
-    q <- ncol(Z)
-    bool_coll_z <- list_Z_coll$bool_coll
-    rmvd_coll_z <- list_Z_coll$rmvd_coll
-
-    bool_rmvd_z <- bool_cst_z
-    bool_rmvd_z[!bool_cst_z] <- bool_coll_z
-
-  } else {
-    q <- NULL
-    bool_rmvd_z <- NULL
-    rmvd_cst_z <- NULL
-    rmvd_coll_z <- NULL
-  }
 
   X <- scale(X)
 
@@ -120,9 +67,9 @@ prepare_data_ <- function(Y, X, Z, V, s02, user_seed, tol,
 
     if (is.null(rownames(V))) rownames(V) <- colnames(X)
     else if(any(rownames(V) != colnames(X)))
-      stop("The provided rownames of Z must be the same than those of X and Y or NULL.")
+      stop("The provided rownames of V must be the same than those of X and Y or NULL.")
 
-    if (is.null(colnames(V))) colnames(V) <- paste("Annot_z_", 1:r, sep="")
+    if (is.null(colnames(V))) colnames(V) <- paste("Annot_", 1:r, sep="")
 
     V <- scale(V)
 
@@ -158,13 +105,12 @@ prepare_data_ <- function(Y, X, Z, V, s02, user_seed, tol,
 
   Y <- scale(Y, center = TRUE, scale = FALSE)
 
-  if (is.null(q) || q < 1) Z <- NULL
   if (is.null(r) || r < 1) V <- NULL # in principle useless given the above assert.
 
-  create_named_list_(Y, X, Z, V,
-                     bool_rmvd_x, bool_rmvd_z, bool_rmvd_v,
-                     rmvd_cst_x, rmvd_cst_z, rmvd_cst_v,
-                     rmvd_coll_x, rmvd_coll_z, rmvd_coll_v)
+  create_named_list_(Y, X, V,
+                     bool_rmvd_x, bool_rmvd_v,
+                     rmvd_cst_x, rmvd_cst_v,
+                     rmvd_coll_x,  rmvd_coll_v)
 
 }
 
@@ -184,15 +130,11 @@ convert_p0_av_ <- function(p0_av, p, list_blocks, verbose, eps = .Machine$double
 
 
 
-check_annealing_ <- function(anneal, Z, V, list_groups, list_struct) {
+check_annealing_ <- function(anneal, V) {
 
   check_structure_(anneal, "vector", "numeric", 3, null_ok = TRUE)
 
   if (!is.null(anneal)) {
-
-    if (!is.null(list_groups))
-      stop(paste0("Annealing procedure not yet implemented when ",
-                 "Z, V, list_groups or list_struct is non-NULL. Exit."))
 
     check_natural_(anneal[c(1, 3)])
     check_positive_(anneal[2])
@@ -216,29 +158,18 @@ check_annealing_ <- function(anneal, Z, V, list_groups, list_struct) {
 # model hyperparameters before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, q, r, vec_fac_gr, 
-                                vec_fac_st, bool_rmvd_x, bool_rmvd_z,
-                                bool_rmvd_v, names_x, names_y, names_z, verbose, s02, s2) {
+prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x, 
+                                bool_rmvd_v, names_x, names_y, verbose, s02, s2) {
 
   d <- ncol(Y)
-  if (!is.null(vec_fac_gr)) {
-    G <- length(unique(vec_fac_gr))
-  } else {
-    G <- NULL
-  }
-
-  ns <- is.null(vec_fac_st)
-
+  
   if (is.null(list_hyper)) {
 
     if (verbose) cat("list_hyper set automatically. \n")
 
-    list_hyper <- auto_set_hyper_(Y, p, p_star, q, r, !ns, vec_fac_gr, s02, s2)
+    list_hyper <- auto_set_hyper_(Y, p, p_star, r, s02, s2)
 
   } else {
-
-    if (xor(is.null(G), is.null(list_hyper$G_hyper)))
-      stop("If group selection was enabled when setting list_hyper, it must be used in epispot and vice-versa.")
 
     if (!inherits(list_hyper, c("hyper", "out_hyper")))
       stop(paste("The provided list_hyper must be an object of class ``hyper'' ",
@@ -250,25 +181,15 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, q, r, vec_fac_gr,
 
     if (inherits(list_hyper, "hyper")) {
       p_hyper_match <- length(bool_rmvd_x)
-      if (!is.null(G))
-        G_hyper_match <- length(levels(vec_fac_gr)) # counts the levels of the factors
-                                                    # to know how many groups before removal
-                                                    # of constant or collinear predictors
     } else {
       p_hyper_match <- p
-      if (!is.null(G))
-        G_hyper_match <- G
     }
 
 
     if (list_hyper$d_hyper != d)
       stop(paste("The dimensions (d) of the provided hyperparameters ",
                  "(list_hyper) are not consistent with that of Y.\n", sep=""))
-
-    if (!is.null(G) && list_hyper$G_hyper != G_hyper_match)
-      stop(paste("The number of groups (G) provided when setting the hyperparameters ",
-                 "(list_hyper) is not consistent with that provided in the epispot function.\n", sep=""))
-
+    
     if (list_hyper$p_hyper != p_hyper_match)
       stop(paste("The dimensions (p) of the provided hyperparameters ",
                  "(list_hyper) are not consistent with that of X.\n", sep=""))
@@ -318,31 +239,6 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, q, r, vec_fac_gr,
     if (!is.null(names(list_hyper$kappa)) && names(list_hyper$kappa) != names_y)
       stop("Provided names for the entries of kappa do not match the colnames of the continuous variables in Y")
 
-    if (!is.null(q)) {
-
-      if (inherits(list_hyper, "hyper")) {
-        q_hyper_match <- length(bool_rmvd_z)
-        # remove the entries corresponding to the removed constant predictors in X
-        # (if any)
-        list_hyper$phi <- list_hyper$phi[!bool_rmvd_z]
-        list_hyper$xi <- list_hyper$xi[!bool_rmvd_z]
-
-      } else {
-        q_hyper_match <- q
-      }
-
-      if (list_hyper$q_hyper != q_hyper_match)
-        stop(paste("The dimensions of the provided hyperparameters ",
-                   "(list_hyper) are not consistent with that of Z.", sep=""))
-
-      if (!is.null(names(list_hyper$phi)) && names(list_hyper$phi) != names_z)
-        stop("Provided names for the entries of phi do not match the colnames of Z.")
-
-      if (!is.null(names(list_hyper$xi)) && names(list_hyper$xi) != names_z)
-        stop("Provided names for the entries of xi do not match the colnames of Z.")
-
-    }
-
   }
 
   class(list_hyper) <- "out_hyper"
@@ -355,18 +251,11 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, q, r, vec_fac_gr,
 # starting values before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_init_ <- function(list_init, Y, p, p_star, q,
-                               vec_fac_gr, bool_rmvd_x, bool_rmvd_z,
-                               bool_rmvd_v, user_seed, verbose) {
+prepare_list_init_ <- function(list_init, Y, p, p_star,
+                               bool_rmvd_x, bool_rmvd_v, user_seed, verbose) {
 
   d <- ncol(Y)
   n <- nrow(Y)
-
-  if (!is.null(vec_fac_gr)) {
-    G <- length(unique(vec_fac_gr))
-  } else {
-    G <- NULL
-  }
 
   if (is.null(list_init)) {
 
@@ -375,13 +264,9 @@ prepare_list_init_ <- function(list_init, Y, p, p_star, q,
 
     if (verbose) cat(paste("list_init set automatically. \n", sep=""))
 
-    list_init <- auto_set_init_(Y, G, p, p_star, q, user_seed)
+    list_init <- auto_set_init_(Y, p, p_star, user_seed)
 
   } else {
-
-    if (xor(is.null(G), is.null(list_init$G_init)))
-      stop("If group selection was enabled when setting list_init, it must be used in epispot and vice-versa.")
-
 
     if (!is.null(user_seed))
       warning("user_seed not used since a non-NULL list_init was provided. \n")
@@ -403,14 +288,8 @@ prepare_list_init_ <- function(list_init, Y, p, p_star, q,
 
     if (inherits(list_init, "init")) {
       p_init_match <- length(bool_rmvd_x)
-      if (!is.null(G))
-        G_init_match <- length(levels(vec_fac_gr)) # counts the levels of the factors
-      # to know how many groups before removal
-      # of constant or collinear predictors
     } else {
       p_init_match <- p
-      if (!is.null(G))
-        G_init_match <- G
     }
 
     if (list_init$d_init != d)
@@ -421,50 +300,14 @@ prepare_list_init_ <- function(list_init, Y, p, p_star, q,
       stop(paste("The dimensions (p) of the provided initial parameters ",
                  "(list_init) are not consistent with that of X.\n", sep=""))
 
-    if (!is.null(G) && list_init$G_init != G_init_match)
-      stop(paste("The number of groups (G) provided when setting the initial parameters ",
-                 "(list_init) is not consistent with that provided in the epispot function.\n", sep=""))
-
     if (inherits(list_init, "init")) {
 
-      if (is.null(G)) {
-        # drops the rows corresponding to the removed constant and collinear
-        # predictors in X (if any)
-        list_init$gam_vb <- list_init$gam_vb[!bool_rmvd_x,, drop = FALSE]
-      } else {
-        # drops the rows corresponding to the empty groups (if any)
-        list_init$gam_vb <- list_init$gam_vb[as.numeric(levels(vec_fac_gr)),, drop = FALSE]
-      }
+      list_init$gam_vb <- list_init$gam_vb[!bool_rmvd_x,, drop = FALSE]
 
       list_init$mu_beta_vb <- list_init$mu_beta_vb[!bool_rmvd_x,, drop = FALSE]
 
     }
 
-
-    if (!is.null(q)) {
-
-      if (inherits(list_init, "init")) {
-        q_init_match <- length(bool_rmvd_z)
-        # remove the entries corresponding to the removed constant predictors in X
-        # (if any)
-        list_init$mu_alpha_vb <- list_init$mu_alpha_vb[!bool_rmvd_z,, drop = FALSE]
-        list_init$sig2_alpha_vb <- list_init$sig2_alpha_vb[!bool_rmvd_z,, drop = FALSE]
-
-      } else {
-        q_init_match <- q
-      }
-
-      if (list_init$q_init != q_init_match)
-        stop(paste("The dimensions of the provided initial parameters ",
-                   "(list_init) are not consistent with that of Z.", sep=""))
-    }
-
-  }
-
-
-  if (!is.null(G)) { # converts mu_beta_vb to a list of matrices by groups
-    list_init$mu_beta_vb <- lapply(as.numeric(levels(vec_fac_gr)),
-                                   function(g) list_init$mu_beta_vb[vec_fac_gr == g,, drop = FALSE])
   }
 
   class(list_init) <- "out_init"
@@ -476,7 +319,7 @@ prepare_list_init_ <- function(list_init, Y, p, p_star, q,
 # Internal function implementing sanity checks and needed preprocessing to the
 # settings provided by the user for block-wise parallel inference.
 #
-prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x, list_groups, list_struct) {
+prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
 
   if (!inherits(list_blocks, "blocks"))
     stop(paste("The provided list_blocks must be an object of class ``blocks''. \n",
@@ -485,14 +328,6 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x, list_groups, list_struc
                "predictors or set list_blocks to NULL to apply epispot jointly on ",
                "all the candidate predictors (sufficient RAM required). ***",
                sep=""))
-
-  if (!is.null(list_groups))
-    stop(paste("Group selection not implemented for block-wise parallel inference. ",
-               "list_blocks and list_groups can't be both non-NULL.", sep = ""))
-
-  if (!is.null(list_struct))
-    stop(paste("Structured sparse priors not enabled for block-wise parallel inference. ",
-               "list_blocks and list_struct can't be both non-NULL.", sep = ""))
 
   if (!is.null(list_blocks$bl_y)) {
     
@@ -695,361 +530,4 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
   class(list_blocks) <- "blocks"
 
   list_blocks
-}
-
-
-# Internal function implementing sanity checks and needed preprocessing to the
-# settings provided by the user for group selection.
-#
-prepare_groups_ <- function(list_groups, X, q, r, bool_rmvd_x) {
-
-  if (!inherits(list_groups, "groups"))
-    stop(paste("The provided list_groups must be an object of class ``groups''. \n",
-               "*** you must use the function set_groups to give the settings ",
-               "for group selection. ***",
-               sep=""))
-
-  if (list_groups$p_groups != length(bool_rmvd_x))
-    stop(paste("The number of candidate predictors p provided to the function set_groups ",
-               "is not consistent with X.\n", sep=""))
-
-  p <- length(bool_rmvd_x)
-
-  if(!(is.factor(list_groups$vec_fac_gr) && length(list_groups$vec_fac_gr) == p))
-    stop(paste("list_groups$vec_fac_gr must be a non-empty a factor of length ", p, ".", sep = ""))
-
-  if(!is.null(q) | !is.null(r))
-    stop("Group selection implemented only for Z = NULL and V = NULL. Exit.")
-
-
-  vec_fac_gr <- list_groups$vec_fac_gr[!bool_rmvd_x] # some groups may disappear here, but this is not a problem
-  X <- lapply(as.numeric(levels(vec_fac_gr)), function(g) X[, vec_fac_gr == g, drop = FALSE])
-
-  create_named_list_(X, vec_fac_gr) # X is now a list in which the matrix is split across groups
-
-}
-
-
-#' Gather settings for application of the `epispot` function with group selection.
-#'
-#' [FUNCTIONALITY UNDER ACTIVE DEVELOPMENT, PERFORMANCE (CPU TIME) NOT OPTIMIZED].
-#' Posterior probabilities of associations are computed for predefined groups of
-#' candidate predictors. Within each group, the mean-field inference procedure
-#' makes no independence assumptions for the regression coefficients; variables
-#' in each group are approximated by a multivariate normal distribution, and
-#' they share a single binary latent selection variable.
-#'
-#' @param n Number of samples.
-#' @param p Number of candidate predictors.
-#' @param pos_gr Vector gathering the predictor group positions (first index of
-#'   each group). The predictors must be ordered by groups.
-#' @param verbose If \code{TRUE}, messages are displayed when calling
-#'   \code{set_blocks}.
-#'
-#' @return An object of class "\code{groups}" preparing the settings for group
-#'   selection in a form that can be passed to the \code{\link{epispot}}
-#'   function.
-#'
-#' @examples
-#' seed <- 123; set.seed(seed)
-#'
-#' ###################
-#' ## Simulate data ##
-#' ###################
-#'
-#' ## Example using small problem sizes:
-#' ##
-#' n <- 200; p <- 250; p0 <- 75; d <- 50; d0 <- 40
-#'
-#' ## Candidate predictors (subject to selection)
-#' ##
-#' # Here we simulate common genetic variants (but any type of candidate
-#' # predictors can be supplied).
-#' # 0 = homozygous, major allele, 1 = heterozygous, 2 = homozygous, minor allele
-#' #
-#' X_act <- matrix(rbinom(n * p0, size = 2, p = 0.25), nrow = n)
-#' X_inact <- matrix(rbinom(n * (p - p0), size = 2, p = 0.25), nrow = n)
-#'
-#' shuff_x_ind <- sample(p)
-#' X <- cbind(X_act, X_inact)[, shuff_x_ind]
-#'
-#' bool_x_act <- shuff_x_ind <= p0
-#'
-#' pat_act <- beta <- matrix(0, nrow = p0, ncol = d0)
-#' pat_act[sample(p0*d0, floor(p0*d0/5))] <- 1
-#' beta[as.logical(pat_act)] <-  rnorm(sum(pat_act))
-#'
-#' ## Gaussian responses
-#' ##
-#' Y_act <- matrix(rnorm(n * d0, mean = X_act %*% beta, sd = 0.5), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d0), sd = 0.5), nrow = n)
-#' shuff_y_ind <- sample(d)
-#' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
-#'
-#' ########################
-#' ## Infer associations ##
-#' ########################
-#'
-#' n_gr <- 100
-#' pos_gr <- seq(1, p, by = ceiling(p/n_gr))
-#' list_groups <- set_groups(n, p, pos_gr)
-#'
-#' g0_av <- 50 # Number of active groups. /!\ Often best to set it large, as a
-#'             # too small value may (wrong) result in no group being selected.
-#'
-#' vb <- epispot(Y = Y, X = X, p0_av = g0_av, link = "identity",
-#'   list_groups = list_groups, user_seed = seed)
-#'
-#' @seealso \code{\link{epispot}}
-#'
-#' @export
-#'
-set_groups <- function(n, p, pos_gr, verbose = TRUE) {
-
-  check_structure_(n, "vector", "numeric", 1)
-  check_natural_(n)
-
-  check_structure_(p, "vector", "numeric", 1)
-  check_natural_(p)
-
-  check_structure_(verbose, "vector", "logical", 1)
-
-  check_structure_(pos_gr, "vector", "numeric")
-  check_natural_(pos_gr)
-
-  if (p / length(pos_gr) > 500)
-    warning(paste("The provided number of groups may be too small for tractable ",
-                  "inference. If possible, use more groups.", sep = ""))
-
-  if (any(pos_gr < 1) | any(pos_gr > p))
-    stop("The positions provided in pos_gr must range between 1 and total number of variables in X, p.")
-
-  if (any(duplicated(pos_gr)))
-    stop("The positions provided in pos_gr must be unique.")
-
-  if (any(pos_gr != cummax(pos_gr)))
-    stop("The positions provided in pos_gr must be monotonically increasing.")
-
-  vec_fac_gr <- as.factor(cumsum(seq_along(1:p) %in% pos_gr))
-
-  if (length(unique(vec_fac_gr)) == p)
-    stop(paste("All the groups are of size one, no group selection will be performed. ",
-               "Set argument list_groups to NULL in the epispot function.", sep = ""))
-
-  if (max(table(vec_fac_gr)) >= n)
-    stop(paste("One or more group size(s) is greater or equal to n.  ",
-               "Corresponding empirical covariances not positive definite. Use smaller group sizes.", sep = ""))
-
-  if (verbose) print(paste("Number of groups: ", length(unique(vec_fac_gr)), sep = ""))
-
-  p_groups <- p
-
-  list_groups <- create_named_list_(p_groups, vec_fac_gr)
-
-  class(list_groups) <- "groups"
-
-  list_groups
-}
-
-
-
-
-
-
-# Internal function implementing sanity checks and needed preprocessing to the
-# settings provided by the user for structured sparsity priors.
-#
-prepare_struct_ <- function(list_struct, n, q, r, bool_rmvd_x, list_groups) {
-
-  if (!inherits(list_struct, "struct"))
-    stop(paste("The provided list_struct must be an object of class ``struct''. \n",
-               "*** you must use the function set_struct to give the settings ",
-               "for structured sparse priors. ***",
-               sep=""))
-
-  if (list_struct$n_struct != n)
-    stop(paste("The number of samples n provided to the function set_struct ",
-               "is not consistent with X.\n", sep=""))
-
-  if (list_struct$p_struct != length(bool_rmvd_x))
-    stop(paste("The number of candidate predictors p provided to the function set_struct ",
-               "is not consistent with X.\n", sep=""))
-
-  p <- length(bool_rmvd_x)
-
-  if(!(is.factor(list_struct$vec_fac_st) && length(list_struct$vec_fac_st) == p))
-    stop(paste("list_struct$vec_fac_st must be a non-empty a factor of length ", p, ".", sep = ""))
-
-  if(!is.null(q) | !is.null(r) | !is.null(list_groups))
-    stop("Structured sparse priors enabled only for Z = NULL, V = NULL and with no group selection. Exit.")
-
-  vec_fac_st <- list_struct$vec_fac_st[!bool_rmvd_x] # some blocks may disappear here, but this is not a problem
-
-  # in case a block was removed due to the above because of bool_rmvd_x
-  n_gr <- sum(table(vec_fac_st) > 0)
-  if(list_struct$n_cpus > n_gr) n_cpus <- n_gr
-  else n_cpus <- list_struct$n_cpus
-
-  create_named_list_(n_cpus, vec_fac_st)
-
-}
-
-
-
-
-#' Gather settings for application of the `epispot` function with structured
-#' sparse prior.
-#'
-#' [FUNCTIONALITY UNDER ACTIVE DEVELOPMENT, PERFORMANCE (CPU TIME) NOT OPTIMIZED].
-#' Posterior probabilities of associations are computed using an empirical
-#' covariance estimate of the candidate predictors. This estimate has a block
-#' structure (which could reflect linkage disequilibrium patterns when
-#' considering genome-wide associations). Such a structure is necessary in
-#' large problems for tractability both time- and memory-wise. The posterior
-#' probablity of inclusion corresponding to a given block are approximated by a
-#' multivariate distribution through a Bernoulli-probit link function.
-#'
-#' @param n Number of samples.
-#' @param p Number of candidate predictors.
-#' @param pos_st Vector gathering the predictor block positions (first index of
-#'   each block). The predictors must be ordered by blocks.
-#' @param n_cpus Number of CPUs to be used. If large, one should ensure that 
-#'   enough RAM will be available for parallel execution. Set to 1 for serial 
-#'   execution.
-#' @param verbose If \code{TRUE}, messages are displayed when calling
-#'   \code{set_struct}.
-#'
-#' @return An object of class "\code{struct}" preparing the settings for group
-#'   selection in a form that can be passed to the \code{\link{epispot}}
-#'   function.
-#'
-#' @examples
-#' seed <- 123; set.seed(seed)
-#'
-#' ###################
-#' ## Simulate data ##
-#' ###################
-#'
-#' ## Example using small problem sizes:
-#' ##
-#' n <- 200; p <- 300; p0 <- 100; d <- 50; d0 <- 40
-#'
-#' ## Candidate predictors (subject to selection)
-#' ##
-#' # Here we simulate common genetic variants (but any type of candidate
-#' # predictors can be supplied).
-#' # 0 = homozygous, major allele, 1 = heterozygous, 2 = homozygous, minor allele
-#' #
-#' X_act <- matrix(rbinom(n * p0, size = 2, p = 0.25), nrow = n)
-#' X_inact <- matrix(rbinom(n * (p - p0), size = 2, p = 0.25), nrow = n)
-#'
-#' shuff_x_ind <- sample(p)
-#' X <- cbind(X_act, X_inact)[, shuff_x_ind]
-#'
-#' bool_x_act <- shuff_x_ind <= p0
-#'
-#' pat_act <- beta <- matrix(0, nrow = p0, ncol = d0)
-#' pat_act[sample(p0*d0, floor(p0*d0/5))] <- 1
-#' beta[as.logical(pat_act)] <-  rnorm(sum(pat_act))
-#'
-#' ## Gaussian responses
-#' ##
-#' Y_act <- matrix(rnorm(n * d0, mean = X_act %*% beta, sd = 0.5), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d0), sd = 0.5), nrow = n)
-#' shuff_y_ind <- sample(d)
-#' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
-#'
-#' ########################
-#' ## Infer associations ##
-#' ########################
-#'
-#' n_st <- 100
-#' pos_st <- seq(1, p, by = ceiling(p/n_st))
-#' list_struct <- set_struct(n, p, pos_st, n_cpus = 1)
-#'
-#' vb <- epispot(Y = Y, X = X, p0_av = p0, link = "identity",
-#'    list_struct = list_struct, user_seed = seed)
-#'
-#' @seealso \code{\link{epispot}}
-#'
-#' @export
-#'
-set_struct <- function(n, p, pos_st, n_cpus, verbose = TRUE) {
-
-  check_structure_(n, "vector", "numeric", 1)
-  check_natural_(n)
-
-  check_structure_(p, "vector", "numeric", 1)
-  check_natural_(p)
-
-  check_structure_(verbose, "vector", "logical", 1)
-  
-  check_structure_(n_cpus, "vector", "numeric", 1)
-  check_natural_(n_cpus)
-
-  check_structure_(pos_st, "vector", "numeric")
-  check_natural_(pos_st)
-
-  if (any(pos_st < 1) | any(pos_st > p))
-    stop("The positions provided in pos_st must range between 1 and total number of variables in X, p.")
-
-  if (any(duplicated(pos_st)))
-    stop("The positions provided in pos_st must be unique.")
-
-  if (any(pos_st != cummax(pos_st)))
-    stop("The positions provided in pos_st must be monotonically increasing.")
-
-  vec_fac_st <- as.factor(cumsum(seq_along(1:p) %in% pos_st))
-
-  n_gr <- length(unique(vec_fac_st))
-
-  if (length(unique(vec_fac_st)) == p)
-    stop(paste("All the blocks are of size one, no structured selection or blockwise estimation will be performed. ",
-               "Set argument list_struct to NULL in the epispot function.", sep = ""))
-    
-    # Should not be needed as regularization performed anyway.
-    # if (max(table(vec_fac_st)) >= n)
-    #   stop(paste("One or more block size(s) is greater or equal to n.  ",
-    #                 "Corresponding empirical covariances not positive definite. Use smaller block sizes.", sep = ""))
-    
-    if (max(table(vec_fac_st)) >= n/2)
-      warning(paste("One or more block size(s) is greater or equal to n/2.  ",
-                    "Corresponding empirical covariances may not be positive definite. ",
-                    "Regularization will be used but this may affect the quality of inference.", sep = ""))
-    
-    if (p / length(pos_st) > 500)
-      warning(paste("The provided number of blocks may be too small for tractable ",
-                    "inference. If possible, use more blocks.", sep = ""))
-
-  if (n_cpus > 1) {
-
-    n_cpus_avail <- parallel::detectCores()
-    if (n_cpus > n_cpus_avail) {
-      n_cpus <- n_cpus_avail
-      warning(paste("The number of CPUs specified exceeds the number of CPUs ",
-                    "available on the machine. The latter has been used instead.",
-                    sep=""))
-    }
-
-    if (n_cpus > n_gr){
-      message <- paste("The number of cpus in use is at most equal to the number of blocks.",
-                       "n_cpus is therefore set to ", n_gr, ". \n", sep ="")
-      if(verbose) cat(message)
-      else warning(message)
-      n_cpus <- n_gr
-    }
-
-    if (verbose) print(paste("Number of blocks: ", length(unique(vec_fac_st)),
-                             ", number of CPUs: ", n_cpus, sep = ""))
-
-  }
-
-  n_struct <- n
-  p_struct <- p
-
-  list_struct <- create_named_list_(n_struct, p_struct, n_cpus, vec_fac_st)
-
-  class(list_struct) <- "struct"
-
-  list_struct
 }

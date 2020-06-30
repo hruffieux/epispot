@@ -2,10 +2,8 @@
 
 export(epispot)
 export(set_blocks)
-export(set_groups)
 export(set_hyper)
 export(set_init)
-export(set_struct)
 import(RcppEigen)
 importFrom(Rcpp,evalCpp)
 importFrom(grDevices,dev.off)

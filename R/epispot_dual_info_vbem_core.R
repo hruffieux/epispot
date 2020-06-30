@@ -1,12 +1,9 @@
 epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
-                                         sig2_beta_vb, tau_vb, om, list_struct, 
+                                         sig2_beta_vb, tau_vb, om,
                                          bool_blocks, 
                                          tol, maxit, anneal, anneal_vb_em, verbose,
                                          adaptive_tol_em = FALSE) {
 
-  if (!is.null(list_struct))
-    stop("EB local scale not implemented with structured sparsity")
-  
   r <- ncol(V)
   
   maxit_em <- ceiling(maxit / 5)
@@ -40,7 +37,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     }
 
     vb <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
-                                vb$sig2_beta_vb, vb$tau_vb, list_struct, 
+                                vb$sig2_beta_vb, vb$tau_vb,  
                                 tol_vb_within_em, maxit, anneal_vb_em,
                                 verbose = FALSE, full_output = TRUE)
   
@@ -128,7 +125,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     }
   
     out <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
-                                 vb$sig2_beta_vb, vb$tau_vb, list_struct, 
+                                 vb$sig2_beta_vb, vb$tau_vb, 
                                  tol, maxit, anneal, verbose)
    
     if (!is.null(list_hyper$s02)) {

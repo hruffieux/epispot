@@ -11,11 +11,6 @@ set_init(
   mu_beta_vb,
   sig2_beta_vb,
   tau_vb,
-  link = "identity",
-  ind_bin = NULL,
-  q = NULL,
-  mu_alpha_vb = NULL,
-  sig2_alpha_vb = NULL,
   sig2_inv_vb = NULL,
   G = NULL
 )
@@ -32,43 +27,14 @@ parameter yielding posterior probabilities of inclusion.}
 variational parameter yielding regression coefficient estimates for
 predictor-response pairs included in the model.}
 
-\item{sig2_beta_vb}{Vector of length d, for \code{link = "identity"} and
-for \code{link = "mix"}, of length 1 for \code{link = "probit"}, and a
-matrix of size p x d, for \code{link = "logit"}, with initial values for
+\item{sig2_beta_vb}{Vector of length d with initial values for
 the variational parameter yielding estimates of effect variances for
-predictor-response pairs included in the model. For
-\code{link = "identity"} and \code{link = "mix"}, these values are the same
+predictor-response pairs included in the model. These values are the same
 for all the predictors (as a result of the predictor variables being
-standardized before the variational algorithm). For \code{link = "probit"},
-they are the same for all the predictors and responses.}
+standardized before the variational algorithm).}
 
-\item{tau_vb}{Vector of length d, for \code{link = "identity"}, and of
-length d_cont = d - length(ind_bin) (number of continuous responses), for
-\code{link = "mix"}, with initial values for the variational parameter
-yielding estimates for the continuous response residual precisions. Must be
-\code{NULL} for \code{link = "logit"} and \code{link = "probit"}.}
-
-\item{link}{Response link. Must be "\code{identity}" for linear regression,
-"\code{logit}" for logistic regression, "\code{probit}" for probit
-regression, or "\code{mix}" for a mix of identity and probit link functions
-(in this case, the indices of the binary responses must be gathered in
-argument \code{ind_bin}, see below).}
-
-\item{ind_bin}{If \code{link = "mix"}, vector of indices corresponding to the
-binary variables in \code{Y}. Must be \code{NULL} if \code{link != "mix"}.}
-
-\item{q}{Number of covariates. Default is \code{NULL}, for \code{Z}
-\code{NULL}.}
-
-\item{mu_alpha_vb}{Matrix of size q x d with initial values for the
-variational parameter yielding regression coefficient estimates for
-covariate-response pairs. Default is \code{NULL}, for \code{Z} \code{NULL}.}
-
-\item{sig2_alpha_vb}{Matrix of size q x d for \code{link = "identity"},
-for \code{link = "logit"} and for \code{link = "mix"} with initial values
-for the variational parameter yielding estimates of effect variances for
-covariate-response pairs. Vector of length q for \code{link = "probit"}.
-Default is \code{NULL}, for \code{Z} \code{NULL}.}
+\item{tau_vb}{Vector of length d with initial values for the variational parameter
+yielding estimates for the continuous response residual precisions.}
 
 \item{sig2_inv_vb}{Initial parameters necessary when \code{G} is
 non-\code{NULL}. Its inverse square root corresponds to the typical size of

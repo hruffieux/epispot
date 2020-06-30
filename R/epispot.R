@@ -18,7 +18,7 @@
 #'
 #' The continuous response variables in \code{Y} (if any) will be centered
 #' before application of the variational algorithm, and the candidate predictors
-#' and covariates resp. in \code{X} and \code{Z} will be standardized.
+#' in \code{X} will be standardized.
 #'
 #'
 #' @param Y Response data matrix of dimension n x d, where n is the number of
@@ -29,10 +29,6 @@
 #'   variance of the number of active predictors per response.
 #'   Must be \code{NULL} if \code{list_init} and \code{list_hyper}
 #'   are both non-\code{NULL}.
-#' @param Z Covariate matrix of dimension n x q, where q is the number of
-#'   covariates. Variables in \code{Z} are not subject to selection. \code{NULL}
-#'   if no covariate. Factor covariates must be supplied after transformation to
-#'   dummy coding. No intercept must be supplied.
 #' @param V Annotation matrix of dimension p x r, where r is the number of
 #'   variables representing external information on the candidate predictors
 #'   which may make their selection more or less likely. \code{NULL} if no such
@@ -52,10 +48,6 @@
 #'   parallel inference on a partitioned predictor space. Must be filled using
 #'   the \code{\link{set_blocks}} function or must be \code{NULL} for no
 #'   partitioning.
-#' @param list_struct An object of class "\code{struct}" containing settings for
-#'   structure sparsity priors. Must be filled using the
-#'   \code{\link{set_struct}} function or must be \code{NULL} for structured
-#'   selection.
 #' @param user_seed Seed set for reproducible default choices of hyperparameters
 #'   (if \code{list_hyper} is \code{NULL}) and initial variational parameters
 #'   (if \code{list_init} is \code{NULL}). Default is \code{NULL}, no
@@ -77,17 +69,12 @@
 #' @param save_init If \code{TRUE}, the initial variational parameters used for
 #'   the inference are saved as output.
 #' @param verbose If \code{TRUE}, messages are displayed during execution.
-#' @param checkpoint_path Path where to save temporary checkpoint outputs. 
-#'   Default is \code{NULL}, for no checkpointing.
 #'
 #' @return An object of class "\code{vb}" containing the following variational
 #'   estimates and settings:
 #'  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x d.
 #'                Entry (s, t) corresponds to the posterior probability of
 #'                association between candidate predictor s and response t.}
-#'  \item{mu_alpha_vb}{Matrix of dimension q x d whose entries are the posterior
-#'                     mean regression coefficients for the covariates provided
-#'                     in \code{Z}. \code{NULL} if \code{Z} is \code{NULL}.}
 #'  \item{mu_c_vb}{Vector of size r, where entry l contains the overall effect 
 #'                 of annotation l on the
 #'                 probabilities of associations.\code{NULL} if \code{V} is
@@ -112,11 +99,11 @@
 #'                 iterations. This may be a useful diagnostic information when
 #'                 convergence has not been reached before \code{maxit}.}
 #'  \item{p_star}{Vector of length 1 or p defining the applied sparsity control.}
-#'  \item{rmvd_cst_x, rmvd_cst_z}{Vectors containing the indices of constant
-#'                                variables in \code{X} (resp. \code{Z}) removed
+#'  \item{rmvd_cst_x}{Vectors containing the indices of constant
+#'                                variables in \code{X} removed
 #'                                prior to the analysis.}
-#'  \item{rmvd_coll_x, rmvd_coll_z}{Vectors containing the indices of variables
-#'                                  in \code{X} (resp. \code{Z}) removed prior
+#'  \item{rmvd_coll_x}{Vectors containing the indices of variables
+#'                                  in \code{X} removed prior
 #'                                  to the analysis because collinear to other
 #'                                  variables. The entry name indicates the
 #'                                  corresponding variable kept in the analysis
@@ -126,11 +113,6 @@
 #'                               \code{TRUE}, hyperparameters, resp. initial
 #'                               variational parameters, used for inference are
 #'                               saved as output.}
-#'  \item{group_labels}{If \code{list_groups} is non-\code{NULL}, labels of the
-#'                      groups to which the candidate predictor belong (these
-#'                      labels are gathered after removal of constant and
-#'                      collinear predictors, whose indices are stored in
-#'                      \code{rmvd_cst_x} and \code{rmvd_coll_x}).}
 #'  \item{...}{Other specific outputs are possible depending on the model used.}
 #'  
 #' @examples
@@ -237,29 +219,25 @@
 #'
 #' @export
 #'
-epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NULL, 
+epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL, 
                     om = NULL, list_hyper = NULL, list_init = NULL,
-                    list_blocks = NULL, list_groups = NULL,
-                    list_struct = NULL, user_seed = NULL, 
+                    list_blocks = NULL, user_seed = NULL, 
                     tol = 1e-3, adaptive_tol_em = FALSE, maxit = 1000, 
                     anneal = NULL, anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
-                    verbose = TRUE, checkpoint_path = NULL) {
+                    verbose = TRUE) {
   
   if (verbose) cat("== Preparing the data ... \n")
   
-  check_annealing_(anneal, Z, V, list_groups, list_struct)
-  check_annealing_(anneal_vb_em, Z, V, list_groups, list_struct)
+  check_annealing_(anneal, V)
+  check_annealing_(anneal_vb_em, V)
   
-  dat <- prepare_data_(Y, X, Z, V, s02, user_seed, tol, 
-                       maxit, verbose, checkpoint_path)
+  dat <- prepare_data_(Y, X, V, s02, user_seed, tol, maxit, verbose)
   
   bool_rmvd_x <- dat$bool_rmvd_x
-  bool_rmvd_z <- dat$bool_rmvd_z
   bool_rmvd_v <- dat$bool_rmvd_v
   
   X <- dat$X
   Y <- dat$Y
-  Z <- dat$Z
   V <- dat$V
   
   n <- nrow(X)
@@ -269,15 +247,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   
   names_x <- colnames(X)
   names_y <- colnames(Y)
-  
-  if (!is.null(Z)) {
-    q <- ncol(Z)
-    names_z <- colnames(Z)
-  } else {
-    q <- NULL
-    names_z <- NULL
-  }
-  
+
   if (!is.null(V)) {
     r <- ncol(V)
     names_v <- colnames(V)
@@ -295,7 +265,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   
   if (!is.null(list_blocks)) {
     
-    list_blocks <- prepare_blocks_(list_blocks, d, bool_rmvd_x, list_groups, list_struct)
+    list_blocks <- prepare_blocks_(list_blocks, d, bool_rmvd_x)
     
     n_bl_x <- list_blocks$n_bl_x
     n_bl_y <- list_blocks$n_bl_y
@@ -307,40 +277,9 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
     
   }
   
-  
-  if (!is.null(list_groups)) {
-    
-    list_groups <- prepare_groups_(list_groups, X, q, r, bool_rmvd_x)
-    
-    X <- list_groups$X
-    vec_fac_gr <- list_groups$vec_fac_gr
-    
-  } else {
-    
-    vec_fac_gr <- NULL
-    
-  }
-  
-  
-  if (!is.null(list_struct)) {
-    
-    list_struct <- prepare_struct_(list_struct, n, q, r, bool_rmvd_x, list_groups)
-    
-    vec_fac_st <- list_struct$vec_fac_st
-    
-  } else {
-    
-    vec_fac_st <- NULL
-    
-  }
-  
-  
   if (is.null(list_hyper) | is.null(list_init)) {
     
-    if (is.null(list_groups)) p_tot <- p
-    else p_tot <- length(unique(vec_fac_gr))
-    
-    p_star <- convert_p0_av_(p0_av, p_tot, list_blocks, verbose)
+    p_star <- convert_p0_av_(p0_av, p, list_blocks, verbose)
     
   } else {
     
@@ -355,25 +294,18 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   
   if (verbose) cat("== Preparing the hyperparameters ... \n\n")
   
-  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, q, r,
-                                    vec_fac_gr, vec_fac_st, bool_rmvd_x, bool_rmvd_z,
-                                    bool_rmvd_v, names_x, names_y, names_z, verbose, s02, s2)
-  
-  if(!is.null(q))
-    stop(paste("Dual propensity control (p0_av is a list) enabled only for ",
-               "Z = NULL. Exit.", sep = ""))
+  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, r,
+                                    bool_rmvd_x, 
+                                    bool_rmvd_v, names_x, names_y, verbose, s02, s2)
   
   if (verbose) cat("... done. == \n\n")
   
   if (verbose) cat("== Preparing the parameter initialization ... \n\n")
   
-  list_init <- prepare_list_init_(list_init, Y, p, p_star, q, vec_fac_gr, 
-                                  bool_rmvd_x, bool_rmvd_z,
-                                  bool_rmvd_v, user_seed, verbose)
+  list_init <- prepare_list_init_(list_init, Y, p, p_star, bool_rmvd_x, bool_rmvd_v, user_seed, verbose)
   
   if (verbose) cat("... done. == \n\n")
   
-  nq <- is.null(q)
   nr <- is.null(r)
   
   
@@ -387,36 +319,12 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   
   if (is.null(list_blocks)) {
     
-    ng  <- is.null(list_groups)
-    ns <- is.null(list_struct)
-    
-    if (nq & nr & ng) {
-      # list_struct can be non-null for injected predictor correlation structure,
-      # see core function below
-      
-      vb <- epispot_dual_core_(Y, X, list_hyper, list_init$gam_vb,
-                               list_init$mu_beta_vb, list_init$sig2_beta_vb,
-                               list_init$tau_vb, list_struct, tol, maxit,
-                               anneal, verbose, 
-                               checkpoint_path = checkpoint_path)
-    
-    } else if (nq & ng) {
-      
-        vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
-                                           list_init$mu_beta_vb,
-                                           list_init$sig2_beta_vb, list_init$tau_vb,
-                                           om,
-                                           list_struct, bool_blocks = FALSE,
-                                           tol, maxit, anneal, anneal_vb_em, verbose,
-                                           adaptive_tol_em = adaptive_tol_em)
-      
-    } else if (nq) {
-      
-      vb <- epispot_dual_group_core_(Y, X, list_hyper, list_init$gam_vb,
-                                     list_init$mu_beta_vb, list_init$sig2_inv_vb,
-                                     list_init$tau_vb, tol, maxit, verbose)
-    }
-    
+      vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
+                                         list_init$mu_beta_vb,
+                                         list_init$sig2_beta_vb, list_init$tau_vb,
+                                         om, bool_blocks = FALSE,
+                                         tol, maxit, anneal, anneal_vb_em, verbose,
+                                         adaptive_tol_em = adaptive_tol_em)
     
   } else {
     
@@ -543,11 +451,6 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         
         list_init_bl$tau_vb <- list_init_bl$tau_vb[pos_y]
         
-        if (!is.null(Z)) {
-          list_init_bl$mu_alpha_vb <- list_init_bl$mu_alpha_vb[, pos_y, drop = FALSE]
-          list_init_bl$sig2_alpha_vb <- list_init_bl$sig2_alpha_vb[, pos_y, drop = FALSE]
-        }
-        
       }
       
       if (!nr) list_init_bl$mu_c_vb <- list_init_bl$mu_c_vb[!bool_rmvd_v_bl,, drop = FALSE]
@@ -567,17 +470,13 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         m0 <- get_mu(p_star_bl[1], s02 + list_hyper_bl$t02, p_bl) + list_hyper_bl$n0[1] # here n0 is - n0* ### NOT USED FOR HORSESHOE ETC.
         list_hyper_bl$m0 <- rep(-m0, p_bl)
 
-      
-      if (nq) {
-        
+
         vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
                                               list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
-                                              list_init_bl$tau_vb, om, list_struct, bool_blocks = TRUE, 
+                                              list_init_bl$tau_vb, om, bool_blocks = TRUE, 
                                               tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
                                               adaptive_tol_em = adaptive_tol_em)
         
-      } 
-      
       if (!nr) {
         vb_bl$rmvd_cst_v <- rmvd_cst_v_bl
         vb_bl$rmvd_coll_v <- rmvd_coll_v_bl
@@ -637,8 +536,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
                                                      vec_fac_bl_y, list_hyper, 
                                                      list_init$gam_vb, list_init$mu_beta_vb, 
                                                      list_init$sig2_beta_vb, list_init$tau_vb,
-                                                     list_struct, tol, 
-                                                     maxit, anneal, verbose)
+                                                     tol, maxit, anneal, verbose)
         
         
       } else {
@@ -646,9 +544,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
                                              list_init$gam_vb, list_init$mu_beta_vb, 
                                              list_init$sig2_beta_vb, list_init$tau_vb,
-                                             list_struct, tol, 
-                                             maxit, anneal, verbose)
-        
+                                             tol, maxit, anneal, verbose)
         
       }
       
@@ -660,16 +556,10 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   
   vb$rmvd_cst_x <- dat$rmvd_cst_x
   vb$rmvd_coll_x <- dat$rmvd_coll_x
-  if (!is.null(Z)) {
-    vb$rmvd_cst_z <- dat$rmvd_cst_z
-    vb$rmvd_coll_z <- dat$rmvd_coll_z
-  }
+
   if (!is.null(V) & is.null(list_blocks)) {
     vb$rmvd_cst_v <- dat$rmvd_cst_v
     vb$rmvd_coll_v <- dat$rmvd_coll_v
-  }
-  if (!is.null(list_groups)) {
-    vb$group_labels <- vec_fac_gr # after removal of constant or collinear covariates
   }
   
   if (save_hyper) vb$list_hyper <- list_hyper

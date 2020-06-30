@@ -7,11 +7,9 @@
 #
 epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper, 
                                          gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb, 
-                                         list_struct, tol, maxit, 
+                                         tol, maxit, 
                                          anneal, verbose, batch = "y", 
                                          full_output = FALSE, debug = TRUE) {
-  
-  stopifnot(is.null(list_struct)) # algo not implemented for structured regression
   
   # Y centered, and X and V standardized.
   
@@ -67,17 +65,15 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
     log_1_min_om_vb <- lapply(om_vb, function(om_bl) log(1 - om_bl + eps))
     
     
-    # Covariate-specific parameters: objects derived from s02, list_struct (possible block-wise in parallel)
-    #
-      obj_theta_vb <- lapply(1:n_bl, function(bl) update_sig2_theta_vb_(d, vec_p_bl[bl], list_struct = NULL, s02[vec_fac_bl == bl_ids[bl]], 
-                                                                        X = NULL, c = c))    
+    # Covariate-specific parameters: objects derived from s02
+    
+      obj_theta_vb <- lapply(1:n_bl, function(bl) update_sig2_theta_vb_(d, vec_p_bl[bl], s02[vec_fac_bl == bl_ids[bl]], 
+                                                                        c = c))    
       
 
     S0_inv <- sapply(obj_theta_vb, `[[`, "S0_inv")
     sig2_theta_vb <- sapply(obj_theta_vb, `[[`, "sig2_theta_vb")
     vec_sum_log_det_theta <- sapply(obj_theta_vb, `[[`, "vec_sum_log_det_theta")
-    vec_fac_st <- NULL
-    
     
     # Response-specific parameters: objects derived from t02
     #
@@ -319,7 +315,7 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
                                          sig2_c_vb, sig2_theta_vb, sig2_inv_vb, 
                                          sig2_rho_vb, T0_inv, tau_vb, zeta_vb, 
                                          m1_beta, m2_beta, mat_x_m1,  
-                                         vec_fac_st, vec_sum_log_det_rho,
+                                         vec_sum_log_det_rho,
                                          vec_sum_log_det_theta, vec_fac_bl)
 
         if (verbose & (it == 1 | it %% 5 == 0))
@@ -352,7 +348,7 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
                          lambda_vb, m0, n0, mu_c_vb, mu_rho_vb, mu_theta_vb, nu, nu_vb, om_vb,
                          sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
                          sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
-                         m2_beta, mat_x_m1, mat_v_mu, vec_fac_st, vec_sum_log_det_rho,
+                         m2_beta, mat_x_m1, mat_v_mu, vec_sum_log_det_rho,
                          vec_sum_log_det_theta, vec_fac_bl)
       
     } else {
@@ -402,7 +398,7 @@ elbo_dual_info_blocks_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa, kappa_
                                    mu_rho_vb, mu_theta_vb, nu, nu_vb, 
                                    sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
                                    sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
-                                   m2_beta, mat_x_m1, vec_fac_st, vec_sum_log_det_rho,
+                                   m2_beta, mat_x_m1, vec_sum_log_det_rho,
                                    vec_sum_log_det_theta, vec_fac_bl) {
   
   n <- nrow(Y)
@@ -428,7 +424,7 @@ elbo_dual_info_blocks_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa, kappa_
                                     sig2_inv_vb, tau_vb, zeta_vb, bool_blocks = TRUE, 
                                     vec_fac_bl_theta = vec_fac_bl)
   
-  elbo_C <- e_theta_(m0, mu_theta_vb, S0_inv, sig2_theta_vb, vec_fac_st,
+  elbo_C <- e_theta_(m0, mu_theta_vb, S0_inv, sig2_theta_vb, 
                      vec_sum_log_det_theta, vec_fac_bl = vec_fac_bl)
   
   elbo_D <- e_rho_(mu_rho_vb, n0, sig2_rho_vb, T0_inv, vec_sum_log_det_rho)

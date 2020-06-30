@@ -35,32 +35,15 @@
 #'   \eqn{\kappa} for the prior distributions of the response residual
 #'   precisions, \eqn{\tau}. If of length 1, the provided value is repeated d 
 #'   times.
-#' @param q Number of covariates. Default is \code{NULL}, for \code{Z}
-#'   \code{NULL}.
-#' @param phi Vector of length 1 or q providing the values of hyperparameter
-#'   \eqn{\phi} for the prior distributions for the sizes of the nonzero
-#'   covariate effects, \eqn{\zeta}. If of length 1, the provided value is
-#'   repeated q times. Default is \code{NULL}, for \code{Z} \code{NULL}.
-#' @param xi Vector of length 1 or q providing the values of hyperparameter
-#'   \eqn{\xi} for the prior distributions for the sizes of the nonzero
-#'   covariate effects, \eqn{\zeta}. If of length 1, the provided value is
-#'   repeated q times. Default is \code{NULL}, for \code{Z} \code{NULL}.
 #' @param r Number of variables representing external information on the
 #'   candidate predictors. Default is \code{NULL}, for \code{V} \code{NULL}.
-#' @param m0 Vector of length 1 or p. Hyperparameter when \code{V},
-#'   \code{list_struct}. Default is \code{NULL}.
+#' @param m0 Vector of length 1 or p. Hyperparameter when \code{V}. Default is \code{NULL}.
 #' @param n0 Vector of length 1 or d. 
-#' @param s02 Variance hyperparameter when \code{V}, \code{list_struct} is 
+#' @param s02 Variance hyperparameter when \code{V} is 
 #' non-\code{NULL} non-\code{NULL}. Default is \code{NULL}.
 #' @param s2 Variance hyperparameter when \code{V} is non-\code{NULL}
 #'   non-\code{NULL}. Default is \code{NULL}.
 #' @param t02 Variance hyperparameter. 
-#' @param G Number of candidate predictor groups when using the group selection
-#'   model from the \code{\link{epispot}} function. Default is \code{NULL},
-#'   for no group selection.
-#' @param struct Boolean indicating the use of structured sparse priors
-#'   set through the \code{\link{set_struct}} function. Default is \code{FALSE},
-#'   for no structured selection.
 #'
 #' @return An object of class "\code{hyper}" preparing user hyperparameter in a
 #'   form that can be passed to the \code{\link{epispot}} function.
@@ -192,10 +175,9 @@
 #'
 #' @export
 #'
-set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, q = NULL, phi = NULL, 
-                      xi = NULL,
+set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, 
                       r = NULL, m0 = NULL, n0 = NULL, s02 = NULL, s2 = NULL,
-                      t02 = NULL, G = NULL, struct = FALSE) {
+                      t02 = NULL) {
 
   check_structure_(d, "vector", "numeric", 1)
   check_natural_(d)
@@ -203,25 +185,10 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, q = NULL, phi = NULL,
   check_structure_(p, "vector", "numeric", 1)
   check_natural_(p)
 
-  check_structure_(q, "vector", "numeric", 1, null_ok = TRUE)
-  if (!is.null(q)) check_natural_(q)
-
   check_structure_(r, "vector", "numeric", 1, null_ok = TRUE)
   if (!is.null(r)) check_natural_(r)
 
-  check_structure_(G, "vector", "numeric", 1, null_ok = TRUE)
-  if (!is.null(G)) check_natural_(G)
-
-  check_structure_(struct, "vector", "logical", 1)
-
-  if (!is.null(G) && (!is.null(q) | !is.null(r) | struct))
-    stop("Group selection (G non-NULL) implemented only for Z = NULL, V = NULL, list_struct = NULL. Exit.")
-
-  if (struct && (!is.null(q) | !is.null(r)))
-    stop("Structured sparse priors (list_struct non-NULL) enabled only for Z = NULL and V = NULL. Exit.")
-
   nr <- is.null(r)
-  ns <- !struct
 
   if (nr) {
 
@@ -268,32 +235,13 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, q = NULL, phi = NULL,
   check_positive_(kappa)
   if (length(kappa) == 1) kappa <- rep(kappa, d)
 
-
-  if (!is.null(q)) {
-
-    check_structure_(phi, "vector", "double", c(1, q))
-    check_positive_(phi)
-    if (length(phi) == 1) phi <- rep(phi, q)
-
-    check_structure_(xi, "vector", "double", c(1, q))
-    check_positive_(xi)
-    if (length(xi) == 1) xi <- rep(xi, q)
-
-  } else if (!is.null(phi) | !is.null(xi)) {
-
-    stop("Provided q = NULL, not consitent with phi or xi being non-null.")
-
-  }
-
   d_hyper <- d
   p_hyper <- p
-  q_hyper <- q
   r_hyper <- r
-  G_hyper <- G
 
-  list_hyper <- create_named_list_(d_hyper, G_hyper, p_hyper, q_hyper, r_hyper,
+  list_hyper <- create_named_list_(d_hyper, p_hyper, r_hyper,
                                    eta, kappa,
-                                   lambda, nu, a, b, phi, xi, m0, n0, s02, s2, t02)
+                                   lambda, nu, a, b, m0, n0, s02, s2, t02)
 
   class(list_hyper) <- "hyper"
 
@@ -305,26 +253,11 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, q = NULL, phi = NULL,
 # Internal function setting default model hyperparameters when not provided by
 # the user.
 #
-auto_set_hyper_ <- function(Y, p, p_star, q, r, struct, 
-                            vec_fac_gr, s02, s2 = NULL) {
+auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
 
   d <- ncol(Y)
-
-  if (is.null(vec_fac_gr)) {
-
-    G <- NULL
-    lambda <- 1e-2
-
-  } else {
-
-    G <- length(unique(vec_fac_gr))
-    lambda <- 50 * median(table(vec_fac_gr)) # we found empirically that the prior size
-                                             # of sig2_inv_vb should be proportional to median group size
-                                             # since the larger the groups, the smaller 1 / sig2_inv_vb.
-                                             # Otherwise, if 1 / sig2_inv_vb is too large, no group will be selected
-                                             # (as there are usually only a few `causal' covariates in the group).
-  }
-
+  
+  lambda <- 1e-2
   nu <- 1
 
   # hyperparameter set using the data Y
@@ -367,12 +300,8 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, struct,
 
       m0 <- - m0  # m0 = - m0_star
       n0 <- - n0  # n0 = - n0_star
-
-      if (is.null(G)) {
-        m0 <- rep(m0, p)
-      } else {
-        m0 <- rep(m0, G)
-      }
+      m0 <- rep(m0, p)
+      
       n0 <- rep(n0, d)
 
       check_positive_(s02)
@@ -392,25 +321,13 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, struct,
       s2 <- NULL
     }
 
-  if (!is.null(q)) {
-
-    phi <- xi <- rep(1, q)
-
-  } else {
-
-    phi <- xi <- NULL
-
-  }
-
   d_hyper <- d
-  G_hyper <- G
   p_hyper <- p
-  q_hyper <- q
   r_hyper <- r
 
-  list_hyper <- create_named_list_(d_hyper, G_hyper, p_hyper, q_hyper, r_hyper,
+  list_hyper <- create_named_list_(d_hyper, p_hyper, r_hyper,
                                   eta, kappa,
-                                   lambda, nu, a, b, phi, xi, m0, n0, s02, s2, t02)
+                                   lambda, nu, a, b, m0, n0, s02, s2, t02)
 
   class(list_hyper) <- "out_hyper"
 
@@ -441,20 +358,6 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, struct,
 #'   standardized before the variational algorithm).
 #' @param tau_vb Vector of length d with initial values for the variational parameter
 #'   yielding estimates for the continuous response residual precisions. 
-#' @param q Number of covariates. Default is \code{NULL}, for \code{Z}
-#'   \code{NULL}.
-#' @param mu_alpha_vb Matrix of size q x d with initial values for the
-#'   variational parameter yielding regression coefficient estimates for
-#'   covariate-response pairs. Default is \code{NULL}, for \code{Z} \code{NULL}.
-#' @param sig2_alpha_vb Matrix of size q x d with initial values
-#'   for the variational parameter yielding estimates of effect variances for
-#'   covariate-response pairs. Default is \code{NULL}, for \code{Z} \code{NULL}.
-#' @param G Number of candidate predictor groups when using the group selection
-#'   model from the \code{\link{epispot}} function. Default is \code{NULL},
-#'   for no group selection.
-#' @param sig2_inv_vb Initial parameters necessary when \code{G} is
-#'   non-\code{NULL}. Its inverse square root corresponds to the typical size of
-#'   non-zero effects. Must be \code{NULL} if \code{G} is \code{NULL}.
 #'
 #' @return An object of class "\code{init}" preparing user initial values for
 #'   the variational parameters in a form that can be passed to the
@@ -597,9 +500,7 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, struct,
 #'
 #' @export
 #'
-set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb, q = NULL,
-                     mu_alpha_vb = NULL, sig2_alpha_vb = NULL,
-                     sig2_inv_vb = NULL, G = NULL) {
+set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb) {
 
   check_structure_(d, "vector", "numeric", 1)
   check_natural_(d)
@@ -607,69 +508,23 @@ set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb, q = NULL,
   check_structure_(p, "vector", "numeric", 1)
   check_natural_(p)
 
-  check_structure_(q, "vector", "numeric", 1, null_ok = TRUE)
-  if (!is.null(q)) check_natural_(q)
-
-  check_structure_(G, "vector", "numeric", 1, null_ok = TRUE)
-  if (!is.null(G)) check_natural_(G)
-
-  if(!is.null(G) && !is.null(q))
-    stop("Group selection (G non-NULL) implemented only for Z = NULL. Exit.")
-
-  if(is.null(G)) {
-
-    check_structure_(gam_vb, "matrix", "double", c(p, d))
-
-  } else {
-
-    check_structure_(gam_vb, "matrix", "double", c(G, d))
-
-  }
+  check_structure_(gam_vb, "matrix", "double", c(p, d))
   check_zero_one_(gam_vb)
 
   check_structure_(mu_beta_vb, "matrix", "double", c(p, d))
 
-  if(is.null(G)) {
-
-    check_structure_(sig2_beta_vb, "vector", "double", d)
-    if (!is.null(sig2_inv_vb))
-      stop("sig2_inv_vb is not used when G is NULL.")
-
-  } else {
-
-    check_structure_(sig2_inv_vb, "vector", "double", 1)
-    if (!is.null(sig2_beta_vb))
-      stop("sig2_beta_vb is not used when G is non-NULL.")
-
-  }
+  check_structure_(sig2_beta_vb, "vector", "double", d)
 
   check_structure_(tau_vb, "vector", "double", d)
   check_positive_(tau_vb)
 
   check_positive_(sig2_beta_vb)
 
-  if (!is.null(q)) {
-
-    check_structure_(mu_alpha_vb, "matrix", "double", c(q, d))
-    check_structure_(sig2_alpha_vb, "matrix", "double", c(q, d))
-
-    check_positive_(sig2_alpha_vb)
-
-  } else if (!is.null(mu_alpha_vb) | !is.null(sig2_alpha_vb)) {
-
-    stop(paste("Provided q = NULL, not consistent with mu_alpha_vb or ",
-               "sig2_alpha_vb being non-null.", sep = ""))
-
-  }
-
   d_init <- d
-  G_init <- G
   p_init <- p
-  q_init <- q
 
-  list_init <- create_named_list_(d_init, G_init, p_init, q_init, gam_vb, mu_beta_vb,
-                                  sig2_beta_vb, sig2_inv_vb, tau_vb, mu_alpha_vb,
-                                  sig2_alpha_vb)
+  list_init <- create_named_list_(d_init, p_init, gam_vb, mu_beta_vb,
+                                  sig2_beta_vb, tau_vb)
 
   class(list_init) <- "init"
 
@@ -679,7 +534,7 @@ set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb, q = NULL,
 
 # Internal function setting default starting values when not provided by the user.
 #
-auto_set_init_ <- function(Y, G, p, p_star, q, user_seed) {
+auto_set_init_ <- function(Y, p, p_star, user_seed) {
 
   # Initialisation not modified for dual = TRUE (should not matter, but maybe change this) ### TODO
 
@@ -722,57 +577,24 @@ auto_set_init_ <- function(Y, G, p, p_star, q, user_seed) {
 
     check_positive_(s02)
     check_positive_(t02)
-
-    if (is.null(G)) {
+    
       gam_vb <- matrix(pnorm(rnorm(p * d, mean = m0 + n0, sd = s02 + t02)), # Phi(theta + chi), and not 1 - Phi(theta + chi)
                        nrow = p)                                            # as reparametrisation theta* = - theta, chi* = - chi
-    } else {
-      gam_vb <- matrix(pnorm(rnorm(G * d, mean = m0 + n0, sd = s02 + t02)), 
-                       nrow = G)     
-    }
-
 
   mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
-
-  sig2_inv_vb <- 1e-2
 
   tau_vb <- 1 / median(apply(Y, 2, var))
   if (!is.finite(tau_vb)) tau_vb <- 1e3
   tau_vb <- rep(tau_vb, d)
 
-  if (is.null(G)) {
-    sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / (sig2_inv_vb * tau_vb))
-  } else {
-    sig2_beta_vb <- NULL
-  }
-
-  if (!is.null(q)) {
-
-    mu_alpha_vb <- matrix(rnorm(q * d), nrow = q)
-
-    zeta2_inv_vb <- rgamma(q, shape = 1, rate = 1)
-
-    sig2_alpha_vb <- 1 / sapply(tau_vb,
-                                function(tau_vb_t) {
-                                  rgamma(q, shape = 2,
-                                         rate = 1 / (zeta2_inv_vb * tau_vb_t))
-                                } )
-
-  } else {
-
-    mu_alpha_vb <- NULL
-    sig2_alpha_vb <- NULL
-
-  }
+  sig2_inv_vb <- 1e-2
+  sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / (sig2_inv_vb * tau_vb))
 
   d_init <- d
-  G_init <- G
   p_init <- p
-  q_init <- q
 
-  list_init <- create_named_list_(d_init, G_init, p_init, q_init, gam_vb, mu_beta_vb,
-                                  sig2_inv_vb, sig2_beta_vb, tau_vb, mu_alpha_vb,
-                                  sig2_alpha_vb)
+  list_init <- create_named_list_(d_init, p_init, gam_vb, mu_beta_vb,
+                                  sig2_beta_vb, tau_vb)
 
   class(list_init) <- "out_init"
 
