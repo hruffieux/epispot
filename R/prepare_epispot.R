@@ -116,14 +116,14 @@ prepare_data_ <- function(Y, X, V, s02, user_seed, tol, maxit, verbose) {
 
 
 # Internal function implementing sanity checks and needed preprocessing for
-# argument p0_av before the application of the different `epispot_*_core` algorithms.
+# argument p0 before the application of the different `epispot_*_core` algorithms.
 #
-convert_p0_av_ <- function(p0_av, p, list_blocks, verbose, eps = .Machine$double.eps^0.5) {
+convert_p0_ <- function(p0, p, list_blocks, verbose, eps = .Machine$double.eps^0.5) {
 
-    check_structure_(p0_av, "vector", "numeric", 2)
-    check_positive_(p0_av) # first term = expected number of predictors per response
+    check_structure_(p0, "vector", "numeric", 2)
+    check_positive_(p0) # first term = expected number of predictors per response
                            # second term = variance of this number
-    p_star <- p0_av
+    p_star <- p0
 
   p_star
 }
@@ -224,7 +224,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x,
       if (!is.null(names(list_hyper$m0)) && names(list_hyper$m0) != names_x)
         stop("Provided names for the entries of m0 do not match the colnames of X.")
 
-    } else { # list_struct non-NULL
+    } else { 
 
       list_hyper$m0 <- list_hyper$m0[!bool_rmvd_x]
 
@@ -442,7 +442,7 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
 #' pos_bl <- seq(1, p, by = ceiling(p/n_bl))
 #' list_blocks <- set_blocks(p, pos_bl, n_cpus = 2)
 #'
-#' vb <- epispot(Y = Y, X = X, p0_av = p0, link = "identity",
+#' vb <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
 #'             list_blocks = list_blocks, user_seed = seed)
 #'
 #' @seealso \code{\link{epispot}}

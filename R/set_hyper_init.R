@@ -113,12 +113,12 @@
 #'                           eta = 1, kappa = apply(Y, 2, var),
 #'                           link = "identity")
 #'
-#' # We take p0_av = p0 (known here); this choice may result in variable
+#' # We take p0 = p0 (known here); this choice may result in variable
 #' # selections that are (too) conservative in some cases. In practice, it is
-#' # advised to set p0_av as a slightly overestimated guess of p0, or perform
+#' # advised to set p0 as a slightly overestimated guess of p0, or perform
 #' # cross-validation using function `set_cv'.
 #'
-#' vb_g <- epispot(Y = Y, X = X, p0_av = p0, link = "identity",
+#' vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
 #'               list_hyper = list_hyper_g, user_seed = seed)
 #'
 #' # With covariates
@@ -127,7 +127,7 @@
 #'                             eta = 1, kappa = apply(Y, 2, var),
 #'                             link = "identity", q = q, phi = 1, xi = 1)
 #'
-#' vb_g_z <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, link = "identity",
+#' vb_g_z <- epispot(Y = Y, X = X, p0 = p0, Z = Z, link = "identity",
 #'                 list_hyper = list_hyper_g_z, user_seed = seed)
 #'
 #'
@@ -138,7 +138,7 @@
 #'                             link = "identity", r = r, m0 = 0, s02 = 0.1,
 #'                             s2 = 0.001)
 #'
-#' vb_g_v <- epispot(Y = Y, X = X, p0_av = p0,  V = V, link = "identity",
+#' vb_g_v <- epispot(Y = Y, X = X, p0 = p0,  V = V, link = "identity",
 #'                 list_hyper = list_hyper_g_v, user_seed = seed)
 #'
 #' ## Binary responses
@@ -147,14 +147,14 @@
 #'                               eta = NULL, kappa = NULL, link = "logit",
 #'                               q = q, phi = 1, xi = 1)
 #'
-#' vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
+#' vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
 #'                   list_hyper = list_hyper_logit, user_seed = seed)
 #'
 #' list_hyper_probit <- set_hyper(d, p, lambda = 1, nu = 1, a = 1, b = 4*d-1,
 #'                                eta = NULL, kappa = NULL, link = "probit",
 #'                                q = q, phi = 1, xi = 1)
 #'
-#' vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
+#' vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
 #'                    list_hyper = list_hyper_probit, user_seed = seed)
 #'
 #'
@@ -167,7 +167,7 @@
 #'                             eta = 1, kappa = apply(Y, 2, var), link = "mix",
 #'                             ind_bin = ind_bin, q = q, phi = 1, xi = 1)
 #'
-#' vb_mix <- epispot(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
+#' vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
 #'                 ind_bin = ind_bin, list_hyper = list_hyper_mix,
 #'                 user_seed = seed)
 #'
@@ -282,8 +282,8 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
         interval = c(dn, up))$root,
         error = function(e) {
           stop(paste0("No hyperparameter values matching the expectation and variance ",
-                      "of the number of active predictors per responses supplied in p0_av.",
-                      "Please change p0_av."))
+                      "of the number of active predictors per responses supplied in p0.",
+                      "Please change p0."))
         })
 
       # n0 sets the level of sparsity.
@@ -428,12 +428,12 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
 #' list_init_g <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
 #'                         link = "identity")
 #'
-#' # We take p0_av = p0 (known here); this choice may result in variable
+#' # We take p0 = p0 (known here); this choice may result in variable
 #' # selections that are (too) conservative in some cases. In practice, it is
-#' # advised to set p0_av as a slightly overestimated guess of p0, or perform
+#' # advised to set p0 as a slightly overestimated guess of p0, or perform
 #' # cross-validation using function `set_cv'.
 #'
-#' vb_g <- epispot(Y = Y, X = X, p0_av = p0, link = "identity",
+#' vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
 #'               list_init = list_init_g)
 #'
 #' # With covariates
@@ -446,7 +446,7 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
 #'                           mu_alpha_vb = mu_alpha_vb,
 #'                           sig2_alpha_vb = sig2_alpha_vb)
 #'
-#' vb_g_z <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, link = "identity",
+#' vb_g_z <- epispot(Y = Y, X = X, p0 = p0, Z = Z, link = "identity",
 #'                 list_init = list_init_g_z)
 #'
 #' ## Binary responses
@@ -460,7 +460,7 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
 #'                             mu_alpha_vb = mu_alpha_vb,
 #'                             sig2_alpha_vb = sig2_alpha_vb)
 #'
-#' vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
+#' vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
 #'                   list_init = list_init_logit)
 #'
 #' sig2_alpha_vb_probit <- sig2_alpha_vb[, 1]
@@ -470,7 +470,7 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
 #'                              mu_alpha_vb = mu_alpha_vb,
 #'                              sig2_alpha_vb = sig2_alpha_vb_probit)
 #'
-#' vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
+#' vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
 #'                    list_init = list_init_probit)
 #'
 #' ## Mix of continuous and binary responses
@@ -493,7 +493,7 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
 #'                           mu_alpha_vb = mu_alpha_vb_mix,
 #'                           sig2_alpha_vb = sig2_alpha_vb_mix)
 #'
-#' vb_mix <- epispot(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
+#' vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
 #'                 ind_bin = ind_bin, list_init = list_init_mix)
 #'
 #' @seealso  \code{\link{set_hyper}}, \code{\link{epispot}}
@@ -559,8 +559,8 @@ auto_set_init_ <- function(Y, p, p_star, user_seed) {
       interval = c(dn, up))$root,
       error = function(e) {
         stop(paste0("No hyperparameter values matching the expectation and variance ",
-                    "of the number of active predictors per responses supplied in p0_av.",
-                    "Please change p0_av."))
+                    "of the number of active predictors per responses supplied in p0.",
+                    "Please change p0."))
       })
 
 

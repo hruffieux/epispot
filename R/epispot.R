@@ -25,10 +25,10 @@
 #'   samples and d is the number of response variables.
 #' @param X Input matrix of dimension n x p, where p is the number of candidate
 #'   predictors. \code{X} cannot contain NAs. No intercept must be supplied.
-#' @param p0_av Vector of size 2 whose arguments are the expectation and the
-#'   variance of the number of active predictors per response.
-#'   Must be \code{NULL} if \code{list_init} and \code{list_hyper}
-#'   are both non-\code{NULL}.
+#' @param p0 Vector of size 2 whose entries are the prior expectation and 
+#'   variance of the number of predictors associated with each response.
+#'   Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
+#'   non-\code{NULL}.
 #' @param V Annotation matrix of dimension p x r, where r is the number of
 #'   variables representing external information on the candidate predictors
 #'   which may make their selection more or less likely. \code{NULL} if no such
@@ -176,24 +176,24 @@
 #'
 #' # No covariate
 #' #
-#' vb_g <- epispot(Y = Y, X = X, p0_av = p0, link = "identity", user_seed = seed)
+#' vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity", user_seed = seed)
 #'
 #' # With covariates
 #' #
-#' vb_g_z <- epispot(Y = Y, X = X, p0_av = p0,  Z = Z, link = "identity",
+#' vb_g_z <- epispot(Y = Y, X = X, p0 = p0,  Z = Z, link = "identity",
 #'                 user_seed = seed)
 #'
 #' # With external annotation variables
 #' #
-#' vb_g_v <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, V = V, s2 = 0.1, 
+#' vb_g_v <- epispot(Y = Y, X = X, p0 = p0, Z = Z, V = V, s2 = 0.1, 
 #'                   link = "identity", user_seed = seed)
 #'
 #' ## Binary responses
 #' ##
-#' vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
+#' vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
 #'                   user_seed = seed)
 #'
-#' vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
+#' vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
 #'                    user_seed = seed)
 #'
 #' ## Mix of continuous and binary responses
@@ -201,7 +201,7 @@
 #' Y_mix <- cbind(Y, Y_bin)
 #' ind_bin <- (d+1):(2*d)
 #'
-#' vb_mix <- epispot(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
+#' vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
 #'                 ind_bin = ind_bin, user_seed = seed)
 #'
 #' @references
@@ -219,7 +219,7 @@
 #'
 #' @export
 #'
-epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL, 
+epispot <- function(Y, X, p0, V = NULL, s02 = 1 / ncol(Y), s2 = NULL, 
                     om = NULL, list_hyper = NULL, list_init = NULL,
                     list_blocks = NULL, user_seed = NULL, 
                     tol = 1e-3, adaptive_tol_em = FALSE, maxit = 1000, 
@@ -279,12 +279,12 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
   
   if (is.null(list_hyper) | is.null(list_init)) {
     
-    p_star <- convert_p0_av_(p0_av, p, list_blocks, verbose)
+    p_star <- convert_p0_(p0, p, list_blocks, verbose)
     
   } else {
     
-    if (!is.null(p0_av))
-      warning(paste("Provided argument p0_av not used, as both list_hyper ",
+    if (!is.null(p0))
+      warning(paste("Provided argument p0 not used, as both list_hyper ",
                     "and list_init were provided.", sep = ""))
     
     p_star <- NULL
@@ -493,8 +493,8 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
       if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
         stop(paste0("For at least one of the block, no hyperparameter ",
                     "values matching the expectation and variance ",
-                    "of the number of active predictors per responses supplied in p0_av. ",
-                    "Please change p0_av."))
+                    "of the number of active predictors per responses supplied in p0. ",
+                    "Please change p0."))
       }
       
       if (n_bl_x > 1)
@@ -520,8 +520,8 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
       if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
         stop(paste0("For at least one of the block, no hyperparameter ",
                     "values matching the expectation and variance ",
-                    "of the number of active predictors per responses supplied in p0_av. ",
-                    "Please change p0_av."))
+                    "of the number of active predictors per responses supplied in p0. ",
+                    "Please change p0."))
       }
       list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
       list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
