@@ -52,11 +52,6 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     #
     stopifnot(length(om_vb) == n_bl_x & nrow(s2) == n_bl_x)
     stopifnot(all(sapply(om_vb, function(om) ncol(om) == n_bl_y)) & ncol(s2) == n_bl_y)
-    
-    print(n_bl_x)
-    print(om_vb)
-    print(nrow(om_vb[[1]]))
-    print(vec_r_bl)
     stopifnot(all(sapply(1:n_bl_x, function(bl_x) nrow(om_vb[[bl_x]]) == vec_r_bl[bl_x])))
     stopifnot(sum(sapply(list_V, function(V) nrow(V))) == p)
    

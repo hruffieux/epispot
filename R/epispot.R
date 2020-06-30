@@ -247,7 +247,7 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
   
   names_x <- colnames(X)
   names_y <- colnames(Y)
-
+  
   if (!is.null(V)) {
     r <- ncol(V)
     names_v <- colnames(V)
@@ -319,12 +319,12 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
   
   if (is.null(list_blocks)) {
     
-      vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
-                                         list_init$mu_beta_vb,
-                                         list_init$sig2_beta_vb, list_init$tau_vb,
-                                         om, bool_blocks = FALSE,
-                                         tol, maxit, anneal, anneal_vb_em, verbose,
-                                         adaptive_tol_em = adaptive_tol_em)
+    vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
+                                       list_init$mu_beta_vb,
+                                       list_init$sig2_beta_vb, list_init$tau_vb,
+                                       om, bool_blocks = FALSE,
+                                       tol, maxit, anneal, anneal_vb_em, verbose,
+                                       adaptive_tol_em = adaptive_tol_em)
     
   } else {
     
@@ -443,7 +443,7 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
         list_hyper_bl$kappa <- list_hyper_bl$kappa[pos_y]
         
         list_hyper_bl$n0 <- list_hyper_bl$n0[pos_y]
-          
+        
         list_init_bl$d_init <- length(pos_y)
         list_init_bl$gam_vb <- list_init_bl$gam_vb[, pos_y, drop = FALSE]
         list_init_bl$mu_beta_vb <- list_init_bl$mu_beta_vb[, pos_y, drop = FALSE]
@@ -455,28 +455,28 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
       
       if (!nr) list_init_bl$mu_c_vb <- list_init_bl$mu_c_vb[!bool_rmvd_v_bl,, drop = FALSE]
       
-       # adjust the sparsity level w.r.t. the blocks size
-        
-        p_bl <- ncol(X_bl) # block size
-        d_bl <- ncol(Y_bl)
-        
-        p_star_bl <- p_star
-        p_star_bl[1] <- p_star[1] * p_bl / p
-        adj_hyper <- get_n0_t02(d_bl, p_bl, p_star_bl)
-        
-        list_hyper_bl$n0 <- adj_hyper$n0
-        list_hyper_bl$t02 <- adj_hyper$t02
-        
-        m0 <- get_mu(p_star_bl[1], s02 + list_hyper_bl$t02, p_bl) + list_hyper_bl$n0[1] # here n0 is - n0* ### NOT USED FOR HORSESHOE ETC.
-        list_hyper_bl$m0 <- rep(-m0, p_bl)
-
-
-        vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
-                                              list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
-                                              list_init_bl$tau_vb, om, bool_blocks = TRUE, 
-                                              tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
-                                              adaptive_tol_em = adaptive_tol_em)
-        
+      # adjust the sparsity level w.r.t. the blocks size
+      
+      p_bl <- ncol(X_bl) # block size
+      d_bl <- ncol(Y_bl)
+      
+      p_star_bl <- p_star
+      p_star_bl[1] <- p_star[1] * p_bl / p
+      adj_hyper <- get_n0_t02(d_bl, p_bl, p_star_bl)
+      
+      list_hyper_bl$n0 <- adj_hyper$n0
+      list_hyper_bl$t02 <- adj_hyper$t02
+      
+      m0 <- get_mu(p_star_bl[1], s02 + list_hyper_bl$t02, p_bl) + list_hyper_bl$n0[1] # here n0 is - n0* ### NOT USED FOR HORSESHOE ETC.
+      list_hyper_bl$m0 <- rep(-m0, p_bl)
+      
+      
+      vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
+                                            list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
+                                            list_init_bl$tau_vb, om, bool_blocks = TRUE, 
+                                            tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
+                                            adaptive_tol_em = adaptive_tol_em)
+      
       if (!nr) {
         vb_bl$rmvd_cst_v <- rmvd_cst_v_bl
         vb_bl$rmvd_coll_v <- rmvd_coll_v_bl
@@ -490,20 +490,20 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
     
     if (n_bl_y > 1) {
       
-        if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
-          stop(paste0("For at least one of the block, no hyperparameter ",
-                      "values matching the expectation and variance ",
-                      "of the number of active predictors per responses supplied in p0_av. ",
-                      "Please change p0_av."))
-        }
-        
-          if (n_bl_x > 1)
-            stop("EB local scales not implemented for n_bl_x > 1. Exit")
-          
-          list_hyper$s02 <- sapply(list_vb, `[[`, "s02")
-          rownames(list_hyper$s02) <- paste0("snp_", 1:p)
-          colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
-  
+      if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
+        stop(paste0("For at least one of the block, no hyperparameter ",
+                    "values matching the expectation and variance ",
+                    "of the number of active predictors per responses supplied in p0_av. ",
+                    "Please change p0_av."))
+      }
+      
+      if (n_bl_x > 1)
+        stop("EB local scales not implemented for n_bl_x > 1. Exit")
+      
+      list_hyper$s02 <- sapply(list_vb, `[[`, "s02")
+      rownames(list_hyper$s02) <- paste0("snp_", 1:p)
+      colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
+      
       list_hyper$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
       
       tmp_om_vb <- lapply(list_vb, `[[`, "om")
@@ -511,44 +511,45 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
       list_hyper$om_vb <- parallel::mclapply(1:n_bl_x, function(bl_x) {
         cbind_fill_matrix(tmp_om_vb[((bl_x - 1) * n_bl_y + 1) : (bl_x * n_bl_y)])
       }, mc.cores = n_cpus)
+
       # om_vb list of length n_bl_x 
       # containing matrices of size r' x n_bl_y (sizes of om r' can be different due to cst or coll columns in V_bl removed)
       
     } else {
       
-        if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
-          stop(paste0("For at least one of the block, no hyperparameter ",
-                      "values matching the expectation and variance ",
-                      "of the number of active predictors per responses supplied in p0_av. ",
-                      "Please change p0_av."))
-        }
-        list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
+      if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
+        stop(paste0("For at least one of the block, no hyperparameter ",
+                    "values matching the expectation and variance ",
+                    "of the number of active predictors per responses supplied in p0_av. ",
+                    "Please change p0_av."))
       }
+      list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
       list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
       list_hyper$om_vb <- lapply(list_vb, `[[`, "om") # om_vb list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
     
+    }
     list_V <- lapply(list_bl_mat_x, `[[`, "V_bl") # V_bl without cst and coll and standardized in each block
     
+    
+    if (n_bl_y > 1) {
       
-      if (n_bl_y > 1) {
-        
-        vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
-                                                     vec_fac_bl_y, list_hyper, 
-                                                     list_init$gam_vb, list_init$mu_beta_vb, 
-                                                     list_init$sig2_beta_vb, list_init$tau_vb,
-                                                     tol, maxit, anneal, verbose)
-        
-        
-      } else {
-        
-        vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
-                                             list_init$gam_vb, list_init$mu_beta_vb, 
-                                             list_init$sig2_beta_vb, list_init$tau_vb,
-                                             tol, maxit, anneal, verbose)
-        
-      }
+      vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
+                                                   vec_fac_bl_y, list_hyper, 
+                                                   list_init$gam_vb, list_init$mu_beta_vb, 
+                                                   list_init$sig2_beta_vb, list_init$tau_vb,
+                                                   tol, maxit, anneal, verbose)
       
-      vb$s02 <- list_hyper$s02
+      
+    } else {
+      
+      vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
+                                           list_init$gam_vb, list_init$mu_beta_vb, 
+                                           list_init$sig2_beta_vb, list_init$tau_vb,
+                                           tol, maxit, anneal, verbose)
+      
+    }
+    
+    vb$s02 <- list_hyper$s02
     
   }
   
@@ -556,7 +557,7 @@ epispot <- function(Y, X, p0_av, V = NULL, s02 = 1 / ncol(Y), s2 = NULL,
   
   vb$rmvd_cst_x <- dat$rmvd_cst_x
   vb$rmvd_coll_x <- dat$rmvd_coll_x
-
+  
   if (!is.null(V) & is.null(list_blocks)) {
     vb$rmvd_cst_v <- dat$rmvd_cst_v
     vb$rmvd_coll_v <- dat$rmvd_coll_v
