@@ -27,28 +27,14 @@
 #'   \eqn{b} for the prior distributions for the proportion of responses
 #'   associated with each candidate predictor, \eqn{\omega} (vector of length p).
 #'   If of length 1, the provided value is repeated p times.
-#' @param eta Vector of length 1 or d for \code{link = "identity"}, and of
-#'   length 1 or d_cont = d - length(ind_bin) (the number of continuous response
-#'   variables) for \code{link = "mix"}. Provides the values of
+#' @param eta Vector of length 1 or d. Provides the values of
 #'   hyperparameter \eqn{\eta} for the prior distributions of the continuous
 #'   response residual precisions, \eqn{\tau}. If of length 1, the provided
-#'   value is repeated d, resp. d_cont, times. Must be \code{NULL} for
-#'   \code{link = "logit"} and \code{link = "probit"}.
-#' @param kappa Vector of length 1 or d for \code{link = "identity"}, and of
-#'   length 1 or d_cont = d - length(ind_bin) (the number of continuous response
-#'   variables) for \code{link = "mix"}. Provides the values of hyperparameter
+#'   value is repeated d times.
+#' @param kappa Vector of length 1 or d. Provides the values of hyperparameter
 #'   \eqn{\kappa} for the prior distributions of the response residual
-#'   precisions, \eqn{\tau}. If of length 1, the provided value is repeated d,
-#'   resp. d_cont, times. Must be \code{NULL} for \code{link = "logit"} and
-#'   \code{link = "probit"}.
-#' @param link Response link. Must be "\code{identity}" for linear regression,
-#'   "\code{logit}" for logistic regression, "\code{probit}"
-#'   for probit regression, or "\code{mix}" for a mix of identity and probit
-#'   link functions (in this case, the indices of the binary responses must be
-#'   gathered in argument \code{ind_bin}, see below).
-#' @param ind_bin If \code{link = "mix"}, vector of indices corresponding to
-#'   the binary variables in \code{Y}. Must be \code{NULL} if
-#'   \code{link != "mix"}.
+#'   precisions, \eqn{\tau}. If of length 1, the provided value is repeated d 
+#'   times.
 #' @param q Number of covariates. Default is \code{NULL}, for \code{Z}
 #'   \code{NULL}.
 #' @param phi Vector of length 1 or q providing the values of hyperparameter
@@ -62,22 +48,16 @@
 #' @param r Number of variables representing external information on the
 #'   candidate predictors. Default is \code{NULL}, for \code{V} \code{NULL}.
 #' @param m0 Vector of length 1 or p. Hyperparameter when \code{V},
-#'   \code{list_struct} or \code{dual} is non-\code{NULL}. Default is
-#'   \code{NULL}.
-#' @param n0 Vector of length 1 or d. Hyperparameter when \code{dual} is
-#'    non-\code{NULL}. Default is \code{NULL}.
-#' @param s02 Variance hyperparameter when \code{V}, \code{list_struct} or
-#'    \code{dual} is non-\code{NULL} non-\code{NULL}. Default is \code{NULL}.
+#'   \code{list_struct}. Default is \code{NULL}.
+#' @param n0 Vector of length 1 or d. 
+#' @param s02 Variance hyperparameter when \code{V}, \code{list_struct} is 
+#' non-\code{NULL} non-\code{NULL}. Default is \code{NULL}.
 #' @param s2 Variance hyperparameter when \code{V} is non-\code{NULL}
 #'   non-\code{NULL}. Default is \code{NULL}.
-#' @param t02 Variance hyperparameter when \code{dual} is non-\code{NULL}
-#'   non-\code{NULL}. Default is \code{NULL}.
+#' @param t02 Variance hyperparameter. 
 #' @param G Number of candidate predictor groups when using the group selection
 #'   model from the \code{\link{epispot}} function. Default is \code{NULL},
 #'   for no group selection.
-#' @param dual If \code{TRUE}, dual propensity control (by candidate predictors
-#'   and by responses). Functionality under development and with limited
-#'   associated functionalities. Default is \code{FALSE}.
 #' @param struct Boolean indicating the use of structured sparse priors
 #'   set through the \code{\link{set_struct}} function. Default is \code{FALSE},
 #'   for no structured selection.
@@ -212,10 +192,10 @@
 #'
 #' @export
 #'
-set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, link = "identity",
-                      ind_bin = NULL, q = NULL, phi = NULL, xi = NULL,
+set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, q = NULL, phi = NULL, 
+                      xi = NULL,
                       r = NULL, m0 = NULL, n0 = NULL, s02 = NULL, s2 = NULL,
-                      t02 = NULL, G = NULL, dual = FALSE, struct = FALSE) {
+                      t02 = NULL, G = NULL, struct = FALSE) {
 
   check_structure_(d, "vector", "numeric", 1)
   check_natural_(d)
@@ -234,88 +214,27 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, link = "identity",
 
   check_structure_(struct, "vector", "logical", 1)
 
-  stopifnot(link %in% c("identity", "logit", "probit", "mix"))
+  if (!is.null(G) && (!is.null(q) | !is.null(r) | struct))
+    stop("Group selection (G non-NULL) implemented only for Z = NULL, V = NULL, list_struct = NULL. Exit.")
 
-  if (!is.null(G) && (link != "identity" | !is.null(q) | !is.null(r) | struct | dual))
-    stop("Group selection (G non-NULL) implemented only for identity link, Z = NULL, V = NULL, list_struct = NULL and dual = FALSE. Exit.")
-
-  if (struct && (link != "identity" | !is.null(q) | !is.null(r)))
-    stop("Structured sparse priors (list_struct non-NULL) enabled only for identity link, Z = NULL and V = NULL. Exit.")
-
-  ind_bin <- prepare_ind_bin_(d, ind_bin, link)
+  if (struct && (!is.null(q) | !is.null(r)))
+    stop("Structured sparse priors (list_struct non-NULL) enabled only for Z = NULL and V = NULL. Exit.")
 
   nr <- is.null(r)
   ns <- !struct
 
-  if (!dual & nr & ns) {
+  if (nr) {
 
-    if (!is.null(m0) | !is.null(n0) | !is.null(s02) | !is.null(s2)| !is.null(t02))
-      stop("Provided r = NULL, dual = FALSE and struct = FALSE, not consitent with m0, n0, s02, s2 or t02 being non-null.")
-
-    if (is.null(G)) {
-
-      check_structure_(a, "vector", "double", c(1, p))
-      if (length(a) == 1) a <- rep(a, p)
-
-      check_structure_(b, "vector", "double", c(1, p))
-      if (length(b) == 1) b <- rep(b, p)
-
-    } else {
-
-      check_structure_(a, "vector", "double", c(1, G))
-      if (length(a) == 1) a <- rep(a, G)
-
-      check_structure_(b, "vector", "double", c(1, G))
-      if (length(b) == 1) b <- rep(b, G)
-
-    }
-
-    check_positive_(a)
-    check_positive_(b)
-
-  } else if (dual){
-
-    if (nr) {
-
-      if (!is.null(a) | !is.null(b) | !is.null(s2))
-        stop("Provided dual = TRUE not consitent with a, b or s2 being non-null.")
-
-    } else {
-
-      check_structure_(a, "vector", "double", c(1, r))
-      if (length(a) == 1) a <- rep(a, r)
-
-      check_structure_(b, "vector", "double", c(1, r))
-      if (length(b) == 1) b <- rep(b, r)
-
-      check_structure_(s2, "vector", "double", 1)
-      check_positive_(s2)
-
-    }
-
-
-    check_structure_(m0, "vector", "double", c(1, p))
-    if (length(m0) == 1) m0 <- rep(m0, p)
-
-    check_structure_(n0, "vector", "double", c(1, d))
-    if (length(n0) == 1) n0 <- rep(n0, d)
-
-    check_structure_(s02, "vector", "double", 1)
-    check_positive_(s02)
-
-    check_structure_(t02, "vector", "double", 1)
-    check_positive_(t02)
+    if (!is.null(a) | !is.null(b) | !is.null(s2))
+      stop("a, b and s2 must all be null.")
 
   } else {
 
-    if (!is.null(a) | !is.null(b) | !is.null(t02))
-      stop("Provided r != NULL or struct = TRUE, not consitent with a, b or t02 being non-null.")
+    check_structure_(a, "vector", "double", c(1, r))
+    if (length(a) == 1) a <- rep(a, r)
 
-    check_structure_(m0, "vector", "double", c(1, p))
-    if (length(m0) == 1) m0 <- rep(m0, p)
-
-    check_structure_(s02, "vector", "double", 1)
-    check_positive_(s02)
+    check_structure_(b, "vector", "double", c(1, r))
+    if (length(b) == 1) b <- rep(b, r)
 
     check_structure_(s2, "vector", "double", 1)
     check_positive_(s2)
@@ -323,30 +242,32 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, link = "identity",
   }
 
 
+  check_structure_(m0, "vector", "double", c(1, p))
+  if (length(m0) == 1) m0 <- rep(m0, p)
+
+  check_structure_(n0, "vector", "double", c(1, d))
+  if (length(n0) == 1) n0 <- rep(n0, d)
+
+  check_structure_(s02, "vector", "double", 1)
+  check_positive_(s02)
+
+  check_structure_(t02, "vector", "double", 1)
+  check_positive_(t02)
+
   check_structure_(lambda, "vector", "double", 1)
   check_positive_(lambda)
 
   check_structure_(nu, "vector", "double", 1)
   check_positive_(nu)
 
-  if (link %in% c("identity", "mix")) {
+  check_structure_(eta, "vector", "double", c(1, d))
+  check_positive_(eta)
+  if (length(eta) == 1) eta <- rep(eta, d)
 
-    d_cont <- d - length(ind_bin) # length(NULL) = 0 for link = "identity"
+  check_structure_(kappa, "vector", "double", c(1, d))
+  check_positive_(kappa)
+  if (length(kappa) == 1) kappa <- rep(kappa, d)
 
-    check_structure_(eta, "vector", "double", c(1, d_cont))
-    check_positive_(eta)
-    if (length(eta) == 1) eta <- rep(eta, d_cont)
-
-    check_structure_(kappa, "vector", "double", c(1, d_cont))
-    check_positive_(kappa)
-    if (length(kappa) == 1) kappa <- rep(kappa, d_cont)
-
-  } else {
-
-    if (!is.null(eta) | !is.null(kappa))
-      stop("Both eta and kappa must be NULL for logistic and probit regression.")
-
-  }
 
   if (!is.null(q)) {
 
@@ -370,12 +291,8 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, link = "identity",
   r_hyper <- r
   G_hyper <- G
 
-  ind_bin_hyper <- ind_bin
-
-  link_hyper <- link
-
   list_hyper <- create_named_list_(d_hyper, G_hyper, p_hyper, q_hyper, r_hyper,
-                                   link_hyper, ind_bin_hyper, eta, kappa,
+                                   eta, kappa,
                                    lambda, nu, a, b, phi, xi, m0, n0, s02, s2, t02)
 
   class(list_hyper) <- "hyper"
@@ -388,7 +305,7 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, link = "identity",
 # Internal function setting default model hyperparameters when not provided by
 # the user.
 #
-auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct, 
+auto_set_hyper_ <- function(Y, p, p_star, q, r, struct, 
                             vec_fac_gr, s02, s2 = NULL) {
 
   d <- ncol(Y)
@@ -410,44 +327,11 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct,
 
   nu <- 1
 
-  if (link %in% c("identity", "mix")) {
-
-    if (link == "mix") Y <- Y[, -ind_bin, drop = FALSE]
-
-    d_cont <- d - length(ind_bin) # length(NULL) = 0 for link = "identity"
-
-    # hyperparameter set using the data Y
-    eta <- 1 / median(apply(Y, 2, var)) #median to be consistent when doing permutations
-    if (!is.finite(eta)) eta <- 1e3
-    eta <- rep(eta, d_cont)
-    kappa <- rep(1, d_cont)
-
-  } else {
-
-    eta <- kappa <- NULL
-
-  }
-
-  if (!dual) {
-    if (is.null(G)) {
-      a <- rep(1, p)
-      b <- d * (p - p_star) / p_star
-      if (length(b) == 1) b <- rep(b, p)
-    } else {
-      a <- rep(1, G)
-      b <- d * (G - p_star) / p_star
-      if (length(b) == 1) b <- rep(b, G)
-    }
-
-    # hyperparameters of beta distributions
-    check_positive_(a)
-    check_positive_(b)
-  }
-
-
-  if (dual | !is.null(r) | struct) {
-
-    if (dual) {
+  # hyperparameter set using the data Y
+  eta <- 1 / median(apply(Y, 2, var)) #median to be consistent when doing permutations
+  if (!is.finite(eta)) eta <- 1e3
+  eta <- rep(eta, d)
+  kappa <- rep(1, d)
 
       E_p_t <- p_star[1]
       V_p_t <- p_star[2]
@@ -500,21 +384,6 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct,
         a <- b <- NULL
       }
 
-    } else {
-
-      s02 <- 0.1 # prior variance for the intercept, bernoulli-probit
-      t02 <- NULL
-
-      m0 <- - qnorm(b / (a + b)) * sqrt(1 + s02) # calibrate the sparsity level on that of the base model.
-                                                 # we have pr(\gamma_st) = 1 - Phi( m0_star / sqrt(1 + s02))
-                                                 # and set this to be equal to pr(\gamma_st) for the base model,
-                                                 # i.e., a / (a + b), then solve for m0_star. m0 = - m_star
-
-      a <- b <- n0 <- NULL
-
-      check_positive_(s02)
-    }
-
     # hyperparameters external info model
     if (!is.null(r)){
       check_positive_(s2)
@@ -522,12 +391,6 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct,
     } else {
       s2 <- NULL
     }
-
-  } else {
-
-    m0 <- n0 <- s02 <- s2 <- t02 <- NULL
-
-  }
 
   if (!is.null(q)) {
 
@@ -545,12 +408,8 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct,
   q_hyper <- q
   r_hyper <- r
 
-  ind_bin_hyper <- ind_bin
-
-  link_hyper <- link
-
   list_hyper <- create_named_list_(d_hyper, G_hyper, p_hyper, q_hyper, r_hyper,
-                                   link_hyper, ind_bin_hyper, eta, kappa,
+                                  eta, kappa,
                                    lambda, nu, a, b, phi, xi, m0, n0, s02, s2, t02)
 
   class(list_hyper) <- "out_hyper"
@@ -575,37 +434,21 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct,
 #' @param mu_beta_vb Matrix of size p x d with initial values for the
 #'   variational parameter yielding regression coefficient estimates for
 #'   predictor-response pairs included in the model.
-#' @param sig2_beta_vb Vector of length d, for \code{link = "identity"} and
-#'   for \code{link = "mix"}, of length 1 for \code{link = "probit"}, and a
-#'   matrix of size p x d, for \code{link = "logit"}, with initial values for
+#' @param sig2_beta_vb Vector of length d with initial values for
 #'   the variational parameter yielding estimates of effect variances for
-#'   predictor-response pairs included in the model. For
-#'   \code{link = "identity"} and \code{link = "mix"}, these values are the same
+#'   predictor-response pairs included in the model. These values are the same
 #'   for all the predictors (as a result of the predictor variables being
-#'   standardized before the variational algorithm). For \code{link = "probit"},
-#'   they are the same for all the predictors and responses.
-#' @param tau_vb Vector of length d, for \code{link = "identity"}, and of
-#'   length d_cont = d - length(ind_bin) (number of continuous responses), for
-#'   \code{link = "mix"}, with initial values for the variational parameter
-#'   yielding estimates for the continuous response residual precisions. Must be
-#'   \code{NULL} for \code{link = "logit"} and \code{link = "probit"}.
-#' @param link Response link. Must be "\code{identity}" for linear regression,
-#'   "\code{logit}" for logistic regression, "\code{probit}" for probit
-#'   regression, or "\code{mix}" for a mix of identity and probit link functions
-#'   (in this case, the indices of the binary responses must be gathered in
-#'   argument \code{ind_bin}, see below).
-#' @param ind_bin If \code{link = "mix"}, vector of indices corresponding to the
-#'   binary variables in \code{Y}. Must be \code{NULL} if \code{link != "mix"}.
+#'   standardized before the variational algorithm).
+#' @param tau_vb Vector of length d with initial values for the variational parameter
+#'   yielding estimates for the continuous response residual precisions. 
 #' @param q Number of covariates. Default is \code{NULL}, for \code{Z}
 #'   \code{NULL}.
 #' @param mu_alpha_vb Matrix of size q x d with initial values for the
 #'   variational parameter yielding regression coefficient estimates for
 #'   covariate-response pairs. Default is \code{NULL}, for \code{Z} \code{NULL}.
-#' @param sig2_alpha_vb Matrix of size q x d for \code{link = "identity"},
-#'   for \code{link = "logit"} and for \code{link = "mix"} with initial values
+#' @param sig2_alpha_vb Matrix of size q x d with initial values
 #'   for the variational parameter yielding estimates of effect variances for
-#'   covariate-response pairs. Vector of length q for \code{link = "probit"}.
-#'   Default is \code{NULL}, for \code{Z} \code{NULL}.
+#'   covariate-response pairs. Default is \code{NULL}, for \code{Z} \code{NULL}.
 #' @param G Number of candidate predictor groups when using the group selection
 #'   model from the \code{\link{epispot}} function. Default is \code{NULL},
 #'   for no group selection.
@@ -754,8 +597,7 @@ auto_set_hyper_ <- function(Y, p, p_star, q, r, dual, link, ind_bin, struct,
 #'
 #' @export
 #'
-set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
-                     link = "identity", ind_bin = NULL, q = NULL,
+set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb, q = NULL,
                      mu_alpha_vb = NULL, sig2_alpha_vb = NULL,
                      sig2_inv_vb = NULL, G = NULL) {
 
@@ -771,13 +613,8 @@ set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
   check_structure_(G, "vector", "numeric", 1, null_ok = TRUE)
   if (!is.null(G)) check_natural_(G)
 
-  stopifnot(link %in% c("identity", "logit", "probit", "mix"))
-
-  if(!is.null(G) && (link != "identity" | !is.null(q)))
-    stop("Group selection (G non-NULL) implemented only for identity link, Z = NULL. Exit.")
-
-  ind_bin <- prepare_ind_bin_(d, ind_bin, link)
-
+  if(!is.null(G) && !is.null(q))
+    stop("Group selection (G non-NULL) implemented only for Z = NULL. Exit.")
 
   if(is.null(G)) {
 
@@ -792,71 +629,29 @@ set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
 
   check_structure_(mu_beta_vb, "matrix", "double", c(p, d))
 
-  if (link %in% c("identity", "mix")) {
+  if(is.null(G)) {
 
-    if(is.null(G)) {
-
-      check_structure_(sig2_beta_vb, "vector", "double", d)
-      if (!is.null(sig2_inv_vb))
-        stop("sig2_inv_vb is not used when G is NULL.")
-
-    } else {
-
-      check_structure_(sig2_inv_vb, "vector", "double", 1)
-      if (!is.null(sig2_beta_vb))
-        stop("sig2_beta_vb is not used when G is non-NULL.")
-
-    }
-
-    d_cont <- d - length(ind_bin) # length(NULL) = 0 for link = "identity"
-
-    check_structure_(tau_vb, "vector", "double", d_cont)
-    check_positive_(tau_vb)
-
-    if (link == "mix") {
-      tmp_tau_vb <- tau_vb
-      tau_vb <- rep(1, d) # tau_vb is set to 1 for binary responses.
-      tau_vb[-ind_bin] <- tmp_tau_vb
-      rm(tmp_tau_vb)
-    }
-
-  } else if (link == "logit"){
-
-    check_structure_(sig2_beta_vb, "matrix", "double", c(p, d))
-
+    check_structure_(sig2_beta_vb, "vector", "double", d)
     if (!is.null(sig2_inv_vb))
       stop("sig2_inv_vb is not used when G is NULL.")
-
-    if (!is.null(tau_vb))
-      stop("tau_vb must be NULL for logistic regression.")
 
   } else {
 
-    check_structure_(sig2_beta_vb, "vector", "double", 1)
-
-    if (!is.null(sig2_inv_vb))
-      stop("sig2_inv_vb is not used when G is NULL.")
-
-    if (!is.null(tau_vb))
-      stop("tau_vb must be NULL for probit regression.")
+    check_structure_(sig2_inv_vb, "vector", "double", 1)
+    if (!is.null(sig2_beta_vb))
+      stop("sig2_beta_vb is not used when G is non-NULL.")
 
   }
+
+  check_structure_(tau_vb, "vector", "double", d)
+  check_positive_(tau_vb)
 
   check_positive_(sig2_beta_vb)
 
   if (!is.null(q)) {
 
     check_structure_(mu_alpha_vb, "matrix", "double", c(q, d))
-
-    if (link == "probit") {
-
-      check_structure_(sig2_alpha_vb, "vector", "double", q)
-
-    } else {
-
-      check_structure_(sig2_alpha_vb, "matrix", "double", c(q, d))
-
-    }
+    check_structure_(sig2_alpha_vb, "matrix", "double", c(q, d))
 
     check_positive_(sig2_alpha_vb)
 
@@ -871,12 +666,8 @@ set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
   G_init <- G
   p_init <- p
   q_init <- q
-  ind_bin_init <- ind_bin
 
-  link_init <- link
-
-  list_init <- create_named_list_(d_init, G_init, p_init, q_init, link_init,
-                                  ind_bin_init, gam_vb, mu_beta_vb,
+  list_init <- create_named_list_(d_init, G_init, p_init, q_init, gam_vb, mu_beta_vb,
                                   sig2_beta_vb, sig2_inv_vb, tau_vb, mu_alpha_vb,
                                   sig2_alpha_vb)
 
@@ -888,16 +679,14 @@ set_init <- function(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
 
 # Internal function setting default starting values when not provided by the user.
 #
-auto_set_init_ <- function(Y, G, p, p_star, q, user_seed, dual, link, ind_bin) {
+auto_set_init_ <- function(Y, G, p, p_star, q, user_seed) {
 
-  # Initialisation not modified for dual = TRUE (should not matter, but maybe change this)
+  # Initialisation not modified for dual = TRUE (should not matter, but maybe change this) ### TODO
 
   d <- ncol(Y)
 
   if (!is.null(user_seed)) set.seed(user_seed)
 
-
-  if (dual) {
 
     E_p_t <- p_star[1]
     V_p_t <- p_star[2]
@@ -941,104 +730,33 @@ auto_set_init_ <- function(Y, G, p, p_star, q, user_seed, dual, link, ind_bin) {
       gam_vb <- matrix(pnorm(rnorm(G * d, mean = m0 + n0, sd = s02 + t02)), 
                        nrow = G)     
     }
-  } else {
 
-    shape1_gam <- 1
-
-    if (is.null(G)) {
-
-      shape2_gam <- d * (p - p_star) / p_star
-
-      if (length(p_star) > 1)
-        shape1_gam <- rep(shape1_gam, p)
-
-      gam_vb <- matrix(rbeta(p * d, shape1 = shape1_gam, shape2 = shape2_gam),
-                       nrow = p)
-
-    } else {
-
-      shape2_gam <- d * (G - p_star) / p_star
-
-      if (length(p_star) > 1)
-        shape1_gam <- rep(shape1_gam, G)
-
-      gam_vb <- matrix(rbeta(G * d, shape1 = shape1_gam, shape2 = shape2_gam),
-                       nrow = G)
-
-    }
-
-  }
 
   mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
 
   sig2_inv_vb <- 1e-2
 
-  if (link %in% c("identity", "mix")) {
+  tau_vb <- 1 / median(apply(Y, 2, var))
+  if (!is.finite(tau_vb)) tau_vb <- 1e3
+  tau_vb <- rep(tau_vb, d)
 
-    if (link == "mix") Y <- Y[, -ind_bin, drop = FALSE]
-
-    d_cont <- d - length(ind_bin) # length(NULL) = 0 for link = "identity"
-
-    tau_vb <- 1 / median(apply(Y, 2, var))
-    if (!is.finite(tau_vb)) tau_vb <- 1e3
-    tau_vb <- rep(tau_vb, d_cont)
-
-    if (link == "mix") {
-
-      tmp_tau_vb <- tau_vb
-      tau_vb <- rep(1, d) # tau_vb is set to 1 for binary responses.
-      tau_vb[-ind_bin] <- tmp_tau_vb
-      rm(tmp_tau_vb)
-
-    }
-
-    if (is.null(G)) {
-      sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / (sig2_inv_vb * tau_vb))
-    } else {
-      sig2_beta_vb <- NULL
-    }
-
-  } else if (link == "logit") {
-
-    sig2_beta_vb <- 1 / t(replicate(p, rgamma(d, shape = 2, rate = 1 / sig2_inv_vb)))
-
-    tau_vb <- NULL
-
+  if (is.null(G)) {
+    sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / (sig2_inv_vb * tau_vb))
   } else {
-
-    sig2_beta_vb <- 1 / rgamma(1, shape = 2, rate = 1 / sig2_inv_vb)
-
-    tau_vb <- NULL
-
+    sig2_beta_vb <- NULL
   }
 
   if (!is.null(q)) {
 
     mu_alpha_vb <- matrix(rnorm(q * d), nrow = q)
 
-    if (link %in% c("identity", "mix")) {
+    zeta2_inv_vb <- rgamma(q, shape = 1, rate = 1)
 
-      zeta2_inv_vb <- rgamma(q, shape = 1, rate = 1)
-
-      sig2_alpha_vb <- 1 / sapply(tau_vb,
-                                  function(tau_vb_t) {
-                                    rgamma(q, shape = 2,
-                                           rate = 1 / (zeta2_inv_vb * tau_vb_t))
-                                  } )
-
-    } else if (link == "logit"){
-
-      zeta2_inv_vb <- matrix(rgamma(q * d, shape = 1, rate = 1), nrow = q)
-      sig2_alpha_vb <- 1 / apply(zeta2_inv_vb, 2,
-                                 function(zeta2_inv_vb_t) rgamma(q, shape = 2, rate = 1 / zeta2_inv_vb_t))
-
-    } else {
-
-      zeta2_inv_vb <- rgamma(q, shape = 1, rate = 1)
-      sig2_alpha_vb <- 1 / rgamma(q, shape = 2, rate = 1 / zeta2_inv_vb)
-
-    }
-
+    sig2_alpha_vb <- 1 / sapply(tau_vb,
+                                function(tau_vb_t) {
+                                  rgamma(q, shape = 2,
+                                         rate = 1 / (zeta2_inv_vb * tau_vb_t))
+                                } )
 
   } else {
 
@@ -1051,12 +769,8 @@ auto_set_init_ <- function(Y, G, p, p_star, q, user_seed, dual, link, ind_bin) {
   G_init <- G
   p_init <- p
   q_init <- q
-  ind_bin_init <- ind_bin
 
-  link_init <- link
-
-  list_init <- create_named_list_(d_init, G_init, p_init, q_init,
-                                  link_init, ind_bin_init, gam_vb, mu_beta_vb,
+  list_init <- create_named_list_(d_init, G_init, p_init, q_init, gam_vb, mu_beta_vb,
                                   sig2_inv_vb, sig2_beta_vb, tau_vb, mu_alpha_vb,
                                   sig2_alpha_vb)
 

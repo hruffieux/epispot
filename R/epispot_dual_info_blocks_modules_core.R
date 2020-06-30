@@ -8,7 +8,7 @@
 epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                                                  vec_fac_bl_y, list_hyper, 
                                                  gam_vb, mu_beta_vb, sig2_beta_vb, 
-                                                 tau_vb, list_struct, eb_local_scale, 
+                                                 tau_vb, list_struct, 
                                                  tol, maxit, anneal, verbose, batch = "y", 
                                                  full_output = FALSE, debug = TRUE) {
   
@@ -77,9 +77,6 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     log_om_vb <- lapply(om_vb, function(om_bl) log(om_bl + eps))
     log_1_min_om_vb <- lapply(om_vb, function(om_bl) log(1 - om_bl + eps))
     
-    
-    if (eb_local_scale) {
-      
       # Covariate-specific parameters: objects derived from s02, list_struct (possible block-wise in parallel)
       #
       obj_theta_vb <- lapply(1:(n_bl_x * n_bl_y), function(bl) {
@@ -92,35 +89,10 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
         update_sig2_theta_vb_(vec_d_bl[bl_y], vec_p_bl[bl_x], list_struct = NULL, s02[vec_fac_bl_x == bl_ids_x[bl_x], bl_y], X = NULL, c = c, eb_local_scale = eb_local_scale)
         
       })
-      
-    } else {
-      
-      # Covariate-specific parameters: objects derived from s02, list_struct (possible block-wise in parallel)
-      #
-      obj_theta_vb <- lapply(1:(n_bl_x * n_bl_y), function(bl) {
-        
-        bl_x <- ceiling(bl / n_bl_y)
-        bl_y <- bl %% n_bl_y
-        if (bl_y == 0)
-          bl_y <- n_bl_y
-        
-        update_sig2_theta_vb_(vec_d_bl[bl_y], vec_p_bl[bl_x], list_struct = NULL, s02[bl_x, bl_y], X = NULL, c = c, eb_local_scale = eb_local_scale)
-        
-      })
-      
-    }
 
-    if (eb_local_scale) {
-      
       S0_inv <- do.call(cbind, lapply(obj_theta_vb, `[[`, "S0_inv"))
       sig2_theta_vb <- do.call(cbind, lapply(obj_theta_vb, `[[`, "sig2_theta_vb"))
       
-    } else {
-      
-      S0_inv <- matrix(unlist(lapply(obj_theta_vb, `[[`, "S0_inv")), nrow = n_bl_x, byrow = TRUE)
-      sig2_theta_vb <- matrix(unlist(lapply(obj_theta_vb, `[[`, "sig2_theta_vb")), nrow = n_bl_x, byrow = TRUE)
-      
-    }
 
     vec_sum_log_det_theta <- matrix(unlist(lapply(obj_theta_vb, `[[`, "vec_sum_log_det_theta")), nrow = n_bl_x, byrow = TRUE)
     
@@ -241,8 +213,8 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
         
         mu_theta_vb[, bl_y] <- update_mu_theta_vb_(W[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 
                                                  m0, S0_inv[, bl_y], sig2_theta_vb[, bl_y],
-                                                 vec_fac_st, mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], is_mat = TRUE, 
-                                                 c = c, vec_fac_bl = vec_fac_bl_x, eb_local_scale = eb_local_scale)
+                                                 mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], is_mat = TRUE, 
+                                                 c = c, vec_fac_bl = vec_fac_bl_x)
       
       
         mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(mat_v_mu[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1, mu_theta_vb[, bl_y], `+`)
@@ -354,8 +326,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                                                  m1_beta, m2_beta, mat_x_m1, 
                                                  vec_fac_st, vec_sum_log_det_rho,
                                                  vec_sum_log_det_theta, 
-                                                 vec_fac_bl_x, vec_fac_bl_y,
-                                                 eb_local_scale)
+                                                 vec_fac_bl_x, vec_fac_bl_y)
         
         if (verbose & (it == 1 | it %% 5 == 0))
           cat(paste("ELBO = ", format(lb_new), "\n\n", sep = ""))
@@ -447,8 +418,7 @@ elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa
                                            m1_beta, m2_beta, mat_x_m1, 
                                            vec_fac_st, vec_sum_log_det_rho,
                                            vec_sum_log_det_theta, 
-                                           vec_fac_bl_x, vec_fac_bl_y,
-                                           eb_local_scale) {
+                                           vec_fac_bl_x, vec_fac_bl_y) {
   
   n <- nrow(Y)
   n_bl_x <- length(list_V)
@@ -477,13 +447,12 @@ elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa
                                     sig2_inv_vb, tau_vb, zeta_vb, 
                                     bool_modules = TRUE, 
                                     vec_fac_bl_y = vec_fac_bl_y,
-                                    vec_fac_bl_theta = vec_fac_bl_x, 
-                                    eb_local_scale = eb_local_scale)
+                                    vec_fac_bl_theta = vec_fac_bl_x)
   
   
   elbo_C <- e_theta_(m0, mu_theta_vb, S0_inv, sig2_theta_vb, vec_fac_st,
                      vec_sum_log_det_theta, vec_fac_bl = vec_fac_bl_x, 
-                     vec_fac_bl_y = vec_fac_bl_y, eb_local_scale = eb_local_scale)
+                     vec_fac_bl_y = vec_fac_bl_y)
   
   elbo_D <- e_rho_(mu_rho_vb, n0, sig2_rho_vb, T0_inv, vec_sum_log_det_rho)
   

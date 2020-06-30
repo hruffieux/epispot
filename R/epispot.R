@@ -8,8 +8,6 @@
 #' models for combined selection of predictors and associated responses in
 #' high-dimensional set-ups. Dependence across responses linked to the same
 #' predictors is captured through the model hierarchical structure.
-#' The responses can be purely continuous, purely binary (logit or probit link
-#' fits), or a mix of continuous and binary variables.
 #'
 #'
 #' The optimization is made using efficient block coordinate ascent schemes, for
@@ -20,25 +18,17 @@
 #'
 #' The continuous response variables in \code{Y} (if any) will be centered
 #' before application of the variational algorithm, and the candidate predictors
-#' and covariates resp. in \code{X} and \code{Z} will be standardized. An
-#' intercept will be added if \code{link} is \code{"logit"}, \code{"probit"} or
-#' \code{"mix"} (do not supply it in \code{X} or \code{Z}).
+#' and covariates resp. in \code{X} and \code{Z} will be standardized.
 #'
 #'
 #' @param Y Response data matrix of dimension n x d, where n is the number of
 #'   samples and d is the number of response variables.
 #' @param X Input matrix of dimension n x p, where p is the number of candidate
 #'   predictors. \code{X} cannot contain NAs. No intercept must be supplied.
-#' @param p0_av If \code{dual} is \code{FALSE} (default), prior average number
-#'   of predictors (or groups of predictors if \code{list_groups} is
-#'   non-\code{NULL}) expected to be included in the model.  Can also
-#'   be a vector of length p (resp. of length the number of groups) with entry s
-#'   corresponding to the prior probability that candidate predictor s (resp.
-#'   group s) is associated with at least one response. If \code{dual} is
-#'   \code{TRUE}, vector of size 2 whose arguments are the expectation and the
+#' @param p0_av Vector of size 2 whose arguments are the expectation and the
 #'   variance of the number of active predictors per response.
 #'   Must be \code{NULL} if \code{list_init} and \code{list_hyper}
-#'   are both non-\code{NULL} or if \code{list_cv} is non-\code{NULL}.
+#'   are both non-\code{NULL}.
 #' @param Z Covariate matrix of dimension n x q, where q is the number of
 #'   covariates. Variables in \code{Z} are not subject to selection. \code{NULL}
 #'   if no covariate. Factor covariates must be supplied after transformation to
@@ -49,70 +39,26 @@
 #'   information.
 #' @param s02 Variance hyperparameter informing the proportion of active 
 #'   responses per active predictor (degree of pleiotropy in a genetic context). 
-#'   Used only if \code{dual} is \code{TRUE} or \code{V} or \code{list_struct} 
-#'   is non-\code{NULL}.
 #' @param s2 Variance hyperparameter for the annotation spike-and-slab. 
-#'   Used only if \code{dual} is \code{TRUE} and \code{V}.
 #' @param om Initial value for the annotation inclusion probabilities (of size
-#'   r or 1, in which case repeated). 
-#'   Used only if \code{dual}, \code{V} and \code{eb} are \code{TRUE}.
-#' @param link Response link. Must be "\code{identity}" for linear regression,
-#'   "\code{logit}" for logistic regression, "\code{probit}" for probit
-#'   regression, or "\code{mix}" for a mix of identity and probit link functions
-#'   (in this case, the indices of the binary responses must be gathered in
-#'   argument \code{ind_bin}, see below).
-#' @param ind_bin If \code{link = "mix"}, vector of indices corresponding to
-#'   the binary variables in \code{Y}. Must be \code{NULL} if
-#'   \code{link != "mix"}.
+#'   r or 1, in which case repeated).
 #' @param list_hyper An object of class "\code{hyper}" containing the model
 #'   hyperparameters. Must be filled using the \code{\link{set_hyper}}
 #'   function or must be \code{NULL} for default hyperparameters.
 #' @param list_init An object of class "\code{init}" containing the initial
 #'   variational parameters. Must be filled using the \code{\link{set_init}}
 #'   function or be \code{NULL} for a default initialization.
-#' @param list_cv An object of class "\code{cv}" containing settings for
-#'   choosing the prior average number of predictors expected to be included in
-#'   the model, \code{p0_av}, by cross-validation. Must be filled using the
-#'   \code{\link{set_cv}} function or must be \code{NULL} for no
-#'   cross-validation. If non-\code{NULL}, \code{p0_av}, \code{list_init} and
-#'   \code{list_hyper} must all be \code{NULL}. Cross-validation only available
-#'   for \code{link = "identity"}.
 #' @param list_blocks An object of class "\code{blocks}" containing settings for
 #'   parallel inference on a partitioned predictor space. Must be filled using
 #'   the \code{\link{set_blocks}} function or must be \code{NULL} for no
 #'   partitioning.
-#' @param list_groups An object of class "\code{groups}" containing settings for
-#'   group selection of candidate predictors. Must be filled using the
-#'   \code{\link{set_groups}} function or must be \code{NULL} for group
-#'   selection.
 #' @param list_struct An object of class "\code{struct}" containing settings for
 #'   structure sparsity priors. Must be filled using the
 #'   \code{\link{set_struct}} function or must be \code{NULL} for structured
 #'   selection.
-#' @param dual If \code{TRUE}, dual propensity control (by candidate predictors
-#'   and by responses). Functionality under development and with limited
-#'   associated functionalities. Default is \code{FALSE}.
-#' @param hyper If \code{TRUE}, hyperprior specification on the predictor 
-#'   propensity variance. Only if \code{dual} is \code{TRUE}; must be 
-#'   \code{FALSE} otherwise. Default is \code{FALSE}.
-#' @param hs If \code{TRUE}, hyperprior giving rise to a Horseshoe distribution
-#'   for the predictor propensities; else, Cauchy distribution. Only if 
-#'   \code{hyper} is \code{TRUE}; must be \code{FALSE} otherwise. Default is 
-#'   \code{FALSE}.
-#' @param df Degrees of freedom for the local scale parameter of the Horseshoe 
-#'   prior. Must be either 1 (default, classical Horseshoe), or an odd number up
-#'   to 7. Not used if hs is \code{FALSE}.
-#' @param eb If \code{TRUE}, annotation spike-and-slab variance and probability 
-#'   hyperparameters selected via an empirical Bayes procedure. Only used if 
-#'   \code{dual} is \code{TRUE} and \code{V} is non-\code{NULL}. Default is 
-#'   \code{FALSE}.
-#' @param eb_local_scale If \code{TRUE}, local hotspot variances estimated by 
-#'   empirical Bayes (and module-specific if modules). Must be \code{FALSE} if 
-#'   \code{eb} is \code{FALSE} or \code{hyper} is \code{TRUE} .
 #' @param user_seed Seed set for reproducible default choices of hyperparameters
 #'   (if \code{list_hyper} is \code{NULL}) and initial variational parameters
-#'   (if \code{list_init} is \code{NULL}). Also used at the cross-validation
-#'   stage (if \code{list_cv} is non-\code{NULL}). Default is \code{NULL}, no
+#'   (if \code{list_init} is \code{NULL}). Default is \code{NULL}, no
 #'   seed set.
 #' @param tol Tolerance for the stopping criterion.
 #' @param adaptive_tol_em Boolean indicating whether the tolerance for the 
@@ -125,7 +71,7 @@
 #'   and the third entry is the ladder size. If \code{NULL} (default), no
 #'   annealing is performed.
 #' @param anneal_vb_em Parameters for annealing scheme for the internal runs of the 
-#'   variational EM algorithm. Must be \code{NULL} if \code{eb} is \code{FALSE}.
+#'   variational EM algorithm. 
 #' @param save_hyper If \code{TRUE}, the hyperparameters used for the model are
 #'   saved as output.
 #' @param save_init If \code{TRUE}, the initial variational parameters used for
@@ -133,9 +79,6 @@
 #' @param verbose If \code{TRUE}, messages are displayed during execution.
 #' @param checkpoint_path Path where to save temporary checkpoint outputs. 
 #'   Default is \code{NULL}, for no checkpointing.
-#' @param trace_path Path where to save trace plot for the variance of hotspot
-#'   propensities. Only used for the Horseshoe model, is ignored if \code{hs} is
-#'   \code{FALSE}. Default is \code{NULL}, for no trace saved.
 #'
 #' @return An object of class "\code{vb}" containing the following variational
 #'   estimates and settings:
@@ -144,37 +87,22 @@
 #'                association between candidate predictor s and response t.}
 #'  \item{mu_alpha_vb}{Matrix of dimension q x d whose entries are the posterior
 #'                     mean regression coefficients for the covariates provided
-#'                     in \code{Z} (if \code{link = "logit"},
-#'                     \code{link = "logit"} or
-#'                     \code{link = "mix"} also for the intercept).
-#'                     \code{NULL} if \code{Z} is \code{NULL}.}
-#'  \item{mu_c0_vb}{Vector of length p whose entries are the posterior intercept
-#'                  coefficients at the level of probabilities of associations.
-#'                  Entry s represents the control of the proportion of
-#'                  responses associated with candidate predictor s which is not
-#'                  due to external annotations. \code{NULL} if \code{V} is
-#'                  \code{NULL} or if \code{dual} is \code{TRUE}.}
-#'  \item{mu_c_vb}{If \code{dual} is \code{FALSE}, matrix of dimension r x d,
-#'                 where entry (l, k) contains the effect of annotation l for
-#'                 response k on the probabilities of associations. If
-#'                 \code{dual} is \code{TRUE}, vector of size r, where entry l
-#'                 contains the overall effect of annotation l on the
+#'                     in \code{Z}. \code{NULL} if \code{Z} is \code{NULL}.}
+#'  \item{mu_c_vb}{Vector of size r, where entry l contains the overall effect 
+#'                 of annotation l on the
 #'                 probabilities of associations.\code{NULL} if \code{V} is
 #'                 \code{NULL}.}
 #'  \item{mu_rho_vb}{Vector of length d containing the posterior mean of rho.
 #'                   Entry t controls the proportion of predictors associated
-#'                   with response t. \code{NULL} if \code{dual} is
-#'                   \code{FALSE}.}
+#'                   with response t.}
 #'  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
 #'                     theta. Entry s corresponds to the propensity of candidate
-#'                     predictor s to be included in the model. \code{NULL} if
-#'                     \code{dual} is \code{FALSE}.}
+#'                     predictor s to be included in the model.}
 #'  \item{om_vb}{Vector of length p containing the posterior mean of omega.
 #'               Entry s controls the proportion of responses associated with
 #'               candidate predictor s. NULL if \code{V} is non-\code{NULL}.}
 #'  \item{zeta_vb}{Posterior inclusion probability vector of size r for the
-#'                 annotation variables. \code{NULL} if \code{V} is \code{NULL}
-#'                 or if \code{dual} is \code{FALSE}.}
+#'                 annotation variables. \code{NULL} if \code{V} is \code{NULL}.}
 #'  \item{converged}{A boolean indicating whether the algorithm has converged
 #'                   before reaching \code{maxit} iterations.}
 #'  \item{it}{Final number of iterations.}
@@ -263,10 +191,6 @@
 #'
 #' ## Continuous responses
 #' ##
-#' # We take p0_av = p0 (known here); this choice may, in some cases, result in
-#' # (too) conservative variable selections. In practice, it is advised to set
-#' # p0_av as a slightly overestimated guess of p0, or perform cross-validation
-#' # using function `set_cv'.
 #'
 #' # No covariate
 #' #
@@ -308,35 +232,26 @@
 #'   pp.1758-1789, 2013.
 #'
 #' @seealso \code{\link{set_hyper}}, \code{\link{set_init}},
-#'   \code{\link{set_cv}}, \code{\link{set_blocks}}, \code{\link{set_groups}}
+#'   \code{\link{set_blocks}}, \code{\link{set_groups}}
 #'   and \code{\link{set_struct}}.
 #'
 #' @export
 #'
 epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NULL, 
-                    om = NULL, 
-                    link = "identity",
-                  ind_bin = NULL, list_hyper = NULL, list_init = NULL,
-                  list_cv = NULL, list_blocks = NULL, list_groups = NULL,
-                  list_struct = NULL, dual = FALSE, hyper = FALSE, hs = FALSE, 
-                  df = 1, eb = FALSE, eb_local_scale = FALSE, user_seed = NULL, 
-                  tol = 1e-3, adaptive_tol_em = FALSE, maxit = 1000, 
-                  anneal = NULL, anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
-                  verbose = TRUE, checkpoint_path = NULL, trace_path = NULL) {
+                    om = NULL, list_hyper = NULL, list_init = NULL,
+                    list_blocks = NULL, list_groups = NULL,
+                    list_struct = NULL, user_seed = NULL, 
+                    tol = 1e-3, adaptive_tol_em = FALSE, maxit = 1000, 
+                    anneal = NULL, anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
+                    verbose = TRUE, checkpoint_path = NULL) {
   
   if (verbose) cat("== Preparing the data ... \n")
   
-  check_annealing_(anneal, link, Z, V, list_groups, list_struct, dual)
+  check_annealing_(anneal, Z, V, list_groups, list_struct)
+  check_annealing_(anneal_vb_em, Z, V, list_groups, list_struct)
   
-  if (eb) {
-    check_annealing_(anneal_vb_em, link, Z, V, list_groups, list_struct, dual)
-  } else {
-    stopifnot(is.null(anneal_vb_em))
-  }
-
-  
-  dat <- prepare_data_(Y, X, Z, V, link, ind_bin, s02, hs, df, user_seed, tol, 
-                       maxit, verbose, checkpoint_path, trace_path)
+  dat <- prepare_data_(Y, X, Z, V, s02, user_seed, tol, 
+                       maxit, verbose, checkpoint_path)
   
   bool_rmvd_x <- dat$bool_rmvd_x
   bool_rmvd_z <- dat$bool_rmvd_z
@@ -366,13 +281,9 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   if (!is.null(V)) {
     r <- ncol(V)
     names_v <- colnames(V)
-    if (eb) {
-      check_structure_(om, "vector", "numeric", c(1, r))
-      check_positive_(om)
-      if (length(om) == 1) om <- rep(om, r)
-    } else {
-      stopifnot(is.null(om))
-    }
+    check_structure_(om, "vector", "numeric", c(1, r))
+    check_positive_(om)
+    if (length(om) == 1) om <- rep(om, r)
   } else {
     r <- NULL
     names_v <- NULL
@@ -382,171 +293,88 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   
   if (verbose) cat("... done. == \n\n")
   
-  if (!is.null(list_cv) & is.null(list_blocks) & is.null(list_groups) & is.null(list_struct) & !dual) { ## TODO: allow cross-validation when list_blocks is used.
+  if (!is.null(list_blocks)) {
     
-    if (verbose) {
-      cat("=============================== \n")
-      cat("===== Cross-validation... ===== \n")
-      cat("=============================== \n")
-    }
-    list_cv <- prepare_cv_(list_cv, n, p, r, bool_rmvd_x, p0_av, link,
-                           list_hyper, list_init, verbose)
+    list_blocks <- prepare_blocks_(list_blocks, d, bool_rmvd_x, list_groups, list_struct)
     
-    p_star <- cross_validate_(Y, X, Z, link, ind_bin, list_cv, user_seed, verbose)
+    n_bl_x <- list_blocks$n_bl_x
+    n_bl_y <- list_blocks$n_bl_y
     
-    vec_fac_gr <- vec_fac_st <- NULL
+    n_cpus <- list_blocks$n_cpus
     
-  } else {
-    
-    if (hyper & !dual)
-      stop("Argument hyper must be FALSE if dual is FALSE.")
-    
-    if (hs & !hyper)
-      stop("Argument hs must be FALSE if hyper is FALSE.")
-    
-    if (eb & (!dual | is.null(V)))
-      stop("Argument eb must be FALSE if dual is FALSE or if V is NULL.")
-    
-    if (eb_local_scale & (!eb | hyper))
-      stop("Argument eb_local_scale must be FALSE if eb is FALSE or hyper is TRUE.")
-    
-    
-    if (!is.null(list_blocks)) {
-      
-      list_blocks <- prepare_blocks_(list_blocks, d, eb, bool_rmvd_x, dual, list_cv, list_groups, list_struct)
-      
-      n_bl_x <- list_blocks$n_bl_x
-      n_bl_y <- list_blocks$n_bl_y
-      
-      n_cpus <- list_blocks$n_cpus
-      
-      vec_fac_bl_x <- list_blocks$vec_fac_bl_x
-      vec_fac_bl_y <- list_blocks$vec_fac_bl_y
-
-    }
-    
-    
-    if (!is.null(list_groups)) {
-      
-      list_groups <- prepare_groups_(list_groups, X, q, r, bool_rmvd_x, dual, link, list_cv)
-      
-      X <- list_groups$X
-      vec_fac_gr <- list_groups$vec_fac_gr
-      
-    } else {
-      
-      vec_fac_gr <- NULL
-      
-    }
-    
-    
-    if (!is.null(list_struct)) {
-      
-      list_struct <- prepare_struct_(list_struct, n, q, r, bool_rmvd_x, link, list_cv, list_groups, hyper)
-      
-      vec_fac_st <- list_struct$vec_fac_st
-      
-    } else {
-      
-      vec_fac_st <- NULL
-      
-    }
-    
-    
-    if (is.null(list_hyper) | is.null(list_init)) {
-      
-      if (is.null(list_groups)) p_tot <- p
-      else p_tot <- length(unique(vec_fac_gr))
-      
-      p_star <- convert_p0_av_(p0_av, p_tot, list_blocks, dual, verbose)
-      
-      # remove the entries corresponding to the removed constant covariates in X (if any)
-      if (length(p_star) > 1 & !dual) {
-        if (is.null(list_groups)) p_star <- p_star[!bool_rmvd_x]
-        else p_star <- p_star[as.numeric(levels(vec_fac_gr))]
-      }
-      
-      
-    } else {
-      
-      if (!is.null(p0_av))
-        warning(paste("Provided argument p0_av not used, as both list_hyper ",
-                      "and list_init were provided.", sep = ""))
-      
-      p_star <- NULL
-      
-    }
+    vec_fac_bl_x <- list_blocks$vec_fac_bl_x
+    vec_fac_bl_y <- list_blocks$vec_fac_bl_y
     
   }
   
+  
+  if (!is.null(list_groups)) {
+    
+    list_groups <- prepare_groups_(list_groups, X, q, r, bool_rmvd_x)
+    
+    X <- list_groups$X
+    vec_fac_gr <- list_groups$vec_fac_gr
+    
+  } else {
+    
+    vec_fac_gr <- NULL
+    
+  }
+  
+  
+  if (!is.null(list_struct)) {
+    
+    list_struct <- prepare_struct_(list_struct, n, q, r, bool_rmvd_x, list_groups)
+    
+    vec_fac_st <- list_struct$vec_fac_st
+    
+  } else {
+    
+    vec_fac_st <- NULL
+    
+  }
+  
+  
+  if (is.null(list_hyper) | is.null(list_init)) {
+    
+    if (is.null(list_groups)) p_tot <- p
+    else p_tot <- length(unique(vec_fac_gr))
+    
+    p_star <- convert_p0_av_(p0_av, p_tot, list_blocks, verbose)
+    
+  } else {
+    
+    if (!is.null(p0_av))
+      warning(paste("Provided argument p0_av not used, as both list_hyper ",
+                    "and list_init were provided.", sep = ""))
+    
+    p_star <- NULL
+    
+  }
+  
+  
   if (verbose) cat("== Preparing the hyperparameters ... \n\n")
   
-  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, q, r, dual, link, ind_bin,
+  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, q, r,
                                     vec_fac_gr, vec_fac_st, bool_rmvd_x, bool_rmvd_z,
                                     bool_rmvd_v, names_x, names_y, names_z, verbose, s02, s2)
   
-  if(dual && (link != "identity" | !is.null(q)))
+  if(!is.null(q))
     stop(paste("Dual propensity control (p0_av is a list) enabled only for ",
-               "identity link, Z = NULL. Exit.", sep = ""))
+               "Z = NULL. Exit.", sep = ""))
   
   if (verbose) cat("... done. == \n\n")
   
   if (verbose) cat("== Preparing the parameter initialization ... \n\n")
   
-  list_init <- prepare_list_init_(list_init, Y, p, p_star, q, dual, link,
-                                  ind_bin, vec_fac_gr, bool_rmvd_x, bool_rmvd_z,
+  list_init <- prepare_list_init_(list_init, Y, p, p_star, q, vec_fac_gr, 
+                                  bool_rmvd_x, bool_rmvd_z,
                                   bool_rmvd_v, user_seed, verbose)
   
   if (verbose) cat("... done. == \n\n")
   
   nq <- is.null(q)
   nr <- is.null(r)
-  
-  if (link != "identity") { # adds an intercept for logistic/probit regression
-    
-    if (nq) {
-      
-      Z <- matrix(1, nrow = n, ncol = 1)
-      
-      # uninformative prior
-      list_hyper$phi <- list_hyper$xi <- 1e-3
-      
-      list_init$mu_alpha_vb <- matrix(0, nrow = 1, ncol = d)
-      
-      if (link == "probit") {
-        
-        list_init$sig2_alpha_vb <- 1
-        
-      } else {
-        
-        list_init$sig2_alpha_vb <- matrix(1, nrow = 1, ncol = d)
-        
-      }
-      
-    } else {
-      
-      Z <- cbind(rep(1, n), Z)
-      
-      # uninformative prior
-      list_hyper$phi <- c(1e-3, list_hyper$phi)
-      list_hyper$xi <- c(1e-3, list_hyper$xi)
-      
-      list_init$mu_alpha_vb <- rbind(rep(0, d), list_init$mu_alpha_vb)
-      
-      if (link == "probit") {
-        
-        list_init$sig2_alpha_vb <- c(1, list_init$sig2_alpha_vb)
-        
-      } else {
-        
-        list_init$sig2_alpha_vb <- rbind(rep(1, d), list_init$sig2_alpha_vb)
-        
-      }
-      
-      
-    }
-    colnames(Z)[1] <- "Intercept"
-  }
   
   
   if (verbose){
@@ -559,178 +387,36 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
   
   if (is.null(list_blocks)) {
     
-    if (link == "identity") {
+    ng  <- is.null(list_groups)
+    ns <- is.null(list_struct)
+    
+    if (nq & nr & ng) {
+      # list_struct can be non-null for injected predictor correlation structure,
+      # see core function below
       
-      ng  <- is.null(list_groups)
-      ns <- is.null(list_struct)
+      vb <- epispot_dual_core_(Y, X, list_hyper, list_init$gam_vb,
+                               list_init$mu_beta_vb, list_init$sig2_beta_vb,
+                               list_init$tau_vb, list_struct, tol, maxit,
+                               anneal, verbose, 
+                               checkpoint_path = checkpoint_path)
+    
+    } else if (nq & ng) {
       
-      if (!dual & ng & ns){
-        
-        if (nq & nr) {
-          
-          vb <- epispot_core_(Y, X, list_hyper, list_init$gam_vb,
-                            list_init$mu_beta_vb, list_init$sig2_beta_vb,
-                            list_init$tau_vb, tol, maxit, anneal, verbose, 
-                            checkpoint_path = checkpoint_path)
-          
-        } else if (nq) { # r non-null
-          
-          vb <- epispot_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
-                                 list_init$mu_beta_vb, list_init$sig2_beta_vb,
-                                 list_init$tau_vb, tol, maxit, anneal, verbose)
-          
-        } else if (nr) { # q non-null
-          
-          vb <- epispot_z_core_(Y, X, Z, list_hyper, list_init$gam_vb,
-                              list_init$mu_alpha_vb, list_init$mu_beta_vb,
-                              list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
-                              list_init$tau_vb, tol, maxit, anneal, verbose)
-          
-        } else { # both q and r non-null
-          
-          vb <- epispot_z_info_core_(Y, X, Z, V, list_hyper, list_init$gam_vb,
-                                   list_init$mu_alpha_vb, list_init$mu_beta_vb,
-                                   list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
-                                   list_init$tau_vb, tol, maxit, verbose)
-        }
-        
-      } else if (!ng & !dual){
-        
-        # X is a list (transformed in prepare_data)
-        # mu_beta_vb is a list (transformed in prepare_init)
-        vb <- epispot_group_core_(Y, X, list_hyper, list_init$gam_vb,
-                                list_init$mu_beta_vb, list_init$sig2_inv_vb,
-                                list_init$tau_vb, tol, maxit, verbose)
-        
-      } else if (dual) {
-        
-        if (nq & nr & ng) {
-          # list_struct can be non-null for injected predictor correlation structure,
-          # see core function below
-          
-          if (hyper) {
-            
-            if (hs) {
-              vb <- epispot_dual_horseshoe_core_(Y, X, list_hyper, list_init$gam_vb,
-                                               list_init$mu_beta_vb, 
-                                               list_init$sig2_beta_vb,
-                                               list_init$tau_vb, df, list_struct, 
-                                               tol, maxit, anneal, verbose,
-                                               checkpoint_path = checkpoint_path,
-                                               trace_path = trace_path)
-            } else {
-              vb <- epispot_dual_prior_core_(Y, X, list_hyper, list_init$gam_vb,
-                                           list_init$mu_beta_vb, list_init$sig2_beta_vb,
-                                           list_init$tau_vb, list_struct, tol, maxit,
-                                           anneal, verbose, 
-                                           checkpoint_path = checkpoint_path)
-            }
-            
-          } else {
-            vb <- epispot_dual_core_(Y, X, list_hyper, list_init$gam_vb,
-                                   list_init$mu_beta_vb, list_init$sig2_beta_vb,
-                                   list_init$tau_vb, list_struct, tol, maxit,
-                                   anneal, verbose, 
-                                   checkpoint_path = checkpoint_path)
-          }
-          
-          
-        } else if (nq & ng) {
-          
-          if (eb) {
-            
-            vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
-                                             list_init$mu_beta_vb,
-                                             list_init$sig2_beta_vb, list_init$tau_vb,
-                                             om,
-                                             list_struct, bool_blocks = FALSE, hs, df,
-                                             eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose,
-                                             adaptive_tol_em = adaptive_tol_em)
-          } else {
-            
-            if (hs) {
-              vb <- epispot_dual_horseshoe_info_core_(Y, X, V, list_hyper, 
-                                                    list_init$gam_vb,
-                                                    list_init$mu_beta_vb,
-                                                    list_init$sig2_beta_vb, 
-                                                    list_init$tau_vb, df, 
-                                                    list_struct, eb, tol, maxit, 
-                                                    anneal, verbose)
-            } else {
-              vb <- epispot_dual_info_core_(Y, X, V, list_hyper, list_init$gam_vb,
-                                          list_init$mu_beta_vb,
-                                          list_init$sig2_beta_vb, list_init$tau_vb,
-                                          list_struct, eb, eb_local_scale, tol, 
-                                          maxit, anneal, verbose)
-            }
-            
-          }
-          
-        } else if (nq) {
-          
-          vb <- epispot_dual_group_core_(Y, X, list_hyper, list_init$gam_vb,
-                                       list_init$mu_beta_vb, list_init$sig2_inv_vb,
-                                       list_init$tau_vb, tol, maxit, verbose)
-        }
-        
-      } else { # list_struct non-null, and only predictor propensity control.
-        
-        vb <- epispot_struct_core_(Y, X, list_hyper, list_init$gam_vb,
-                                 list_init$mu_beta_vb, list_init$sig2_beta_vb,
-                                 list_init$tau_vb, list_struct, tol, maxit, verbose)
-      }
+        vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
+                                           list_init$mu_beta_vb,
+                                           list_init$sig2_beta_vb, list_init$tau_vb,
+                                           om,
+                                           list_struct, bool_blocks = FALSE,
+                                           tol, maxit, anneal, anneal_vb_em, verbose,
+                                           adaptive_tol_em = adaptive_tol_em)
       
-    } else if (link == "logit"){
+    } else if (nq) {
       
-      if(nr) {
-        
-        vb <- epispot_logit_core_(Y, X, Z, list_hyper, list_init$chi_vb,
-                                list_init$gam_vb, list_init$mu_alpha_vb,
-                                list_init$mu_beta_vb, list_init$sig2_alpha_vb,
-                                list_init$sig2_beta_vb, tol, maxit, verbose)
-      } else {
-        
-        vb <- epispot_logit_info_core_(Y, X, Z, V, list_hyper, list_init$chi_vb,
-                                     list_init$gam_vb, list_init$mu_alpha_vb,
-                                     list_init$mu_beta_vb, list_init$sig2_alpha_vb,
-                                     list_init$sig2_beta_vb, tol, maxit,
-                                     verbose)
-      }
-      
-      
-    } else if (link == "probit"){
-      
-      if (nr) {
-        
-        vb <- epispot_probit_core_(Y, X, Z, list_hyper, list_init$gam_vb,
-                                 list_init$mu_alpha_vb, list_init$mu_beta_vb,
-                                 list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
-                                 tol, maxit, verbose)
-        
-      } else {
-        
-        vb <- epispot_probit_info_core_(Y, X, Z, V, list_hyper, list_init$gam_vb,
-                                      list_init$mu_alpha_vb, list_init$mu_beta_vb,
-                                      list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
-                                      tol, maxit, verbose)
-      }
-      
-    } else {
-      
-      if (nr) {
-        
-        vb <- epispot_mix_core_(Y, X, Z, ind_bin, list_hyper, list_init$gam_vb,
-                              list_init$mu_alpha_vb, list_init$mu_beta_vb,
-                              list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
-                              list_init$tau_vb, tol, maxit, verbose)
-      } else {
-        
-        vb <- epispot_mix_info_core_(Y, X, Z, V, ind_bin, list_hyper, list_init$gam_vb,
-                                   list_init$mu_alpha_vb, list_init$mu_beta_vb,
-                                   list_init$sig2_alpha_vb, list_init$sig2_beta_vb,
-                                   list_init$tau_vb, tol, maxit, verbose)
-      }
+      vb <- epispot_dual_group_core_(Y, X, list_hyper, list_init$gam_vb,
+                                     list_init$mu_beta_vb, list_init$sig2_inv_vb,
+                                     list_init$tau_vb, tol, maxit, verbose)
     }
+    
     
   } else {
     
@@ -801,7 +487,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         # recover split Y matrix
         #
         Y_bl <- list_bl_mat_y[[bl_y]]
-      
+        
       } else {
         
         bl_x <- bl
@@ -829,26 +515,13 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
       
       pos_x <- list_pos_bl_x[[bl_x]]
       list_hyper_bl$p_hyper <- length(pos_x)
-      
-      if (!dual & nr) {
-        
-        list_hyper_bl$a <- list_hyper_bl$a[pos_x]
-        list_hyper_bl$b <- list_hyper_bl$b[pos_x]
-        
-      } else {
-        
-        list_hyper_bl$m0 <- list_hyper_bl$m0[pos_x]
-        
-      }
+      list_hyper_bl$m0 <- list_hyper_bl$m0[pos_x]
       
       list_init_bl <- list_init
       
       list_init_bl$p_init <- length(pos_x)
       list_init_bl$gam_vb <- list_init_bl$gam_vb[pos_x,, drop = FALSE]
       list_init_bl$mu_beta_vb <- list_init_bl$mu_beta_vb[pos_x,, drop = FALSE]
-      if (link == "logit")
-        list_init_bl$sig2_beta_vb <- list_init_bl$sig2_beta_vb[pos_x,, drop = FALSE]
-      
       
       # mat_y (if needed)
       #
@@ -861,23 +534,12 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         list_hyper_bl$eta <- list_hyper_bl$eta[pos_y]
         list_hyper_bl$kappa <- list_hyper_bl$kappa[pos_y]
         
-        if (dual) {
+        list_hyper_bl$n0 <- list_hyper_bl$n0[pos_y]
           
-          list_hyper_bl$n0 <- list_hyper_bl$n0[pos_y]
-          
-        }
-        
         list_init_bl$d_init <- length(pos_y)
         list_init_bl$gam_vb <- list_init_bl$gam_vb[, pos_y, drop = FALSE]
         list_init_bl$mu_beta_vb <- list_init_bl$mu_beta_vb[, pos_y, drop = FALSE]
-        
-        if (link != "probit") {
-          if (link == "logit") {
-            list_init_bl$sig2_beta_vb <- list_init_bl$sig2_beta_vb[, pos_y, drop = FALSE]
-          } else {
-            list_init_bl$sig2_beta_vb <- list_init_bl$sig2_beta_vb[pos_y]
-          }
-        }
+        list_init_bl$sig2_beta_vb <- list_init_bl$sig2_beta_vb[pos_y]
         
         list_init_bl$tau_vb <- list_init_bl$tau_vb[pos_y]
         
@@ -890,7 +552,7 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
       
       if (!nr) list_init_bl$mu_c_vb <- list_init_bl$mu_c_vb[!bool_rmvd_v_bl,, drop = FALSE]
       
-      if (dual) { # adjust the sparsity level w.r.t. the blocks size
+       # adjust the sparsity level w.r.t. the blocks size
         
         p_bl <- ncol(X_bl) # block size
         d_bl <- ncol(Y_bl)
@@ -904,135 +566,17 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
         
         m0 <- get_mu(p_star_bl[1], s02 + list_hyper_bl$t02, p_bl) + list_hyper_bl$n0[1] # here n0 is - n0* ### NOT USED FOR HORSESHOE ETC.
         list_hyper_bl$m0 <- rep(-m0, p_bl)
-        
-      }
+
       
-      if (dual & eb & nq & link == "identity") {
+      if (nq) {
         
         vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
-                                            list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
-                                            list_init_bl$tau_vb, om, list_struct, bool_blocks = TRUE, 
-                                            hs, df, eb_local_scale, tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
-                                            adaptive_tol_em = adaptive_tol_em)
+                                              list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
+                                              list_init_bl$tau_vb, om, list_struct, bool_blocks = TRUE, 
+                                              tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
+                                              adaptive_tol_em = adaptive_tol_em)
         
-      } else if (!dual) {
-        
-        if (link == "identity") {
-          
-          if (nq & nr) {
-            
-            vb_bl <- epispot_core_(Y_bl, X_bl, list_hyper_bl,
-                                 list_init_bl$gam_vb, list_init_bl$mu_beta_vb,
-                                 list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
-                                 tol, maxit, anneal, verbose = FALSE)
-            
-          } else if (nq) { # r non-null
-            
-            vb_bl <- epispot_info_core_(Y_bl, X_bl, V_bl, list_hyper_bl,
-                                      list_init_bl$gam_vb, list_init_bl$mu_beta_vb,
-                                      list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
-                                      tol, maxit, verbose = FALSE)
-            
-          } else if (nr) { # q non-null
-            
-            vb_bl <- epispot_z_core_(Y_bl, X_bl, Z, list_hyper_bl, list_init_bl$gam_vb,
-                                   list_init_bl$mu_alpha_vb,list_init_bl$mu_beta_vb,
-                                   list_init_bl$sig2_alpha_vb,
-                                   list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
-                                   tol, maxit, anneal, verbose = FALSE)
-            
-          } else { # both q and r non - null
-            
-            vb_bl <- epispot_z_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
-                                        list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
-                                        list_init_bl$mu_beta_vb, list_init_bl$sig2_alpha_vb,
-                                        list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
-                                        tol, maxit, verbose = FALSE)
-          }
-          
-          
-        } else if (link == "logit") {
-          
-          if(nr) {
-            
-            vb_bl <- epispot_logit_core_(Y_bl, X_bl, Z, list_hyper_bl,
-                                       list_init_bl$chi_vb, list_init_bl$gam_vb,
-                                       list_init_bl$mu_alpha_vb, list_init_bl$mu_beta_vb,
-                                       list_init_bl$sig2_alpha_vb,
-                                       list_init_bl$sig2_beta_vb, tol, maxit,
-                                       verbose = FALSE)
-            
-          } else {
-            
-            vb_bl <- epispot_logit_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
-                                            list_init_bl$chi_vb, list_init_bl$gam_vb,
-                                            list_init_bl$mu_alpha_vb, list_init_bl$mu_beta_vb,
-                                            list_init_bl$sig2_alpha_vb,
-                                            list_init_bl$sig2_beta_vb, tol, maxit,
-                                            verbose = FALSE)
-          }
-          
-          
-        } else  if (link == "probit") {
-          
-          if (nr) {
-            vb_bl <- epispot_probit_core_(Y_bl, X_bl, Z, list_hyper_bl,
-                                        list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
-                                        list_init_bl$mu_beta_vb,
-                                        list_init_bl$sig2_alpha_vb,
-                                        list_init_bl$sig2_beta_vb, tol, maxit,
-                                        verbose = FALSE)
-            
-          } else {
-            
-            vb_bl <- epispot_probit_info_core_(Y_bl, X_bl, Z, V_bl, list_hyper_bl,
-                                             list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
-                                             list_init_bl$mu_beta_vb,
-                                             list_init_bl$sig2_alpha_vb,
-                                             list_init_bl$sig2_beta_vb, tol, maxit,
-                                             verbose = FALSE)
-          }
-          
-          
-        } else {
-          
-          if (nr) {
-            
-            vb_bl <- epispot_mix_core_(Y_bl, X_bl, Z, ind_bin, list_hyper_bl,
-                                     list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
-                                     list_init_bl$mu_beta_vb,
-                                     list_init_bl$sig2_alpha_vb,
-                                     list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
-                                     tol, maxit, verbose = FALSE)
-            
-          } else {
-            
-            vb_bl <- epispot_mix_info_core_(Y_bl, X_bl, Z, V_bl, ind_bin, list_hyper_bl,
-                                          list_init_bl$gam_vb, list_init_bl$mu_alpha_vb,
-                                          list_init_bl$mu_beta_vb, list_init_bl$sig2_alpha_vb,
-                                          list_init_bl$sig2_beta_vb, list_init_bl$tau_vb,
-                                          tol, maxit, verbose = FALSE)
-          }
-        }
-        
-        if (verbose) {
-          if (vb_bl$converged) {
-            cat(paste("The algorithm reached convergence on one block after ",
-                      format(vb_bl$it), " iterations. \n", "Optimal marginal ",
-                      "log-likelihood variational lower bound (ELBO) = ",
-                      format(vb_bl$lb_opt), ". \n\n", sep = ""))
-          } else {
-            cat(paste("The algorithm reached the maximal number of iterations ",
-                      "on one block before converging.\n", "Difference in ELBO ",
-                      "between last and penultimate iterations: ",
-                      format(vb_bl$diff_lb), ".\n\n", sep = ""))
-          }
-        }
-        
-      } else {
-        stop("No corresponding block-wise scheme.")
-      }
-      
+      } 
       
       if (!nr) {
         vb_bl$rmvd_cst_v <- rmvd_cst_v_bl
@@ -1045,137 +589,70 @@ epispot <- function(Y, X, p0_av, Z = NULL, V = NULL, s02 = 1 / ncol(Y), s2 = NUL
     
     list_vb <- parallel::mclapply(1:(n_bl_x * n_bl_y), function(bl) epispot_bl_(bl), mc.cores = n_cpus)
     
-    if (!dual) {
+    if (n_bl_y > 1) {
       
-      names_vec <- c("converged", "it", "lb_opt")
-      if (nr)
-        names_vec <- c(names_vec, "om_vb")
-      else
-        names_vec <- c(names_vec, "mu_c0_vb")
+        if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
+          stop(paste0("For at least one of the block, no hyperparameter ",
+                      "values matching the expectation and variance ",
+                      "of the number of active predictors per responses supplied in p0_av. ",
+                      "Please change p0_av."))
+        }
+        
+          if (n_bl_x > 1)
+            stop("EB local scales not implemented for n_bl_x > 1. Exit")
+          
+          list_hyper$s02 <- sapply(list_vb, `[[`, "s02")
+          rownames(list_hyper$s02) <- paste0("snp_", 1:p)
+          colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
+  
+      list_hyper$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
       
-      names_mat <- "gam_vb"
+      tmp_om_vb <- lapply(list_vb, `[[`, "om")
       
-      vb <- c(lapply(names_vec, function(key) {
-        vec <- do.call(c, lapply(list_vb, `[[`, key))
-        names(vec) <- paste("bl_", 1:n_bl_x, sep = "")
-        vec}),
-        lapply(names_mat, function(key) do.call(rbind, lapply(list_vb, `[[`, key))))
-      
-      names(vb) <- c(names_vec, names_mat)
-      
-      if (!nr) {
-        list_mu_c_vb <- lapply(list_vb, `[[`, "mu_c_vb")
-        names(list_mu_c_vb) <- paste("bl_", 1:n_bl_x, sep = "")
-        vb <- c(vb, "list_mu_c_vb" = list(list_mu_c_vb))
-      }
+      list_hyper$om_vb <- parallel::mclapply(1:n_bl_x, function(bl_x) {
+        cbind_fill_matrix(tmp_om_vb[((bl_x - 1) * n_bl_y + 1) : (bl_x * n_bl_y)])
+      }, mc.cores = n_cpus)
+      # om_vb list of length n_bl_x 
+      # containing matrices of size r' x n_bl_y (sizes of om r' can be different due to cst or coll columns in V_bl removed)
       
     } else {
       
+        if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
+          stop(paste0("For at least one of the block, no hyperparameter ",
+                      "values matching the expectation and variance ",
+                      "of the number of active predictors per responses supplied in p0_av. ",
+                      "Please change p0_av."))
+        }
+        list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
+      }
+      list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
+      list_hyper$om_vb <- lapply(list_vb, `[[`, "om") # om_vb list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
+    
+    list_V <- lapply(list_bl_mat_x, `[[`, "V_bl") # V_bl without cst and coll and standardized in each block
+    
+      
       if (n_bl_y > 1) {
         
-        if (!hyper) {
-          if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
-            stop(paste0("For at least one of the block, no hyperparameter ",
-                        "values matching the expectation and variance ",
-                        "of the number of active predictors per responses supplied in p0_av. ",
-                        "Please change p0_av."))
-          }
-          
-          if (eb_local_scale) {
-            if (n_bl_x > 1)
-              stop("EB local scales not implemented for n_bl_x > 1. Exit")
-            
-            list_hyper$s02 <- sapply(list_vb, `[[`, "s02")
-            rownames(list_hyper$s02) <- paste0("snp_", 1:p)
-            colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
-
-          } else {
-            list_hyper$s02 <- matrix(unlist(lapply(list_vb, `[[`, "s02")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s02 corresponding to each predicor block (rows) and modules
-            rownames(list_hyper$s02) <- paste0("block_", 1:n_bl_x)
-            colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
-          }
-
-        }
-        list_hyper$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
-        
-        tmp_om_vb <- lapply(list_vb, `[[`, "om")
-        
-        list_hyper$om_vb <- parallel::mclapply(1:n_bl_x, function(bl_x) {
-            cbind_fill_matrix(tmp_om_vb[((bl_x - 1) * n_bl_y + 1) : (bl_x * n_bl_y)])
-        }, mc.cores = n_cpus)
-          # om_vb list of length n_bl_x 
-          # containing matrices of size r' x n_bl_y (sizes of om r' can be different due to cst or coll columns in V_bl removed)
-        
-      } else {
-        
-        if (!hyper) {
-          if(any(sapply(list_vb, function(vb) class(vb) == "try-error"))) {
-            stop(paste0("For at least one of the block, no hyperparameter ",
-                        "values matching the expectation and variance ",
-                        "of the number of active predictors per responses supplied in p0_av. ",
-                        "Please change p0_av."))
-          }
-          list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
-        }
-        list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
-        list_hyper$om_vb <- lapply(list_vb, `[[`, "om") # om_vb list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
-      
-      }
-     
-      list_V <- lapply(list_bl_mat_x, `[[`, "V_bl") # V_bl without cst and coll and standardized in each block
-      
-      if (hs) {
-        
-        if (n_bl_y > 1) {
-          
-          vb <- epispot_dual_horseshoe_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x, 
-                                                               vec_fac_bl_y,
-                                                               list_hyper, list_init$gam_vb, 
-                                                               list_init$mu_beta_vb, 
-                                                               list_init$sig2_beta_vb, 
-                                                               list_init$tau_vb, df, 
-                                                               tol, maxit, anneal, verbose) 
-          
-        } else {
-          
-          vb <- epispot_dual_horseshoe_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, 
-                                                       list_hyper, list_init$gam_vb, 
-                                                       list_init$mu_beta_vb, 
-                                                       list_init$sig2_beta_vb, 
-                                                       list_init$tau_vb, df, 
-                                                       tol, maxit, anneal, verbose) 
-          
-        }
-      
-      } else {
-        
-        if (n_bl_y > 1) {
-          
-          vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
+        vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
                                                      vec_fac_bl_y, list_hyper, 
                                                      list_init$gam_vb, list_init$mu_beta_vb, 
                                                      list_init$sig2_beta_vb, list_init$tau_vb,
-                                                     list_struct, eb_local_scale, tol, 
+                                                     list_struct, tol, 
                                                      maxit, anneal, verbose)
-          
-          
-        } else {
-          
-          vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
+        
+        
+      } else {
+        
+        vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
                                              list_init$gam_vb, list_init$mu_beta_vb, 
                                              list_init$sig2_beta_vb, list_init$tau_vb,
-                                             list_struct, eb_local_scale, tol, 
+                                             list_struct, tol, 
                                              maxit, anneal, verbose)
-          
-          
-        }
         
-        vb$s02 <- list_hyper$s02
-      }     
+        
+      }
       
-      
-      
-    }
+      vb$s02 <- list_hyper$s02
     
   }
   
