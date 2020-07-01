@@ -174,16 +174,13 @@
 #'
 #' @export
 #'
-set_hyper <- function(d, p, r, lambda, nu, eta, kappa, n0, t02) {
+set_hyper <- function(d, p, lambda, nu, eta, kappa, n0, t02) {
   
   check_structure_(d, "vector", "numeric", 1)
   check_natural_(d)
   
   check_structure_(p, "vector", "numeric", 1)
   check_natural_(p)
-  
-  check_structure_(r, "vector", "numeric", 1)
-  check_natural_(r)
   
   check_structure_(n0, "vector", "double", c(1, d))
   if (length(n0) == 1) n0 <- rep(n0, d)
@@ -207,9 +204,8 @@ set_hyper <- function(d, p, r, lambda, nu, eta, kappa, n0, t02) {
   
   d_hyper <- d
   p_hyper <- p
-  r_hyper <- r
   
-  list_hyper <- create_named_list_(d_hyper, p_hyper, r_hyper,
+  list_hyper <- create_named_list_(d_hyper, p_hyper,
                                    eta, kappa, lambda, nu, n0, t02)
   
   class(list_hyper) <- "hyper"
@@ -222,7 +218,7 @@ set_hyper <- function(d, p, r, lambda, nu, eta, kappa, n0, t02) {
 # Internal function setting default model hyperparameters when not provided by
 # the user.
 #
-auto_set_hyper_ <- function(Y, p, p0, r) {
+auto_set_hyper_ <- function(Y, p, p0) {
   
   d <- ncol(Y)
   
@@ -269,9 +265,8 @@ auto_set_hyper_ <- function(Y, p, p0, r) {
   
   d_hyper <- d
   p_hyper <- p
-  r_hyper <- r
   
-  list_hyper <- create_named_list_(d_hyper, p_hyper, r_hyper,
+  list_hyper <- create_named_list_(d_hyper, p_hyper, 
                                    eta, kappa, lambda, nu, n0, t02)
   
   class(list_hyper) <- "out_hyper"
@@ -460,7 +455,7 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau
   check_zero_one_(gam_vb)
   
   check_structure_(mu_beta_vb, "matrix", "double", c(p, d))
- 
+  
   check_structure_(om, "vector", "double", r)
   check_zero_one_(om)
   
@@ -475,7 +470,7 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau
   
   check_structure_(tau_vb, "vector", "double", d)
   check_positive_(tau_vb)
-
+  
   d_init <- d
   p_init <- p
   r_init <- r
@@ -525,16 +520,16 @@ auto_set_init_ <- function(Y, p, p0, r, user_seed) {
   # n0 sets the level of sparsity.
   # n0 <- - get_mu(E_p_t, t02, p)
   n0 <- get_mu(E_p_t, t02, p)
-
+  
   s02 <- 1 / d
   check_positive_(s02)
   
   s2 <- 0.1
   check_positive_(s2)
   
-  om <- rep(1 / r, r)
+  om <- rep(1 / r, r) 
   check_zero_one_(om)
-
+  
   gam_vb <- matrix(pnorm(rnorm(p * d, mean = n0, sd = s02 + t02)), # Phi(theta + chi), and not 1 - Phi(theta + chi)
                    nrow = p)                                            # as reparametrisation theta* = - theta, chi* = - chi
   check_zero_one_(gam_vb)

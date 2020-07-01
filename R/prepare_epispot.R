@@ -11,111 +11,111 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
   
   check_structure_(tol, "vector", "numeric", 1)
   check_positive_(tol, eps=.Machine$double.eps)
-
+  
   check_structure_(maxit, "vector", "numeric", 1)
   check_natural_(maxit)
-
+  
   check_structure_(verbose, "vector", "logical", 1)
-
+  
   check_structure_(X, "matrix", "numeric")
   
   n <- nrow(X)
   p <- ncol(X)
-
+  
   check_structure_(Y, "matrix", "numeric")
   d <- ncol(Y)
-
+  
   if (nrow(Y) != n) stop("X and Y must have the same number of samples.")
-
+  
   if (is.null(rownames(X)) & is.null(rownames(Y)))
     rownames(X) <- rownames(Y) <- paste("Ind_", 1:n, sep="")
   else if (is.null(rownames(X))) rownames(X) <- rownames(Y)
   else if (is.null(rownames(Y))) rownames(Y) <- rownames(X)
   else if (any(rownames(X) != rownames(Y)))
     stop("The provided rownames of X and Y must be the same.")
-
+  
   if (is.null(colnames(X))) colnames(X) <- paste("Cov_x_", 1:p, sep="")
   if (is.null(colnames(Y))) colnames(Y) <- paste("Resp_", 1:d, sep="")
-
+  
   X <- scale(X)
-
+  
   list_X_cst <- rm_constant_(X, verbose)
   X <- list_X_cst$mat
   bool_cst_x <- list_X_cst$bool_cst
   rmvd_cst_x <- list_X_cst$rmvd_cst
-
+  
   list_X_coll <- rm_collinear_(X, verbose)
   X <- list_X_coll$mat
-
+  
   bool_coll_x <- list_X_coll$bool_coll
   rmvd_coll_x <- list_X_coll$rmvd_coll
-
+  
   bool_rmvd_x <- bool_cst_x
   bool_rmvd_x[!bool_cst_x] <- bool_coll_x
-
+  
   check_structure_(V, "matrix", "numeric")
-
+  
   r <- ncol(V)
   if (nrow(V) != p) stop("The number of rows of V must match the number of candidate predictors in X.")
-
+  
   V <- V[!bool_rmvd_x, , drop = FALSE] # remove the rows corresponding to the removed candidate predictors
-
+  
   if (is.null(rownames(V))) rownames(V) <- colnames(X)
   else if(any(rownames(V) != colnames(X)))
     stop("The provided rownames of V must be the same than those of X and Y or NULL.")
-
+  
   if (is.null(colnames(V))) colnames(V) <- paste("Annot_", 1:r, sep="")
-
+  
   V <- scale(V)
-
+  
   list_V_cst <- rm_constant_(V, verbose)
   V <- list_V_cst$mat
   bool_cst_v <- list_V_cst$bool_cst
   rmvd_cst_v <- list_V_cst$rmvd_cst
-
+  
   list_V_coll <- rm_collinear_(V, verbose)
   V <- list_V_coll$mat
   r <- ncol(V)
   bool_coll_v <- list_V_coll$bool_coll
   rmvd_coll_v <- list_V_coll$rmvd_coll
-
+  
   bool_rmvd_v <- bool_cst_v
   bool_rmvd_v[!bool_cst_v] <- bool_coll_v
-
+  
   if (sum(!bool_rmvd_v) == 0)
     stop("All variables provided in V are constants and hence useless. Please set V to NULL.")
-
+  
   p <- ncol(X)
   if (p < 1) stop(paste("There must be at least 1 non-constant candidate predictor ",
                         " stored in X.", sep=""))
-
+  
   Y <- scale(Y, center = TRUE, scale = FALSE)
-
+  
   if (is.null(r) || r < 1) V <- NULL # in principle useless given the above assert.
-
+  
   create_named_list_(Y, X, V,
                      bool_rmvd_x, bool_rmvd_v,
                      rmvd_cst_x, rmvd_cst_v,
                      rmvd_coll_x,  rmvd_coll_v)
-
+  
 }
 
 
 check_annealing_ <- function(anneal, maxit) {
-
+  
   check_structure_(anneal, "vector", "numeric", 3, null_ok = TRUE)
-
+  
   if (!is.null(anneal)) {
-
+    
     check_natural_(anneal[c(1, 3)])
     check_positive_(anneal[2])
-
+    
     stopifnot(anneal[1] %in% 1:3)
-
+    
     if (anneal[2] < 1.5)
       stop(paste0("Initial temperature very small. May not be large enough ",
                   "for a successful exploration. Please increase it or select no annealing."))
-
+    
     if (anneal[3] > 1000)
       stop(paste0("Temperature ladder size very large. This may be unnecessarily ",
                   "computationally demanding. Please decrease it."))
@@ -132,19 +132,19 @@ check_annealing_ <- function(anneal, maxit) {
 # model hyperparameters before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, list_blocks, bool_rmvd_x, 
-                                bool_rmvd_v, names_x, names_y, verbose) {
-
+prepare_list_hyper_ <- function(list_hyper, Y, p, p0, list_blocks, bool_rmvd_x, 
+                                names_x, names_y, verbose) {
+  
   d <- ncol(Y)
   
   if (is.null(list_hyper)) {
-
+    
     if (verbose) cat("list_hyper set automatically. \n")
-
-    list_hyper <- auto_set_hyper_(Y, p, p0, r)
-
+    
+    list_hyper <- auto_set_hyper_(Y, p, p0)
+    
   } else {
-
+    
     if (!inherits(list_hyper, c("hyper", "out_hyper")))
       stop(paste("The provided list_hyper must be an object of class ``hyper'' ",
                  "or ``out_hyper''. \n",
@@ -152,16 +152,14 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, list_blocks, bool_rmvd_
                  "set your own hyperparameters or use list_hyper from a ``vb'' ",
                  "object or set the argument list_hyper to NULL for automatic choice. ***",
                  sep=""))
-
+    
     if (inherits(list_hyper, "hyper")) {
       p_hyper_match <- length(bool_rmvd_x)
-      r_hyper_match <- length(bool_rmvd_v)
     } else {
       p_hyper_match <- p
-      r_hyper_match <- r
     }
-
-
+    
+    
     if (list_hyper$d_hyper != d)
       stop(paste("The dimensions (d) of the provided hyperparameters ",
                  "(list_hyper) are not consistent with that of Y.\n", sep=""))
@@ -169,13 +167,9 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, list_blocks, bool_rmvd_
     if (list_hyper$p_hyper != p_hyper_match)
       stop(paste("The dimensions (p) of the provided hyperparameters ",
                  "(list_hyper) are not consistent with that of X.\n", sep=""))
-
-    if (list_hyper$r_hyper != r_hyper_match)
-      stop(paste("The dimensions of the provided hyperparameters ",
-                 "(list_hyper) are not consistent with that of V.", sep=""))
     
     if (!is.null(list_blocks$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
-                                             # we group them prior to the analysis and ungroup them after the run in epispot.R
+      # we group them prior to the analysis and ungroup them after the run in epispot.R
       
       list_hyper$eta <- list_hyper$eta[list_blocks$order_y_ids]
       list_hyper$kappa <- list_hyper$kappa[list_blocks$order_y_ids]
@@ -185,17 +179,17 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, list_blocks, bool_rmvd_
     
     if (!is.null(names(list_hyper$eta)) && names(list_hyper$eta) != names_y)
       stop("Provided names for the entries of eta do not match the colnames of the continuous variables in Y")
-
+    
     if (!is.null(names(list_hyper$kappa)) && names(list_hyper$kappa) != names_y)
       stop("Provided names for the entries of kappa do not match the colnames of the continuous variables in Y")
     
     if (!is.null(names(list_hyper$n0)) && names(list_hyper$n0) != names_y)
       stop("Provided names for the entries of n0 do not match the colnames of the continuous variables in Y")
-
+    
   }
-
+  
   class(list_hyper) <- "out_hyper"
-
+  
   list_hyper
 }
 
@@ -206,33 +200,31 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, list_blocks, bool_rmvd_
 #
 prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
                                bool_rmvd_x, bool_rmvd_v, user_seed, verbose) {
-
+  
   d <- ncol(Y)
   n <- nrow(Y)
-
+  
   if (is.null(list_init)) {
-
+    
     if (!is.null(user_seed) & verbose) cat(paste("Seed set to user_seed ",
                                                  user_seed,". \n", sep=""))
-
+    
     if (verbose) cat(paste("list_init set automatically. \n", sep=""))
-
+    
     list_init <- auto_set_init_(Y, p, p0, r, user_seed)
-
+    
   } else {
-
+    
     if (!is.null(user_seed))
       warning("user_seed not used since a non-NULL list_init was provided. \n")
-
+    
     if (!inherits(list_init, c("init", "out_init")))
-      stop(paste("The provided list_init must be an object of class ``init'' or ",
-                 " `` out_init''. \n",
-                 "*** you must either use the function set_init to ",
-                 "set your own initialization or use list_init from a ``vb'' ",
-                 "object or  set the argument list_init to NULL for automatic ",
-                 "initialization. ***",
-                 sep=""))
-
+      stop(paste0("The provided list_init must be an object of class ``init'' ",
+                  "or `` out_init''. \n *** you must either use the function ", 
+                  "set_init to set your own initialization or use list_init ", 
+                  "from a ``vb'' object or  set the argument list_init to NULL ", 
+                  "for automatic initialization. ***"))
+    
     if (inherits(list_init, "init")) {
       p_init_match <- length(bool_rmvd_x)
       r_init_match <- length(bool_rmvd_v)
@@ -240,11 +232,11 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
       p_init_match <- p
       r_init_match <- r
     }
-
+    
     if (list_init$d_init != d)
       stop(paste("The dimensions (d) of the provided initial parameters ",
                  "(list_init) are not consistent with that of Y.\n", sep=""))
-
+    
     if (list_init$p_init != p_init_match)
       stop(paste("The dimensions (p) of the provided initial parameters ",
                  "(list_init) are not consistent with that of X.\n", sep=""))
@@ -252,10 +244,10 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
     if (list_init$r_init != r_init_match)
       stop(paste("The dimensions (r) of the provided initial parameters ",
                  "(list_init) are not consistent with that of V.\n", sep=""))
-
+    
     
     if (!is.null(list_blocks$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
-                                             # we group them prior to the analysis and ungroup them after the run in epispot.R
+      # we group them prior to the analysis and ungroup them after the run in epispot.R
       
       list_init$gam_vb <- list_init$gam_vb[, list_blocks$order_y_ids, drop = FALSE]
       list_init$mu_beta_vb <- list_init$mu_beta_vb[, list_blocks$order_y_ids, drop = FALSE]
@@ -264,19 +256,19 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
     }
     
     if (inherits(list_init, "init")) {
-
+      
       list_init$gam_vb <- list_init$gam_vb[!bool_rmvd_x,, drop = FALSE]
-
+      
       list_init$mu_beta_vb <- list_init$mu_beta_vb[!bool_rmvd_x,, drop = FALSE]
       
       list_init$om <- list_init$om[!bool_rmvd_v,, drop = FALSE]
-
+      
     }
-
+    
   }
-
+  
   class(list_init) <- "out_init"
-
+  
   list_init
 }
 
@@ -285,7 +277,7 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
 # settings provided by the user for block-wise parallel inference.
 #
 prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
-
+  
   p <- length(bool_rmvd_x)
   
   if (inherits(list_blocks, "modules")) {
@@ -311,15 +303,15 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
     } else {
       module_names <- NULL
     }
-
+    
     
   } else {
     
     stop(paste0("The provided list_blocks must be an object of class ``blocks'' or ``modules''. \n",
-               "*** you must either use the function set_blocks to give the settings ",
-               "for parallels applications of epispot on blocks of candidate ",
-               "predictors or set list_blocks to NULL to apply epispot jointly on ",
-               "all the candidate predictors (sufficient RAM required). ***"))
+                "*** you must either use the function set_blocks to give the settings ",
+                "for parallels applications of epispot on blocks of candidate ",
+                "predictors or set list_blocks to NULL to apply epispot jointly on ",
+                "all the candidate predictors (sufficient RAM required). ***"))
     
   }
   
@@ -354,10 +346,10 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
     n_bl_y <- 1
     
   }
-
+  
   tab_bl_x <- table(vec_fac_bl_x)
   pres_bl_x <- tab_bl_x > 0
-
+  
   # in case a block was removed due to the above because of bool_rmvd_x
   n_bl_x  <- sum(pres_bl_x)
   if (is.null(list_blocks$bl_y) && list_blocks$n_cpus > n_bl_x) {
@@ -367,10 +359,10 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
   } else {
     n_cpus <- list_blocks$n_cpus
   }
-
+  
   create_named_list_(n_bl_x, n_bl_y, n_cpus, vec_fac_bl_x, vec_fac_bl_y,
                      order_y_ids, undo_order_y_ids, module_names)
-
+  
 }
 
 #' Gather settings for parallel inference on partitioned predictor space.
@@ -488,7 +480,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
     create_named_list_(n_var_blocks, n_bl, vec_fac_bl)
     
   })
-
+  
   if (length(list_blocks) > 1 && list_blocks[[2]]$n_bl != 1) {
     names(list_blocks) <- c("bl_x", "bl_y")
     tot_n_bl <- list_blocks$bl_x$n_bl * list_blocks$bl_y$n_bl
@@ -496,7 +488,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
     list_blocks <- list_blocks[[1]]
     tot_n_bl <- list_blocks$n_bl
   }
-
+  
   if (n_cpus > 1) {
     
     n_cpus_avail <- parallel::detectCores()
@@ -523,7 +515,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
   list_blocks$n_cpus <- n_cpus
   
   class(list_blocks) <- "blocks"
-
+  
   list_blocks
 }
 
@@ -579,18 +571,18 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
     if (sorted_module_map != sort(unique(module_ids))) {
       stop("The module map is inconsistent with the modules provided. Exit.")
     }
-
+    
     module_names <- names(sorted_module_map)
     
   }
-            
+  
   order_y_ids <- order(module_ids)
   if (all(order_y_ids == 1:d_modules)) { # already in the correct order.
     order_y_ids <- undo_order_y_ids <- NULL
   } else {
     undo_order_y_ids <- order(order_y_ids) 
   }
-
+  
   pos_modules <- c(1, cumsum(tb_module_ids[-n_modules]) + 1)
   names(pos_modules) <- module_names
   
