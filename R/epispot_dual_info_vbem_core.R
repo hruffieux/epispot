@@ -1,5 +1,5 @@
 epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
-                                         sig2_beta_vb, tau_vb, om,
+                                         om, s02, s2, sig2_beta_vb, tau_vb, 
                                          bool_blocks, 
                                          tol, maxit, anneal, anneal_vb_em, verbose,
                                          adaptive_tol_em = FALSE) {
@@ -21,12 +21,12 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
   } 
   tol_vb_within_em <- tol_em
   
-  list_hyper$om_vb <- om #rep(1 / 2, r) # prior proportion of active annotations 
+  # list_hyper$om_vb <- om #rep(1 / 2, r) # prior proportion of active annotations 
   
   vb <- create_named_list_(gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb)
   
   
-  while ((!converged_em) & list_hyper$s2 > s2_min & (it_em < maxit_em)) {
+  while ((!converged_em) & s2 > s2_min & (it_em < maxit_em)) {
     
     it_em <- it_em + 1
     
@@ -37,31 +37,34 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     }
 
     vb <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
-                                vb$sig2_beta_vb, vb$tau_vb,  
+                                  om, s02, s2, vb$sig2_beta_vb, vb$tau_vb,  
                                 tol_vb_within_em, maxit, anneal_vb_em,
                                 verbose = FALSE, full_output = TRUE)
   
-    list_hyper$s02 <- vb$sig2_theta_vb + vb$mu_theta_vb^2 # vector of size lenght(vb$mu_theta_vb)
-    
     if (verbose)
       cat("--- EM hyperparameter updates ---\n")
     
-    list_hyper$om_vb <- vb$zeta_vb
-    list_hyper$s2 <- sum(vb$zeta_vb * (vb$sig2_c_vb + vb$mu_c_vb^2)) / sum(vb$zeta_vb)
+    om <- vb$zeta_vb
+    s02 <- vb$sig2_theta_vb + vb$mu_theta_vb^2 # vector of size lenght(vb$mu_theta_vb)
+    s2 <- sum(vb$zeta_vb * (vb$sig2_c_vb + vb$mu_c_vb^2)) / sum(vb$zeta_vb)
+    
+    # list_hyper$om_vb <- vb$zeta_vb
+    # list_hyper$s2 <- sum(vb$zeta_vb * (vb$sig2_c_vb + vb$mu_c_vb^2)) / sum(vb$zeta_vb)
   
     if (verbose) {
       
       cat(paste0("EM iteration ", it_em, ". \n"))
       
-      if (!is.null(list_hyper$s02)) {
+      if (!is.null(s02)) {
         
-          cat("New value for hyperparameter s02 : ")
-          print(summary(list_hyper$s02))
+          cat("New value for s02 : ")
+          print(summary(s02))
 
       }
-      cat(paste0("New value for hyperparameter s2 : ", format(list_hyper$s2, digits = 4), ". \n"))
-      cat("New values for hyperparameter omega : \n")
-      print(summary(list_hyper$om_vb))
+      cat(paste0("New value for s2 : ", format(s2, digits = 4), ". \n"))
+      cat("New values for omega : \n")
+      print(summary(om))
+      # print(summary(list_hyper$om_vb))
       
       cat("\n\n")
     }
@@ -95,44 +98,59 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
   
   if (bool_blocks) {
     
-    out <- list("s2" = list_hyper$s2, "om" = list_hyper$om_vb, "s02" = list_hyper$s02)
+    # out <- list("s2" = list_hyper$s2, "om" = list_hyper$om_vb, "s02" = list_hyper$s02)
+    out <- create_named_list_(om, s02, s2)
     
   } else {
     
     if (verbose) {
       if (converged_em) {
         cat(paste0("Convergence of the EM hyperparameter optimization run obtained after ", format(it_em), " EM iterations. \n\n"))
-      } else if (list_hyper$s2 <= s2_min) {
+      } else if (s2 <= s2_min) {
         cat(paste0("EM hyperparameter optimization run stopped after s2 getting below ", s2_min, ". \n\n"))
-      } else if (!is.null(list_hyper$s02) && list_hyper$s02 <= s2_min) {
+      } else if (!is.null(s02) && s02 <= s2_min) {
         cat(paste0("EM hyperparameter optimization run stopped after s02 getting below ", s2_min, ". \n\n"))
       } else {
         warning("Maximal number of EM iterations reached before convergence. Exit EM run. \n\n")
       }
       
       cat("======= Final VB run =======\n") 
-      cat(paste0("Empirical-Bayes hyperparameters, s2 : ", format(list_hyper$s2, digits = 4), ", omega :\n"))
-      print(summary(list_hyper$om_vb))
+      # cat(paste0("Empirical-Bayes hyperparameters, s2 : ", format(list_hyper$s2, digits = 4), ", omega :\n"))
+      # print(summary(list_hyper$om_vb))
+      cat(paste0("Empirical-Bayes hyperparameters, s2 : ", format(s2, digits = 4), ", omega :\n"))
+      print(summary(om))
       
-      if (!is.null(list_hyper$s02)) {
+      if (!is.null(s02)) {
         
-          cat("s02 : ")
-          print(summary(list_hyper$s02))
-          
+        cat("s02 : ")
+        print(summary(s02))
+        
         cat("\n\n")
       }
+      
+      # if (!is.null(list_hyper$s02)) {
+      #   
+      #     cat("s02 : ")
+      #     print(summary(list_hyper$s02))
+      #     
+      #   cat("\n\n")
+      # }
 
     }
   
     out <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
-                                 vb$sig2_beta_vb, vb$tau_vb, 
-                                 tol, maxit, anneal, verbose)
+                                   om, s02, s2, vb$sig2_beta_vb, vb$tau_vb, 
+                                   tol, maxit, anneal, verbose)
    
-    if (!is.null(list_hyper$s02)) {
-      out$s02 <- list_hyper$s02
-    }
+    # if (!is.null(list_hyper$s02)) {
+    #   out$s02 <- list_hyper$s02
+    # }
+    # out$s2 <- list_hyper$s2
     
-    out$s2 <- list_hyper$s2
+    if (!is.null(s02)) {
+      out$s02 <- s02
+    }
+    out$s2 <- s2
     
   }
   

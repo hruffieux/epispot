@@ -20,8 +20,8 @@
 void coreLoop(const MapMat X,
               const MapMat Y,
               MapArr2D gam_vb,
-              const MapArr1D log_om_vb,
-              const MapArr1D log_1_min_om_vb,
+              const MapArr1D log_om,
+              const MapArr1D log_1_min_om,
               const double log_sig2_inv_vb,
               const MapArr1D log_tau_vb,
               MapMat m1_beta,
@@ -43,7 +43,7 @@ void coreLoop(const MapMat X,
     mu_beta_vb.row(j) = c * sig2_beta_vb * tau_vb *
       ((Y - mat_x_m1).transpose() * X.col(j)).array();
 
-    gam_vb.row(j) = exp(-logOnePlusExp(c * (log_1_min_om_vb(j) - log_om_vb(j) -
+    gam_vb.row(j) = exp(-logOnePlusExp(c * (log_1_min_om(j) - log_om(j) -
       mu_beta_vb.row(j).transpose().square() / (2 * sig2_beta_vb) + cst)));
 
     m1_beta.row(j) = mu_beta_vb.row(j) * gam_vb.row(j);
@@ -61,8 +61,8 @@ void coreLoop(const MapMat X,
 void coreZLoop(const MapMat X,
                const MapMat Y,
                MapArr2D gam_vb,
-               const MapArr1D log_om_vb,
-               const MapArr1D log_1_min_om_vb,
+               const MapArr1D log_om,
+               const MapArr1D log_1_min_om,
                const double log_sig2_inv_vb,
                const MapArr1D log_tau_vb,
                MapMat m1_beta,
@@ -85,7 +85,7 @@ void coreZLoop(const MapMat X,
     mu_beta_vb.row(j) = c * sig2_beta_vb * tau_vb *
       ((Y - mat_x_m1 - mat_z_mu).transpose() * X.col(j)).array();
 
-    gam_vb.row(j) = exp(-logOnePlusExp(c * (log_1_min_om_vb(j) - log_om_vb(j) -
+    gam_vb.row(j) = exp(-logOnePlusExp(c * (log_1_min_om(j) - log_om(j) -
       mu_beta_vb.row(j).transpose().square() / (2 * sig2_beta_vb) + cst)));
 
     m1_beta.row(j) = mu_beta_vb.row(j) * gam_vb.row(j);
@@ -102,8 +102,8 @@ void coreZLoop(const MapMat X,
 void coreLogitLoop(const MapMat X,
                    const MapArr2D Y,
                    MapArr2D gam_vb,
-                   const MapArr1D log_om_vb,
-                   const MapArr1D log_1_min_om_vb,
+                   const MapArr1D log_om,
+                   const MapArr1D log_1_min_om,
                    const double log_sig2_inv_vb,
                    MapMat m1_beta,
                    MapArr2D mat_x_m1,
@@ -121,7 +121,7 @@ void coreLogitLoop(const MapMat X,
 
     mu_beta_vb.row(j) = sig2_beta_vb.row(j) * (X.col(j).transpose() * (Y - 2 * psi_vb * (mat_x_m1 + mat_z_mu)).matrix()).array();
 
-    gam_vb.row(j) = exp(-logOnePlusExp(log_1_min_om_vb(j) - log_om_vb(j) -
+    gam_vb.row(j) = exp(-logOnePlusExp(log_1_min_om(j) - log_om(j) -
       log_sig2_inv_vb / 2 - mu_beta_vb.row(j).square() / (2 * sig2_beta_vb.row(j)) -
       log(sig2_beta_vb.row(j)) / 2));
 
@@ -140,8 +140,8 @@ void coreLogitLoop(const MapMat X,
 void coreProbitLoop(const MapMat X,
                     const MapMat W,
                     MapArr2D gam_vb,
-                    const MapArr1D log_om_vb,
-                    const MapArr1D log_1_min_om_vb,
+                    const MapArr1D log_om,
+                    const MapArr1D log_1_min_om,
                     const double log_sig2_inv_vb,
                     MapMat m1_beta,
                     MapMat mat_x_m1,
@@ -160,7 +160,7 @@ void coreProbitLoop(const MapMat X,
 
     mu_beta_vb.row(j) = sig2_beta_vb * ((W - mat_x_m1 - mat_z_mu).transpose() * X.col(j)).array();
 
-    gam_vb.row(j) = exp(-logOnePlusExp(log_1_min_om_vb(j) - log_om_vb(j) -
+    gam_vb.row(j) = exp(-logOnePlusExp(log_1_min_om(j) - log_om(j) -
       mu_beta_vb.row(j).square() / (2 * sig2_beta_vb) + cst));
 
     m1_beta.row(j) = mu_beta_vb.row(j) * gam_vb.row(j);

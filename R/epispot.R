@@ -80,7 +80,7 @@
 #'  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
 #'                     theta. Entry s corresponds to the propensity of candidate
 #'                     predictor s to be included in the model.}
-#'  \item{om_vb}{Vector of length p containing the posterior mean of omega.
+#'  \item{om}{Vector of length p containing the posterior mean of omega.
 #'               Entry s controls the proportion of responses associated with
 #'               candidate predictor s. NULL if \code{V} is non-\code{NULL}.}
 #'  \item{zeta_vb}{Posterior inclusion probability vector of size r for the
@@ -222,17 +222,12 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
                     verbose = TRUE) {
   
   
-  s02 <- 1 / ncol(Y) # TODO: put in set init <- auto_init.
-  s2 <- 0.1
-  om <- 1 / ncol(V) 
-
-  
   if (verbose) cat("== Preparing the data ... \n")
   
   check_annealing_(anneal, V)
   check_annealing_(anneal_vb_em, V)
   
-  dat <- prepare_data_(Y, X, V, s02, user_seed, tol, maxit, verbose)
+  dat <- prepare_data_(Y, X, V, user_seed, tol, maxit, verbose)
   
   bool_rmvd_x <- dat$bool_rmvd_x
   bool_rmvd_v <- dat$bool_rmvd_v
@@ -251,11 +246,7 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
   
   r <- ncol(V)
   names_v <- colnames(V)
-  check_structure_(om, "vector", "numeric", c(1, r))
-  check_positive_(om)
-  if (length(om) == 1) om <- rep(om, r)
 
-  
   if (verbose) cat("... done. == \n\n")
   
   if (!is.null(list_blocks)) {
@@ -291,13 +282,13 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
   
   list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, r,
                                     bool_rmvd_x, bool_rmvd_v, 
-                                    names_x, names_y, verbose, s02, s2)
+                                    names_x, names_y, verbose)
   
   if (verbose) cat("... done. == \n\n")
   
   if (verbose) cat("== Preparing the parameter initialization ... \n\n")
   
-  list_init <- prepare_list_init_(list_init, Y, p, p_star, 
+  list_init <- prepare_list_init_(list_init, Y, p, p_star, r, 
                                   bool_rmvd_x, bool_rmvd_v, user_seed, verbose)
   
   if (verbose) cat("... done. == \n\n")
@@ -316,9 +307,10 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
   if (is.null(list_blocks)) {
     
     vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
-                                       list_init$mu_beta_vb,
+                                       list_init$mu_beta_vb, list_init$om,
+                                       list_init$s02, list_init$s2,
                                        list_init$sig2_beta_vb, list_init$tau_vb,
-                                       om, bool_blocks = FALSE,
+                                       bool_blocks = FALSE,
                                        tol, maxit, anneal, anneal_vb_em, verbose,
                                        adaptive_tol_em = adaptive_tol_em)
     
@@ -419,7 +411,6 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
       
       pos_x <- list_pos_bl_x[[bl_x]]
       list_hyper_bl$p_hyper <- length(pos_x)
-      list_hyper_bl$m0 <- list_hyper_bl$m0[pos_x]
       
       list_init_bl <- list_init
       
@@ -463,13 +454,10 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
       list_hyper_bl$n0 <- adj_hyper$n0
       list_hyper_bl$t02 <- adj_hyper$t02
       
-      m0 <- get_mu(p_star_bl[1], s02 + list_hyper_bl$t02, p_bl) + list_hyper_bl$n0[1] # here n0 is - n0* ### NOT USED FOR HORSESHOE ETC.
-      list_hyper_bl$m0 <- rep(-m0, p_bl)
-      
-      
       vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, list_init_bl$gam_vb,
-                                            list_init_bl$mu_beta_vb, list_init_bl$sig2_beta_vb,
-                                            list_init_bl$tau_vb, om, bool_blocks = TRUE, 
+                                            list_init_bl$mu_beta_vb, list_init$om,
+                                            list_init$s02, list_init$s2, list_init_bl$sig2_beta_vb,
+                                            list_init_bl$tau_vb, bool_blocks = TRUE, 
                                             tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
                                             adaptive_tol_em = adaptive_tol_em)
       
@@ -496,19 +484,19 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
       if (n_bl_x > 1)
         stop("EB local scales not implemented for n_bl_x > 1. Exit")
       
-      list_hyper$s02 <- sapply(list_vb, `[[`, "s02")
-      rownames(list_hyper$s02) <- paste0("snp_", 1:p)
-      colnames(list_hyper$s02) <- paste0("module_", 1:n_bl_y)
+      list_init$s02 <- sapply(list_vb, `[[`, "s02")
+      rownames(list_init$s02) <- paste0("Cov_", 1:p)
+      colnames(list_init$s02) <- paste0("Module_", 1:n_bl_y)
       
-      list_hyper$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
+      list_init$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
       
-      tmp_om_vb <- lapply(list_vb, `[[`, "om")
+      tmp_om <- lapply(list_vb, `[[`, "om")
       
-      list_hyper$om_vb <- parallel::mclapply(1:n_bl_x, function(bl_x) {
-        cbind_fill_matrix(tmp_om_vb[((bl_x - 1) * n_bl_y + 1) : (bl_x * n_bl_y)])
+      list_init$om <- parallel::mclapply(1:n_bl_x, function(bl_x) {
+        cbind_fill_matrix(tmp_om[((bl_x - 1) * n_bl_y + 1) : (bl_x * n_bl_y)])
       }, mc.cores = n_cpus)
 
-      # om_vb list of length n_bl_x 
+      # om list of length n_bl_x 
       # containing matrices of size r' x n_bl_y (sizes of om r' can be different due to cst or coll columns in V_bl removed)
       
     } else {
@@ -519,9 +507,9 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
                     "of the number of active predictors per responses supplied in p0. ",
                     "Please change p0."))
       }
-      list_hyper$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
-      list_hyper$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
-      list_hyper$om_vb <- lapply(list_vb, `[[`, "om") # om_vb list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
+      list_init$s02 <- unlist(lapply(list_vb, `[[`, "s02"))
+      list_init$s2 <- unlist(lapply(list_vb, `[[`, "s2")) # now it is a vector with the s2 corresponding to each predictor
+      list_init$om <- lapply(list_vb, `[[`, "om") # om list of length n_bl_x (sizes of om can be different due to cst or coll columns in V_bl removed)
     
     }
     list_V <- lapply(list_bl_mat_x, `[[`, "V_bl") # V_bl without cst and coll and standardized in each block
@@ -532,6 +520,8 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
       vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
                                                    vec_fac_bl_y, list_hyper, 
                                                    list_init$gam_vb, list_init$mu_beta_vb, 
+                                                   list_init$om,
+                                                   list_init$s02, list_init$s2,
                                                    list_init$sig2_beta_vb, list_init$tau_vb,
                                                    tol, maxit, anneal, verbose)
       
@@ -540,12 +530,14 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
       
       vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, list_hyper, 
                                            list_init$gam_vb, list_init$mu_beta_vb, 
+                                           list_init$om,
+                                           list_init$s02, list_init$s2,
                                            list_init$sig2_beta_vb, list_init$tau_vb,
                                            tol, maxit, anneal, verbose)
       
     }
     
-    vb$s02 <- list_hyper$s02
+    vb$s02 <- list_init$s02
     
   }
   

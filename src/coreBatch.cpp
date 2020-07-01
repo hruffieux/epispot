@@ -19,8 +19,8 @@
 void coreBatch(const MapMat X,
                    const MapMat Y,
                    MapArr2D gam_vb,
-                   const MapArr1D log_om_vb,
-                   const MapArr1D log_1_min_om_vb,
+                   const MapArr1D log_om,
+                   const MapArr1D log_1_min_om,
                    const double log_sig2_inv_vb,
                    const MapArr1D log_tau_vb,
                    MapMat m1_beta,
@@ -34,7 +34,7 @@ void coreBatch(const MapMat X,
 
   gam_vb = exp(-logOnePlusExpMat(((mu_beta_vb.square().array().rowwise() / (-2 * sig2_beta_vb.transpose())).rowwise() -
     (log_tau_vb.transpose() / 2 + log(sig2_beta_vb).transpose() / 2)).colwise()
-                                   + (log_1_min_om_vb - log_om_vb) - log_sig2_inv_vb / 2));
+                                   + (log_1_min_om - log_om) - log_sig2_inv_vb / 2));
 
   m1_beta = mu_beta_vb * gam_vb;
   mat_x_m1 = X * m1_beta;
@@ -48,8 +48,8 @@ void coreBatch(const MapMat X,
 void coreZBatch(const MapMat X,
                     const MapMat Y,
                     MapArr2D gam_vb,
-                    const MapArr1D log_om_vb,
-                    const MapArr1D log_1_min_om_vb,
+                    const MapArr1D log_om,
+                    const MapArr1D log_1_min_om,
                     const double log_sig2_inv_vb,
                     const MapArr1D log_tau_vb,
                     MapMat m1_beta,
@@ -65,7 +65,7 @@ void coreZBatch(const MapMat X,
 
   gam_vb = exp(-logOnePlusExpMat(((mu_beta_vb.square().array().rowwise() / (-2 * sig2_beta_vb.transpose())).rowwise() -
     (log_tau_vb.transpose() / 2 + log(sig2_beta_vb).transpose() / 2)).colwise()
-                                   + (log_1_min_om_vb - log_om_vb) - log_sig2_inv_vb / 2));
+                                   + (log_1_min_om - log_om) - log_sig2_inv_vb / 2));
 
   m1_beta = mu_beta_vb * gam_vb;
   mat_x_m1 = X * m1_beta;
@@ -78,8 +78,8 @@ void coreZBatch(const MapMat X,
 void coreProbitBatch(const MapMat X,
                      const MapMat W,
                      MapArr2D gam_vb,
-                     const MapArr1D log_om_vb,
-                     const MapArr1D log_1_min_om_vb,
+                     const MapArr1D log_om,
+                     const MapArr1D log_1_min_om,
                      const double log_sig2_inv_vb,
                      MapMat m1_beta,
                      MapMat mat_x_m1,
@@ -92,7 +92,7 @@ void coreProbitBatch(const MapMat X,
     (W.rows() - 1) * m1_beta).array();
 
   gam_vb = exp(-logOnePlusExpMat((mu_beta_vb.square().array() / (-2 * sig2_beta_vb)).colwise() +
-    (log_1_min_om_vb - log_om_vb) - log_sig2_inv_vb / 2 - log(sig2_beta_vb) / 2));
+    (log_1_min_om - log_om) - log_sig2_inv_vb / 2 - log(sig2_beta_vb) / 2));
 
   m1_beta = mu_beta_vb * gam_vb;
   mat_x_m1 = X * m1_beta;

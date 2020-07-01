@@ -98,8 +98,8 @@ void coreDualLoop(const MapMat X,
 void coreDualInfoLoop(const MapMat V,
                   const MapMat W,
                   MapArr1D zeta_vb,
-                  const MapArr1D log_om_vb,
-                  const MapArr1D log_1_min_om_vb,
+                  const MapArr1D log_om,
+                  const MapArr1D log_1_min_om,
                   const double s2,
                   MapVec m1_c,
                   MapMat mat_v_mu,
@@ -118,7 +118,7 @@ void coreDualInfoLoop(const MapMat V,
 
     mu_c_vb(j) = c * sig2_c_vb * ((W - mat_v_mu).transpose() * V.col(j)).sum();
 
-    zeta_vb(j) = 1 / (1 + exp(c * (log_1_min_om_vb(j) - log_om_vb(j) -
+    zeta_vb(j) = 1 / (1 + exp(c * (log_1_min_om(j) - log_om(j) -
       mu_c_vb(j) * mu_c_vb(j) / (2 * sig2_c_vb) + cst)));
 
     m1_c(j) = mu_c_vb(j) * zeta_vb(j);

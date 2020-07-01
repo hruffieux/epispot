@@ -40,21 +40,21 @@ e_alpha_probit_ <- function(m2_alpha, log_zeta2_inv_vb, sig2_alpha_vb, zeta2_inv
 ########################################################
 
 
-e_beta_gamma_ <- function(gam_vb, log_om_vb, log_1_min_om_vb, log_sig2_inv_vb,
+e_beta_gamma_ <- function(gam_vb, log_om, log_1_min_om, log_sig2_inv_vb,
                           log_tau_vb, m2_beta, sig2_beta_vb, sig2_inv_vb, tau_vb) {
   
   eps <- .Machine$double.eps # to control the argument of the log when gamma is very small
   sum(log_sig2_inv_vb * gam_vb / 2 + sweep(gam_vb, 2, log_tau_vb, `*`) / 2 -
         sweep(m2_beta, 2, tau_vb, `*`) * sig2_inv_vb / 2 +
-        sweep(gam_vb, 1, log_om_vb, `*`) +
-        sweep(1 - gam_vb, 1, log_1_min_om_vb, `*`) +
+        sweep(gam_vb, 1, log_om, `*`) +
+        sweep(1 - gam_vb, 1, log_1_min_om, `*`) +
         1 / 2 * sweep(gam_vb, 2, log(sig2_beta_vb) + 1, `*`) -
         gam_vb * log(gam_vb + eps) - (1 - gam_vb) * log(1 - gam_vb + eps))
   
 }
 
 
-e_g_beta_gamma_ <- function(gam_vb, g_sizes, log_om_vb, log_1_min_om_vb,
+e_g_beta_gamma_ <- function(gam_vb, g_sizes, log_om, log_1_min_om,
                             log_sig2_inv_vb, log_tau_vb, list_m1_btb,
                             list_sig2_beta_star, sig2_inv_vb, tau_vb, vec_log_det) {
   
@@ -66,7 +66,7 @@ e_g_beta_gamma_ <- function(gam_vb, g_sizes, log_om_vb, log_1_min_om_vb,
     
     sum(g_sizes[g] / 2 * gam_vb[g, ] * (log_sig2_inv_vb + log_tau_vb) -
           list_m1_btb[[g]] * tau_vb * sig2_inv_vb / 2 +
-          gam_vb[g, ] * log_om_vb[g] + (1 - gam_vb[g, ]) * log_1_min_om_vb[g] +
+          gam_vb[g, ] * log_om[g] + (1 - gam_vb[g, ]) * log_1_min_om[g] +
           1 / 2 * gam_vb[g, ] * (vec_log_det[g] - g_sizes[g] * (log(tau_vb) - 1)) -
           gam_vb[g, ] * log(gam_vb[g, ] + eps) - (1 - gam_vb[g, ]) * log(1 - gam_vb[g, ] + eps))
   })))
@@ -93,13 +93,13 @@ e_dual_g_beta_gamma_ <- function(gam_vb, g_sizes, log_1_min_Phi_mat, log_Phi_mat
 }
 
 
-e_beta_gamma_bin_ <- function(gam_vb, log_om_vb, log_1_min_om_vb, log_sig2_inv_vb,
+e_beta_gamma_bin_ <- function(gam_vb, log_om, log_1_min_om, log_sig2_inv_vb,
                               m2_beta, sig2_beta_vb, sig2_inv_vb) {
   
   eps <- .Machine$double.eps # to control the argument of the log when gamma is very small
   sum(gam_vb * log_sig2_inv_vb / 2 - m2_beta * sig2_inv_vb / 2 +
-        sweep(gam_vb, 1, log_om_vb, `*`) +
-        sweep(1 - gam_vb, 1, log_1_min_om_vb, `*`) +
+        sweep(gam_vb, 1, log_om, `*`) +
+        sweep(1 - gam_vb, 1, log_1_min_om, `*`) +
         gam_vb * (log(sig2_beta_vb) + 1) / 2 -
         gam_vb * log(gam_vb + eps) - (1 - gam_vb) * log(1 - gam_vb + eps))
   
@@ -293,18 +293,6 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
 
 
 ######################################
-## E log p(c0 | rest) - E log q(c0) ##
-######################################
-
-e_c0_ <- function(m0, mu_c0_vb, s02, sig2_c0_vb) {
-  
-  sum(log(sig2_c0_vb) + 1 - log(s02) -
-        (mu_c0_vb^2 + sig2_c0_vb - 2*mu_c0_vb * m0 + m0^2) / s02) / 2
-  
-}
-
-
-######################################
 ## E log p(c | rest) - E log q(c) ##
 ######################################
 
@@ -320,7 +308,7 @@ e_c_ <- function(mu_c_vb, s2, sig2_c_vb) {
 ######################################################
 
 
-e_c_zeta_ <- function(log_om_vb, log_1_min_om_vb, mu_c_vb, s2, sig2_c_vb,
+e_c_zeta_ <- function(log_om, log_1_min_om, mu_c_vb, s2, sig2_c_vb,
                       zeta_vb, resp_spec = FALSE) {
   
   eps <- .Machine$double.eps^0.25 # to control the argument of the log when gamma is very small
@@ -330,9 +318,9 @@ e_c_zeta_ <- function(log_om_vb, log_1_min_om_vb, mu_c_vb, s2, sig2_c_vb,
     (1 - zeta_vb) * log(1 - zeta_vb + eps)
   
   if (resp_spec) {
-    arg <- arg + sweep(zeta_vb, 1, log_om_vb, `*`) + sweep((1 - zeta_vb), 1, log_1_min_om_vb, `*`)
+    arg <- arg + sweep(zeta_vb, 1, log_om, `*`) + sweep((1 - zeta_vb), 1, log_1_min_om, `*`)
   } else {
-    arg <- arg + zeta_vb * log_om_vb + (1 - zeta_vb) * log_1_min_om_vb
+    arg <- arg + zeta_vb * log_om + (1 - zeta_vb) * log_1_min_om
   }
   
   sum(arg)
@@ -343,9 +331,9 @@ e_c_zeta_ <- function(log_om_vb, log_1_min_om_vb, mu_c_vb, s2, sig2_c_vb,
 ## E log p(omega | rest) - E log q(omega) ##
 ############################################
 
-e_omega_ <- function(a, a_vb, b, b_vb, log_om_vb, log_1_min_om_vb) {
+e_omega_ <- function(a, a_vb, b, b_vb, log_om, log_1_min_om) {
   
-  sum((a - a_vb) * log_om_vb + (b - b_vb) * log_1_min_om_vb - lbeta(a, b) + lbeta(a_vb, b_vb))
+  sum((a - a_vb) * log_om + (b - b_vb) * log_1_min_om - lbeta(a, b) + lbeta(a_vb, b_vb))
   
 }
 
@@ -402,7 +390,7 @@ e_tau_ <- function(eta, eta_vb, kappa, kappa_vb, log_tau_vb, tau_vb) {
 ############################################
 
 # S0_inv is assumed to be block-diagonal
-e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb, 
+e_theta_ <- function(mu_theta_vb, list_S0_inv, list_sig2_theta_vb, 
                      vec_sum_log_det, vec_fac_bl = NULL, vec_fac_bl_y = NULL) {
   
     p <- length(mu_theta_vb)
@@ -410,7 +398,7 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb,
     if (is.null(vec_fac_bl)) {
 
         arg <- vec_sum_log_det / 2 - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
-          sum(list_S0_inv * (mu_theta_vb - m0)^2 +
+          sum(list_S0_inv * mu_theta_vb^2 +
                 list_S0_inv * list_sig2_theta_vb) / 2 + p / 2 # trace of a product
     
     } else if (!is.null(vec_fac_bl_y)){
@@ -428,7 +416,7 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb,
           sapply(1:n_bl_x, function(bl_x) {
             
             vec_sum_log_det[bl_x, bl_y] / 2 - 
-              sum(list_S0_inv[vec_fac_bl == bl_ids_x[bl_x], bl_y] * (mu_theta_vb[vec_fac_bl == bl_ids_x[bl_x], bl_y] - m0[vec_fac_bl == bl_ids_x[bl_x]])^2 +
+              sum(list_S0_inv[vec_fac_bl == bl_ids_x[bl_x], bl_y] * mu_theta_vb[vec_fac_bl == bl_ids_x[bl_x], bl_y]^2 +
                     list_S0_inv[vec_fac_bl == bl_ids_x[bl_x], bl_y] * list_sig2_theta_vb[vec_fac_bl == bl_ids_x[bl_x], bl_y] ) / 2 + vec_p_bl[bl_x] / 2 # trace of a product
             
           }) 
@@ -443,7 +431,7 @@ e_theta_ <- function(m0, mu_theta_vb, list_S0_inv, list_sig2_theta_vb,
       
       arg <- sapply(1:n_bl, function(bl) {
         vec_sum_log_det[bl] / 2 - # vec_sum_log_det[bl] = log(det(S0_inv_bl)) + log(det(sig2_theta_vb_bl))
-          sum(list_S0_inv[vec_fac_bl == bl_ids[bl]] * (mu_theta_vb[vec_fac_bl == bl_ids[bl]] - m0[vec_fac_bl == bl_ids[bl]])^2 +
+          sum(list_S0_inv[vec_fac_bl == bl_ids[bl]] * mu_theta_vb[vec_fac_bl == bl_ids[bl]]^2 +
                 list_S0_inv[vec_fac_bl == bl_ids[bl]] * list_sig2_theta_vb[vec_fac_bl == bl_ids[bl]]) / 2 + vec_p_bl[bl] / 2 # trace of a product
         
       })

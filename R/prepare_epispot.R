@@ -5,10 +5,7 @@
 # Internal function implementing sanity checks and needed preprocessing before
 # the application of the different `epispot_*_core` algorithms.
 #
-prepare_data_ <- function(Y, X, V, s02, user_seed, tol, maxit, verbose) {
-
-  check_structure_(s02, "vector", "numeric", 1)
-  check_positive_(s02)
+prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
   
   check_structure_(user_seed, "vector", "numeric", 1, null_ok = TRUE)
   
@@ -148,7 +145,7 @@ check_annealing_ <- function(anneal, V) {
 # algorithms.
 #
 prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x, 
-                                bool_rmvd_v, names_x, names_y, verbose, s02, s2) {
+                                bool_rmvd_v, names_x, names_y, verbose) {
 
   d <- ncol(Y)
   
@@ -156,7 +153,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x,
 
     if (verbose) cat("list_hyper set automatically. \n")
 
-    list_hyper <- auto_set_hyper_(Y, p, p_star, r, s02, s2)
+    list_hyper <- auto_set_hyper_(Y, p, p_star, r)
 
   } else {
 
@@ -170,8 +167,10 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x,
 
     if (inherits(list_hyper, "hyper")) {
       p_hyper_match <- length(bool_rmvd_x)
+      r_hyper_match <- length(bool_rmvd_v)
     } else {
       p_hyper_match <- p
+      r_hyper_match <- r
     }
 
 
@@ -183,44 +182,9 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x,
       stop(paste("The dimensions (p) of the provided hyperparameters ",
                  "(list_hyper) are not consistent with that of X.\n", sep=""))
 
-    nr <- is.null(r)
-   
-    if (!nr) { # r non-NULL
-
-      if (inherits(list_hyper, "hyper")) {
-        # remove the entries corresponding to the removed constant predictors in X
-        # (if any)
-
-        list_hyper$m0 <- list_hyper$m0[!bool_rmvd_x]
-
-        r_hyper_match <- length(bool_rmvd_v)
-        
-        # a and b are the hyperparmater for the annotations here.
-        list_hyper$a <- list_hyper$a[!bool_rmvd_v]
-        list_hyper$b <- list_hyper$b[!bool_rmvd_v]
-    
-
-      } else {
-
-        if (!nr)
-          r_hyper_match <- r
-      }
-
-      if (list_hyper$r_hyper != r_hyper_match)
-        stop(paste("The dimensions of the provided hyperparameters ",
-                   "(list_hyper) are not consistent with that of V.", sep=""))
-
-      if (!is.null(names(list_hyper$m0)) && names(list_hyper$m0) != names_x)
-        stop("Provided names for the entries of m0 do not match the colnames of X.")
-
-    } else { 
-
-      list_hyper$m0 <- list_hyper$m0[!bool_rmvd_x]
-
-      if (!is.null(names(list_hyper$m0)) && names(list_hyper$m0) != names_x)
-        stop("Provided names for the entries of m0 do not match the colnames of X.")
-
-    }
+    if (list_hyper$r_hyper != r_hyper_match)
+      stop(paste("The dimensions of the provided hyperparameters ",
+                 "(list_hyper) are not consistent with that of V.", sep=""))
 
     if (!is.null(names(list_hyper$eta)) && names(list_hyper$eta) != names_y)
       stop("Provided names for the entries of eta do not match the colnames of the continuous variables in Y")
@@ -240,7 +204,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x,
 # starting values before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_init_ <- function(list_init, Y, p, p_star,
+prepare_list_init_ <- function(list_init, Y, p, p_star, r,
                                bool_rmvd_x, bool_rmvd_v, user_seed, verbose) {
 
   d <- ncol(Y)
@@ -253,7 +217,7 @@ prepare_list_init_ <- function(list_init, Y, p, p_star,
 
     if (verbose) cat(paste("list_init set automatically. \n", sep=""))
 
-    list_init <- auto_set_init_(Y, p, p_star, user_seed)
+    list_init <- auto_set_init_(Y, p, p_star, r, user_seed)
 
   } else {
 
@@ -271,14 +235,10 @@ prepare_list_init_ <- function(list_init, Y, p, p_star,
 
     if (inherits(list_init, "init")) {
       p_init_match <- length(bool_rmvd_x)
+      r_init_match <- length(bool_rmvd_v)
     } else {
       p_init_match <- p
-    }
-
-    if (inherits(list_init, "init")) {
-      p_init_match <- length(bool_rmvd_x)
-    } else {
-      p_init_match <- p
+      r_init_match <- r
     }
 
     if (list_init$d_init != d)
@@ -288,12 +248,18 @@ prepare_list_init_ <- function(list_init, Y, p, p_star,
     if (list_init$p_init != p_init_match)
       stop(paste("The dimensions (p) of the provided initial parameters ",
                  "(list_init) are not consistent with that of X.\n", sep=""))
+    
+    if (list_init$r_init != r_init_match)
+      stop(paste("The dimensions (r) of the provided initial parameters ",
+                 "(list_init) are not consistent with that of V.\n", sep=""))
 
     if (inherits(list_init, "init")) {
 
       list_init$gam_vb <- list_init$gam_vb[!bool_rmvd_x,, drop = FALSE]
 
       list_init$mu_beta_vb <- list_init$mu_beta_vb[!bool_rmvd_x,, drop = FALSE]
+      
+      list_init$om <- list_init$om[!bool_rmvd_v,, drop = FALSE]
 
     }
 

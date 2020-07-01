@@ -37,7 +37,6 @@
 #'   times.
 #' @param r Number of variables representing external information on the
 #'   candidate predictors. Default is \code{NULL}, for \code{V} \code{NULL}.
-#' @param m0 Vector of length 1 or p. Hyperparameter when \code{V}. Default is \code{NULL}.
 #' @param n0 Vector of length 1 or d. 
 #' @param s02 Variance hyperparameter when \code{V} is 
 #' non-\code{NULL} non-\code{NULL}. Default is \code{NULL}.
@@ -175,9 +174,7 @@
 #'
 #' @export
 #'
-set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa, 
-                      r = NULL, m0 = NULL, n0 = NULL, s02 = NULL, s2 = NULL,
-                      t02 = NULL) {
+set_hyper <- function(d, p, r, lambda, nu, eta, kappa, n0, t02) {
   
   check_structure_(d, "vector", "numeric", 1)
   check_natural_(d)
@@ -185,38 +182,11 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa,
   check_structure_(p, "vector", "numeric", 1)
   check_natural_(p)
   
-  check_structure_(r, "vector", "numeric", 1, null_ok = TRUE)
-  if (!is.null(r)) check_natural_(r)
-  
-  nr <- is.null(r)
-  
-  if (nr) {
-    
-    if (!is.null(a) | !is.null(b) | !is.null(s2))
-      stop("a, b and s2 must all be null.")
-    
-  } else {
-    
-    check_structure_(a, "vector", "double", c(1, r))
-    if (length(a) == 1) a <- rep(a, r)
-    
-    check_structure_(b, "vector", "double", c(1, r))
-    if (length(b) == 1) b <- rep(b, r)
-    
-    check_structure_(s2, "vector", "double", 1)
-    check_positive_(s2)
-    
-  }
-  
-  
-  check_structure_(m0, "vector", "double", c(1, p))
-  if (length(m0) == 1) m0 <- rep(m0, p)
+  check_structure_(r, "vector", "numeric", 1)
+  check_natural_(r)
   
   check_structure_(n0, "vector", "double", c(1, d))
   if (length(n0) == 1) n0 <- rep(n0, d)
-  
-  check_structure_(s02, "vector", "double", 1)
-  check_positive_(s02)
   
   check_structure_(t02, "vector", "double", 1)
   check_positive_(t02)
@@ -240,8 +210,7 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa,
   r_hyper <- r
   
   list_hyper <- create_named_list_(d_hyper, p_hyper, r_hyper,
-                                   eta, kappa,
-                                   lambda, nu, a, b, m0, n0, s02, s2, t02)
+                                   eta, kappa, lambda, nu, n0, t02)
   
   class(list_hyper) <- "hyper"
   
@@ -253,18 +222,24 @@ set_hyper <- function(d, p, lambda, nu, a, b, eta, kappa,
 # Internal function setting default model hyperparameters when not provided by
 # the user.
 #
-auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
+auto_set_hyper_ <- function(Y, p, p_star, r) {
   
   d <- ncol(Y)
   
   lambda <- 1e-2
   nu <- 1
   
+  check_positive_(lambda)
+  check_positive_(nu)
+  
   # hyperparameter set using the data Y
   eta <- 1 / median(apply(Y, 2, var)) #median to be consistent when doing permutations
   if (!is.finite(eta)) eta <- 1e3
+  check_positive_(eta)
+  
   eta <- rep(eta, d)
   kappa <- rep(1, d)
+  check_positive_(kappa)
   
   E_p_t <- p_star[1]
   V_p_t <- p_star[2]
@@ -285,49 +260,18 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
                   "of the number of active predictors per responses supplied in p0.",
                   "Please change p0."))
     })
-  
-  # n0 sets the level of sparsity.
-  n0 <- get_mu(E_p_t, t02, p)
-  
-  # Look at : gam_st
-  #
-  s02 <- s02  # take a small variance for the modulation to avoid `all-response activation' artefact.
-  # if lots of relevant predictors affect multiple responses,
-  # better to have it a bit larger (even if some artefact appears)
-  
-  # adjust the mean of theta_s so that E_p_t = p * E(gam | theta = 0) = p * E(gam)
-  m0 <- get_mu(E_p_t, s02 + t02, p) - n0
-  
-  m0 <- - m0  # m0 = - m0_star
-  n0 <- - n0  # n0 = - n0_star
-  m0 <- rep(m0, p)
-  
-  n0 <- rep(n0, d)
-  
-  check_positive_(s02)
   check_positive_(t02)
   
-  if (!is.null(r)) {
-    a <- b <- rep(1 / 2, r) # Jeffrey prior for the annotations # /! not the same a and b as above!
-  } else {
-    a <- b <- NULL
-  }
-  
-  # hyperparameters external info model
-  if (!is.null(r)){
-    check_positive_(s2)
-    s2 <- s2 
-  } else {
-    s2 <- NULL
-  }
+  # n0 sets the level of sparsity.
+  n0 <- -get_mu(E_p_t, t02, p)
+  n0 <- rep(n0, d)
   
   d_hyper <- d
   p_hyper <- p
   r_hyper <- r
   
   list_hyper <- create_named_list_(d_hyper, p_hyper, r_hyper,
-                                   eta, kappa,
-                                   lambda, nu, a, b, m0, n0, s02, s2, t02)
+                                   eta, kappa, lambda, nu, n0, t02)
   
   class(list_hyper) <- "out_hyper"
   
@@ -500,7 +444,7 @@ auto_set_hyper_ <- function(Y, p, p_star, r, s02, s2 = NULL) {
 #'
 #' @export
 #'
-set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, sig2_beta_vb, s02, s2, tau_vb) {
+set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau_vb) {
   
   check_structure_(d, "vector", "numeric", 1)
   check_natural_(d)
@@ -508,28 +452,35 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, sig2_beta_vb, s02, s2, tau
   check_structure_(p, "vector", "numeric", 1)
   check_natural_(p)
   
+  check_structure_(r, "vector", "numeric", 1)
+  check_natural_(r)
+  
   check_structure_(gam_vb, "matrix", "double", c(p, d))
   check_zero_one_(gam_vb)
   
   check_structure_(mu_beta_vb, "matrix", "double", c(p, d))
-  
-  check_structure_(sig2_beta_vb, "vector", "double", d)
-  
+ 
   check_structure_(om, "vector", "double", r)
   check_zero_one_(om)
   
-  check_structure_(tau_vb, "vector", "double", d)
-  check_positive_(tau_vb)
-  
-  check_positive_(sig2_beta_vb)
+  check_structure_(s02, "vector", "numeric", 1)
   check_positive_(s02)
+  
+  check_structure_(s2, "vector", "numeric", 1)
   check_positive_(s2)
   
+  check_structure_(sig2_beta_vb, "vector", "double", d)
+  check_positive_(sig2_beta_vb)
+  
+  check_structure_(tau_vb, "vector", "double", d)
+  check_positive_(tau_vb)
+
   d_init <- d
   p_init <- p
+  r_init <- r
   
-  list_init <- create_named_list_(d_init, p_init, gam_vb, mu_beta_vb,
-                                  sig2_beta_vb, tau_vb)
+  list_init <- create_named_list_(d_init, p_init, r_init, gam_vb, mu_beta_vb, om,
+                                  s02, s2, sig2_beta_vb, tau_vb)
   
   class(list_init) <- "init"
   
@@ -539,7 +490,7 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, sig2_beta_vb, s02, s2, tau
 
 # Internal function setting default starting values when not provided by the user.
 #
-auto_set_init_ <- function(Y, p, p_star, user_seed) {
+auto_set_init_ <- function(Y, p, p_star, r, user_seed) {
   
   # Initialisation not modified for dual = TRUE (should not matter, but maybe change this) ### TODO
   
@@ -568,38 +519,41 @@ auto_set_init_ <- function(Y, p, p_star, user_seed) {
                   "Please change p0."))
     })
   
-  
-  # n0 sets the level of sparsity.
-  n0 <- get_mu(E_p_t, t02, p)
-  
-  s02 <- 1e-4 
-  
-  # adjust the mean of theta_s so that E_p_t = p * E(gam | theta = 0) = p * E(gam)
-  m0 <- get_mu(E_p_t, s02 + t02, p) - n0
-  
-  m0 <- - m0  # n0 = - n0_star
-  n0 <- - n0  # m0 = - m0_star
-  
-  check_positive_(s02)
   check_positive_(t02)
   
-  gam_vb <- matrix(pnorm(rnorm(p * d, mean = m0 + n0, sd = s02 + t02)), # Phi(theta + chi), and not 1 - Phi(theta + chi)
+  # n0 sets the level of sparsity.
+  n0 <- - get_mu(E_p_t, t02, p)
+  
+  s02 <- 1 / d
+  check_positive_(s02)
+  
+  s2 <- 0.1
+  check_positive_(s2)
+  
+  om <- rep(1 / r, r)
+  check_zero_one_(om)
+
+  gam_vb <- matrix(pnorm(rnorm(p * d, mean = n0, sd = s02 + t02)), # Phi(theta + chi), and not 1 - Phi(theta + chi)
                    nrow = p)                                            # as reparametrisation theta* = - theta, chi* = - chi
+  check_zero_one_(gam_vb)
   
   mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
   
   tau_vb <- 1 / median(apply(Y, 2, var))
   if (!is.finite(tau_vb)) tau_vb <- 1e3
   tau_vb <- rep(tau_vb, d)
+  check_positive_(tau_vb)
   
   sig2_inv_vb <- 1e-2
   sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / (sig2_inv_vb * tau_vb))
+  check_positive_(sig2_beta_vb)
   
   d_init <- d
   p_init <- p
+  r_init <- r
   
-  list_init <- create_named_list_(d_init, p_init, gam_vb, mu_beta_vb,
-                                  sig2_beta_vb, tau_vb)
+  list_init <- create_named_list_(d_init, p_init, r_init, gam_vb, mu_beta_vb, om, 
+                                  s02, s2, sig2_beta_vb, tau_vb)
   
   class(list_init) <- "out_init"
   

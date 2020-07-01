@@ -154,9 +154,6 @@ update_g_m1_btXtXb_ <- function(list_X, gam_vb, list_mu_beta_vb, list_sig2_beta_
 ## c0 and c's updates ##
 ########################
 
-update_mu_c0_vb_ <- function(W, mat_v_mu, m0, s02, sig2_c0_vb, c = 1) c * sig2_c0_vb * (rowSums(W - mat_v_mu) + m0 / s02)
-
-
 update_sig2_c0_vb_ <- function(d, s02, c = 1) 1 / (c * (d + (1/s02)))
 
 
@@ -243,22 +240,6 @@ update_psi_logit_vb_ <- function(chi_vb) {
   exp(log(exp(log_sigmoid_(chi_vb)) - 1 / 2) - log(2 * chi_vb))
   
 }
-
-
-#####################
-## omega's updates ##
-#####################
-
-a_vb <- update_a_vb <- function(a, rs_gam, c = 1) c * (a + rs_gam) - c + 1
-
-
-b_vb <- update_b_vb <- function(b, d, rs_gam, c = 1) c * (b - rs_gam + d) - c + 1
-
-
-update_log_om_vb <- function(a, digam_sum, rs_gam, c = 1) digamma(c * (a + rs_gam) - c + 1) - digam_sum
-
-
-update_log_1_min_om_vb <- function(b, d, digam_sum, rs_gam, c = 1) digamma(c * (b - rs_gam + d) - c + 1) - digam_sum
 
 
 #####################
@@ -377,7 +358,7 @@ update_log_tau_vb_ <- function(eta_vb, kappa_vb) digamma(eta_vb) - log(kappa_vb)
 ## theta's updates ##
 #####################
 
-update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb,
+update_mu_theta_vb_ <- function(W, sig2_theta_vb,
                                 mat_add = 0, is_mat = FALSE, c = 1, 
                                 vec_fac_bl = NULL) {
 
@@ -386,11 +367,11 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb,
       
       if (is_mat) {
         
-        mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) + S0_inv * m0 - rowSums(mat_add)) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+        mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) - rowSums(mat_add)) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
         
       } else {
         
-        mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) + S0_inv * m0 - sum(mat_add)) # mat_add = mu_rho_vb
+        mu_theta_vb <- c * sig2_theta_vb * (rowSums(W) - sum(mat_add)) # mat_add = mu_rho_vb
         
       }
       
@@ -401,13 +382,13 @@ update_mu_theta_vb_ <- function(W, m0, S0_inv, sig2_theta_vb,
       
       if (is_mat) {
         
-        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[vec_fac_bl == bl_ids[bl]] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
-                                                                                            S0_inv[vec_fac_bl == bl_ids[bl]] * m0[vec_fac_bl == bl_ids[bl]] - rowSums(mat_add[vec_fac_bl == bl_ids[bl], , drop = FALSE])))) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
+        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[vec_fac_bl == bl_ids[bl]] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE])
+                                                                                          - rowSums(mat_add[vec_fac_bl == bl_ids[bl], , drop = FALSE])))) # mat_add = sweep(mat_v_mu, 1, mu_theta_vb, `-`)
         
       } else {
         
-        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[vec_fac_bl == bl_ids[bl]] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) + 
-                                                                                            S0_inv[vec_fac_bl == bl_ids[bl]] * m0[vec_fac_bl == bl_ids[bl]] - sum(mat_add)))) # mat_add = mu_rho_vb
+        unlist(sapply(1:n_bl, function(bl) c * sig2_theta_vb[vec_fac_bl == bl_ids[bl]] * (rowSums(W[vec_fac_bl == bl_ids[bl], , drop = FALSE]) 
+                                                                                          - sum(mat_add)))) # mat_add = mu_rho_vb
         
       }
       
