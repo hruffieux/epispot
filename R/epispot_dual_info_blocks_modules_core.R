@@ -348,7 +348,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                          sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
                          sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
                          m2_beta, mat_x_m1, mat_v_mu, vec_sum_log_det_rho,
-                         vec_sum_log_det_theta, vec_fac_bl_x, vec_fac_bl_y)
+                         vec_sum_log_det_theta, vec_fac_bl_x, vec_fac_bl_y, lb_opt, it)
       
     } else {
       

@@ -3,7 +3,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
                                          bool_blocks, 
                                          tol, maxit, anneal, anneal_vb_em, verbose,
                                          adaptive_tol_em = FALSE) {
-
+  
   r <- ncol(V)
   
   maxit_em <- ceiling(maxit / 5)
@@ -35,12 +35,12 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
       cat(paste0(ifelse(adaptive_tol_em, "Adaptive within", "Within"), 
                  "-EM VB tolerance: ", format(tol_vb_within_em, digits = 3), "\n"))
     }
-
+    
     vb <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                   om, s02, s2, vb$sig2_beta_vb, vb$tau_vb,  
-                                tol_vb_within_em, maxit, anneal_vb_em,
-                                verbose = FALSE, full_output = TRUE)
-  
+                                  tol_vb_within_em, maxit, anneal_vb_em,
+                                  verbose = FALSE, full_output = TRUE)
+    
     if (verbose)
       cat("--- EM hyperparameter updates ---\n")
     
@@ -50,21 +50,20 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     
     # list_hyper$om_vb <- vb$zeta_vb
     # list_hyper$s2 <- sum(vb$zeta_vb * (vb$sig2_c_vb + vb$mu_c_vb^2)) / sum(vb$zeta_vb)
-  
+    
     if (verbose) {
       
       cat(paste0("EM iteration ", it_em, ". \n"))
       
       if (!is.null(s02)) {
         
-          cat("New value for s02 : ")
-          print(summary(s02))
-
+        cat("New value for s02 : ")
+        print(summary(s02))
+        
       }
       cat(paste0("New value for s2 : ", format(s2, digits = 4), ". \n"))
       cat("New values for omega : \n")
       print(summary(om))
-      # print(summary(list_hyper$om_vb))
       
       cat("\n\n")
     }
@@ -72,7 +71,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     diff_lb <- abs(vb$lb_opt - lb_old)
     
     if (adaptive_tol_em) {
-    
+      
       sum_exceed <- sum(diff_lb > vec_tol_vb_within_em)
       
       if (sum_exceed == 0) {
@@ -85,15 +84,16 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
         tol_vb_within_em <- vec_tol_vb_within_em[ind_status_conv]
         
       }
-    
+      
     } else {
       
       converged_em <- (diff_lb < tol_em)
       
     }
     
+    
     lb_old <- vb$lb_opt
-  
+    
   }
   
   if (bool_blocks) {
@@ -135,13 +135,13 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
       #     
       #   cat("\n\n")
       # }
-
+      
     }
-  
+    
     out <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                    om, s02, s2, vb$sig2_beta_vb, vb$tau_vb, 
                                    tol, maxit, anneal, verbose)
-   
+    
     # if (!is.null(list_hyper$s02)) {
     #   out$s02 <- list_hyper$s02
     # }

@@ -116,7 +116,7 @@ convert_p0_ <- function(p0, p, list_blocks, verbose, eps = .Machine$double.eps^0
 
 
 
-check_annealing_ <- function(anneal, V) {
+check_annealing_ <- function(anneal, maxit) {
 
   check_structure_(anneal, "vector", "numeric", 3, null_ok = TRUE)
 
@@ -136,6 +136,9 @@ check_annealing_ <- function(anneal, V) {
                   "computationally demanding. Please decrease it."))
     
   }
+  
+  if (maxit <= anneal[3])
+    stop("The maximum number of iterations (maxit) must be strictly larger than the ladder size.")
 
 }
 

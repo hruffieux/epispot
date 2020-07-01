@@ -263,7 +263,7 @@ auto_set_hyper_ <- function(Y, p, p_star, r) {
   check_positive_(t02)
   
   # n0 sets the level of sparsity.
-  n0 <- -get_mu(E_p_t, t02, p)
+  n0 <- - get_mu(E_p_t, t02, p)
   n0 <- rep(n0, d)
   
   d_hyper <- d

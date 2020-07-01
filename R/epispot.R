@@ -33,16 +33,16 @@
 #'   variables representing external information on the candidate predictors
 #'   which may make their selection more or less likely. \code{NULL} if no such
 #'   information.
+#' @param list_blocks An object of class "\code{blocks}" containing settings for
+#'   parallel inference on a partitioned predictor space. Must be filled using
+#'   the \code{\link{set_blocks}} function or must be \code{NULL} for no
+#'   partitioning.
 #' @param list_hyper An object of class "\code{hyper}" containing the model
 #'   hyperparameters. Must be filled using the \code{\link{set_hyper}}
 #'   function or must be \code{NULL} for default hyperparameters.
 #' @param list_init An object of class "\code{init}" containing the initial
 #'   variational parameters. Must be filled using the \code{\link{set_init}}
 #'   function or be \code{NULL} for a default initialization.
-#' @param list_blocks An object of class "\code{blocks}" containing settings for
-#'   parallel inference on a partitioned predictor space. Must be filled using
-#'   the \code{\link{set_blocks}} function or must be \code{NULL} for no
-#'   partitioning.
 #' @param user_seed Seed set for reproducible default choices of hyperparameters
 #'   (if \code{list_hyper} is \code{NULL}) and initial variational parameters
 #'   (if \code{list_init} is \code{NULL}). Default is \code{NULL}, no
@@ -214,8 +214,8 @@
 #'
 #' @export
 #'
-epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
-                    list_blocks = NULL, user_seed = NULL, 
+epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL, 
+                    list_init = NULL, user_seed = NULL, 
                     tol = 1e-3, adaptive_tol_em = FALSE, maxit = 1000, 
                     anneal = NULL, anneal_vb_em = NULL, 
                     save_hyper = FALSE, save_init = FALSE, 
@@ -224,17 +224,14 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
   
   if (verbose) cat("== Preparing the data ... \n")
   
-  check_annealing_(anneal, V)
-  check_annealing_(anneal_vb_em, V)
-  
   dat <- prepare_data_(Y, X, V, user_seed, tol, maxit, verbose)
-  
-  bool_rmvd_x <- dat$bool_rmvd_x
-  bool_rmvd_v <- dat$bool_rmvd_v
-  
+
   X <- dat$X
   Y <- dat$Y
   V <- dat$V
+  
+  bool_rmvd_x <- dat$bool_rmvd_x
+  bool_rmvd_v <- dat$bool_rmvd_v
   
   n <- nrow(X)
   p <- ncol(X)
@@ -243,10 +240,11 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
   
   names_x <- colnames(X)
   names_y <- colnames(Y)
-  
-  r <- ncol(V)
   names_v <- colnames(V)
 
+  check_annealing_(anneal, maxit)
+  check_annealing_(anneal_vb_em, maxit)
+  
   if (verbose) cat("... done. == \n\n")
   
   if (!is.null(list_blocks)) {
@@ -270,8 +268,8 @@ epispot <- function(Y, X, p0, V, list_hyper = NULL, list_init = NULL,
   } else {
     
     if (!is.null(p0))
-      warning(paste("Provided argument p0 not used, as both list_hyper ",
-                    "and list_init were provided.", sep = ""))
+      warning(paste0("Provided argument p0 not used, as both list_hyper ",
+                     "and list_init were provided."))
     
     p_star <- NULL
     
