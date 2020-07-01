@@ -93,7 +93,7 @@
 #'  \item{diff_lb}{Difference in ELBO between the last and penultimate
 #'                 iterations. This may be a useful diagnostic information when
 #'                 convergence has not been reached before \code{maxit}.}
-#'  \item{p_star}{Vector of length 1 or p defining the applied sparsity control.}
+#'  \item{p0}{Vector of length 2 defining the applied sparsity control.}
 #'  \item{rmvd_cst_x}{Vectors containing the indices of constant
 #'                                variables in \code{X} removed
 #'                                prior to the analysis.}
@@ -263,7 +263,22 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
   
   if (is.null(list_hyper) | is.null(list_init)) {
     
-    p_star <- convert_p0_(p0, p, list_blocks, verbose)
+    check_structure_(p0, "vector", "numeric", 2)
+    check_positive_(p0) 
+    
+    if (p0[1] > p) {
+      stop(paste0("The expected number of predictors associated with each ", 
+                  "response must be lower than the total number of predictors. ",
+                  "Please change p0[1]. Exit."))
+    } else if (p0[1] > floor(p/2)) {
+      warning(paste0("The expected number of predictors associated with each ", 
+                     "response is large, which corresponds to a non-sparse setting. ",
+                     "Please consider lowering p0[1]."))
+    }
+
+    if (p0[2] > floor(p/2)) 
+      warning(paste0("The prior variance for the number of predictors associated 
+                     with each response is large. Please consider lowering p0[2]."))
     
   } else {
     
@@ -271,14 +286,12 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
       warning(paste0("Provided argument p0 not used, as both list_hyper ",
                      "and list_init were provided."))
     
-    p_star <- NULL
-    
   }
   
   
   if (verbose) cat("== Preparing the hyperparameters ... \n\n")
   
-  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p_star, r,
+  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p0, r,
                                     bool_rmvd_x, bool_rmvd_v, 
                                     names_x, names_y, verbose)
   
@@ -286,7 +299,7 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
   
   if (verbose) cat("== Preparing the parameter initialization ... \n\n")
   
-  list_init <- prepare_list_init_(list_init, Y, p, p_star, r, 
+  list_init <- prepare_list_init_(list_init, Y, p, p0, r, 
                                   bool_rmvd_x, bool_rmvd_v, user_seed, verbose)
   
   if (verbose) cat("... done. == \n\n")
@@ -445,9 +458,9 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
       p_bl <- ncol(X_bl) # block size
       d_bl <- ncol(Y_bl)
       
-      p_star_bl <- p_star
-      p_star_bl[1] <- p_star[1] * p_bl / p
-      adj_hyper <- get_n0_t02(d_bl, p_bl, p_star_bl)
+      p0_bl <- p0
+      p0_bl[1] <- p0[1] * p_bl / p
+      adj_hyper <- get_n0_t02(d_bl, p_bl, p0_bl)
       
       list_hyper_bl$n0 <- adj_hyper$n0
       list_hyper_bl$t02 <- adj_hyper$t02
@@ -539,7 +552,7 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
     
   }
   
-  vb$p_star <- p_star
+  vb$p0 <- p0
   
   vb$rmvd_cst_x <- dat$rmvd_cst_x
   vb$rmvd_coll_x <- dat$rmvd_coll_x

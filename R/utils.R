@@ -267,15 +267,15 @@ get_V_p_t <- function(mu, s2, p) {
 
 get_mu <- function(E_p_t, s2, p) {
 
-  sqrt(1 + s2) * qnorm(1- E_p_t / p)
-
+  # sqrt(1 + s2) * qnorm(1- E_p_t / p)
+  sqrt(1 + s2) * qnorm(E_p_t / p)
 }
 
 
-get_n0_t02 <- function(d, p, p_star) {
+get_n0_t02 <- function(d, p, p0) {
   
-  E_p_t <- p_star[1]
-  V_p_t <- min(p_star[2], floor(2 * p / 3))
+  E_p_t <- p0[1]
+  V_p_t <- min(p0[2], floor(2 * p / 3))
 
   dn <- 1e-6
   up <- 1e5
@@ -296,7 +296,8 @@ get_n0_t02 <- function(d, p, p_star) {
   
   # n0 sets the level of sparsity.
   n0 <- get_mu(E_p_t, t02, p)
-  n0 <- rep(-n0, d)
+  n0 <- rep(n0, d)
+  # n0 <- rep(-n0, d)
   
   create_named_list_(n0, t02)
 }

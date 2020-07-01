@@ -101,21 +101,6 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
 }
 
 
-# Internal function implementing sanity checks and needed preprocessing for
-# argument p0 before the application of the different `epispot_*_core` algorithms.
-#
-convert_p0_ <- function(p0, p, list_blocks, verbose, eps = .Machine$double.eps^0.5) {
-
-    check_structure_(p0, "vector", "numeric", 2)
-    check_positive_(p0) # first term = expected number of predictors per response
-                           # second term = variance of this number
-    p_star <- p0
-
-  p_star
-}
-
-
-
 check_annealing_ <- function(anneal, maxit) {
 
   check_structure_(anneal, "vector", "numeric", 3, null_ok = TRUE)
@@ -147,7 +132,7 @@ check_annealing_ <- function(anneal, maxit) {
 # model hyperparameters before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x, 
+prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, bool_rmvd_x, 
                                 bool_rmvd_v, names_x, names_y, verbose) {
 
   d <- ncol(Y)
@@ -156,7 +141,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x,
 
     if (verbose) cat("list_hyper set automatically. \n")
 
-    list_hyper <- auto_set_hyper_(Y, p, p_star, r)
+    list_hyper <- auto_set_hyper_(Y, p, p0, r)
 
   } else {
 
@@ -207,7 +192,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p_star, r, bool_rmvd_x,
 # starting values before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_init_ <- function(list_init, Y, p, p_star, r,
+prepare_list_init_ <- function(list_init, Y, p, p0, r,
                                bool_rmvd_x, bool_rmvd_v, user_seed, verbose) {
 
   d <- ncol(Y)
@@ -220,7 +205,7 @@ prepare_list_init_ <- function(list_init, Y, p, p_star, r,
 
     if (verbose) cat(paste("list_init set automatically. \n", sep=""))
 
-    list_init <- auto_set_init_(Y, p, p_star, r, user_seed)
+    list_init <- auto_set_init_(Y, p, p0, r, user_seed)
 
   } else {
 

@@ -222,7 +222,7 @@ set_hyper <- function(d, p, r, lambda, nu, eta, kappa, n0, t02) {
 # Internal function setting default model hyperparameters when not provided by
 # the user.
 #
-auto_set_hyper_ <- function(Y, p, p_star, r) {
+auto_set_hyper_ <- function(Y, p, p0, r) {
   
   d <- ncol(Y)
   
@@ -241,8 +241,8 @@ auto_set_hyper_ <- function(Y, p, p_star, r) {
   kappa <- rep(1, d)
   check_positive_(kappa)
   
-  E_p_t <- p_star[1]
-  V_p_t <- p_star[2]
+  E_p_t <- p0[1]
+  V_p_t <- p0[2]
   
   dn <- 1e-6
   up <- 1e5
@@ -263,7 +263,8 @@ auto_set_hyper_ <- function(Y, p, p_star, r) {
   check_positive_(t02)
   
   # n0 sets the level of sparsity.
-  n0 <- - get_mu(E_p_t, t02, p)
+  # n0 <- - get_mu(E_p_t, t02, p)
+  n0 <- get_mu(E_p_t, t02, p)
   n0 <- rep(n0, d)
   
   d_hyper <- d
@@ -490,7 +491,7 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau
 
 # Internal function setting default starting values when not provided by the user.
 #
-auto_set_init_ <- function(Y, p, p_star, r, user_seed) {
+auto_set_init_ <- function(Y, p, p0, r, user_seed) {
   
   # Initialisation not modified for dual = TRUE (should not matter, but maybe change this) ### TODO
   
@@ -499,8 +500,8 @@ auto_set_init_ <- function(Y, p, p_star, r, user_seed) {
   if (!is.null(user_seed)) set.seed(user_seed)
   
   
-  E_p_t <- p_star[1]
-  V_p_t <- p_star[2]
+  E_p_t <- p0[1]
+  V_p_t <- p0[2]
   
   dn <- 1e-6
   up <- 1e5
@@ -522,8 +523,9 @@ auto_set_init_ <- function(Y, p, p_star, r, user_seed) {
   check_positive_(t02)
   
   # n0 sets the level of sparsity.
-  n0 <- - get_mu(E_p_t, t02, p)
-  
+  # n0 <- - get_mu(E_p_t, t02, p)
+  n0 <- get_mu(E_p_t, t02, p)
+
   s02 <- 1 / d
   check_positive_(s02)
   
