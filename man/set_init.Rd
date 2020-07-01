@@ -4,16 +4,7 @@
 \alias{set_init}
 \title{Gather initial variational parameters provided by the user.}
 \usage{
-set_init(
-  d,
-  p,
-  gam_vb,
-  mu_beta_vb,
-  sig2_beta_vb,
-  tau_vb,
-  sig2_inv_vb = NULL,
-  G = NULL
-)
+set_init(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau_vb)
 }
 \arguments{
 \item{d}{Number of responses.}
@@ -35,14 +26,6 @@ standardized before the variational algorithm).}
 
 \item{tau_vb}{Vector of length d with initial values for the variational parameter
 yielding estimates for the continuous response residual precisions.}
-
-\item{sig2_inv_vb}{Initial parameters necessary when \code{G} is
-non-\code{NULL}. Its inverse square root corresponds to the typical size of
-non-zero effects. Must be \code{NULL} if \code{G} is \code{NULL}.}
-
-\item{G}{Number of candidate predictor groups when using the group selection
-model from the \code{\link{epispot}} function. Default is \code{NULL},
-for no group selection.}
 }
 \value{
 An object of class "\code{init}" preparing user initial values for
@@ -123,12 +106,12 @@ sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / tau_vb)
 list_init_g <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
                         link = "identity")
 
-# We take p0_av = p0 (known here); this choice may result in variable
+# We take p0 = p0 (known here); this choice may result in variable
 # selections that are (too) conservative in some cases. In practice, it is
-# advised to set p0_av as a slightly overestimated guess of p0, or perform
+# advised to set p0 as a slightly overestimated guess of p0, or perform
 # cross-validation using function `set_cv'.
 
-vb_g <- epispot(Y = Y, X = X, p0_av = p0, link = "identity",
+vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
               list_init = list_init_g)
 
 # With covariates
@@ -141,7 +124,7 @@ list_init_g_z <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
                           mu_alpha_vb = mu_alpha_vb,
                           sig2_alpha_vb = sig2_alpha_vb)
 
-vb_g_z <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, link = "identity",
+vb_g_z <- epispot(Y = Y, X = X, p0 = p0, Z = Z, link = "identity",
                 list_init = list_init_g_z)
 
 ## Binary responses
@@ -155,7 +138,7 @@ list_init_logit <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb_logit,
                             mu_alpha_vb = mu_alpha_vb,
                             sig2_alpha_vb = sig2_alpha_vb)
 
-vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
+vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
                   list_init = list_init_logit)
 
 sig2_alpha_vb_probit <- sig2_alpha_vb[, 1]
@@ -165,7 +148,7 @@ list_init_probit <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb_probit,
                              mu_alpha_vb = mu_alpha_vb,
                              sig2_alpha_vb = sig2_alpha_vb_probit)
 
-vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
+vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
                    list_init = list_init_probit)
 
 ## Mix of continuous and binary responses
@@ -188,7 +171,7 @@ list_init_mix <- set_init(2*d, p, gam_vb_mix, mu_beta_vb_mix,
                           mu_alpha_vb = mu_alpha_vb_mix,
                           sig2_alpha_vb = sig2_alpha_vb_mix)
 
-vb_mix <- epispot(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
+vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
                 ind_bin = ind_bin, list_init = list_init_mix)
 
 }

@@ -4,28 +4,15 @@
 \alias{set_hyper}
 \title{Gather model hyperparameters provided by the user.}
 \usage{
-set_hyper(
-  d,
-  p,
-  lambda,
-  nu,
-  a,
-  b,
-  eta,
-  kappa,
-  r = NULL,
-  m0 = NULL,
-  n0 = NULL,
-  s02 = NULL,
-  s2 = NULL,
-  t02 = NULL,
-  G = NULL
-)
+set_hyper(d, p, r, lambda, nu, eta, kappa, n0, t02)
 }
 \arguments{
 \item{d}{Number of responses.}
 
 \item{p}{Number of candidate predictors.}
+
+\item{r}{Number of variables representing external information on the
+candidate predictors. Default is \code{NULL}, for \code{V} \code{NULL}.}
 
 \item{lambda}{Vector of length 1 providing the values of hyperparameter
 \eqn{\lambda} for the prior distribution of \eqn{\sigma^{-2}}. \eqn{\sigma}
@@ -34,16 +21,6 @@ represents the typical size of nonzero effects.}
 \item{nu}{Vector of length 1 providing the values of hyperparameter \eqn{\nu}
 for the prior distribution of \eqn{\sigma^{-2}}. \eqn{\sigma} represents
 the typical size of nonzero effects.}
-
-\item{a}{Vector of length 1 or p providing the values of hyperparameter
-\eqn{a} for the prior distributions for the proportion of responses
-associated with each candidate predictor, \eqn{\omega} (vector of length p).
-If of length 1, the provided value is repeated p times.}
-
-\item{b}{Vector of length 1 or p providing the values of hyperparameter
-\eqn{b} for the prior distributions for the proportion of responses
-associated with each candidate predictor, \eqn{\omega} (vector of length p).
-If of length 1, the provided value is repeated p times.}
 
 \item{eta}{Vector of length 1 or d. Provides the values of
 hyperparameter \eqn{\eta} for the prior distributions of the continuous
@@ -55,24 +32,25 @@ value is repeated d times.}
 precisions, \eqn{\tau}. If of length 1, the provided value is repeated d 
 times.}
 
-\item{r}{Number of variables representing external information on the
-candidate predictors. Default is \code{NULL}, for \code{V} \code{NULL}.}
-
-\item{m0}{Vector of length 1 or p. Hyperparameter when \code{V}. Default is \code{NULL}.}
-
 \item{n0}{Vector of length 1 or d.}
+
+\item{t02}{Variance hyperparameter.}
+
+\item{a}{Vector of length 1 or p providing the values of hyperparameter
+\eqn{a} for the prior distributions for the proportion of responses
+associated with each candidate predictor, \eqn{\omega} (vector of length p).
+If of length 1, the provided value is repeated p times.}
+
+\item{b}{Vector of length 1 or p providing the values of hyperparameter
+\eqn{b} for the prior distributions for the proportion of responses
+associated with each candidate predictor, \eqn{\omega} (vector of length p).
+If of length 1, the provided value is repeated p times.}
 
 \item{s02}{Variance hyperparameter when \code{V} is 
 non-\code{NULL} non-\code{NULL}. Default is \code{NULL}.}
 
 \item{s2}{Variance hyperparameter when \code{V} is non-\code{NULL}
 non-\code{NULL}. Default is \code{NULL}.}
-
-\item{t02}{Variance hyperparameter.}
-
-\item{G}{Number of candidate predictor groups when using the group selection
-model from the \code{\link{epispot}} function. Default is \code{NULL},
-for no group selection.}
 }
 \value{
 An object of class "\code{hyper}" preparing user hyperparameter in a
@@ -152,12 +130,12 @@ list_hyper_g <- set_hyper(d, p, lambda = 1, nu = 1, a = 1, b = 4*d-1,
                           eta = 1, kappa = apply(Y, 2, var),
                           link = "identity")
 
-# We take p0_av = p0 (known here); this choice may result in variable
+# We take p0 = p0 (known here); this choice may result in variable
 # selections that are (too) conservative in some cases. In practice, it is
-# advised to set p0_av as a slightly overestimated guess of p0, or perform
+# advised to set p0 as a slightly overestimated guess of p0, or perform
 # cross-validation using function `set_cv'.
 
-vb_g <- epispot(Y = Y, X = X, p0_av = p0, link = "identity",
+vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
               list_hyper = list_hyper_g, user_seed = seed)
 
 # With covariates
@@ -166,7 +144,7 @@ list_hyper_g_z <- set_hyper(d, p, lambda = 1, nu = 1, a = 1, b = 4*d-1,
                             eta = 1, kappa = apply(Y, 2, var),
                             link = "identity", q = q, phi = 1, xi = 1)
 
-vb_g_z <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, link = "identity",
+vb_g_z <- epispot(Y = Y, X = X, p0 = p0, Z = Z, link = "identity",
                 list_hyper = list_hyper_g_z, user_seed = seed)
 
 
@@ -177,7 +155,7 @@ list_hyper_g_v <- set_hyper(d, p, lambda = 1, nu = 1, a = NULL, b = NULL,
                             link = "identity", r = r, m0 = 0, s02 = 0.1,
                             s2 = 0.001)
 
-vb_g_v <- epispot(Y = Y, X = X, p0_av = p0,  V = V, link = "identity",
+vb_g_v <- epispot(Y = Y, X = X, p0 = p0,  V = V, link = "identity",
                 list_hyper = list_hyper_g_v, user_seed = seed)
 
 ## Binary responses
@@ -186,14 +164,14 @@ list_hyper_logit <- set_hyper(d, p, lambda = 1, nu = 1, a = 1, b = 4*d-1,
                               eta = NULL, kappa = NULL, link = "logit",
                               q = q, phi = 1, xi = 1)
 
-vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
+vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
                   list_hyper = list_hyper_logit, user_seed = seed)
 
 list_hyper_probit <- set_hyper(d, p, lambda = 1, nu = 1, a = 1, b = 4*d-1,
                                eta = NULL, kappa = NULL, link = "probit",
                                q = q, phi = 1, xi = 1)
 
-vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
+vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
                    list_hyper = list_hyper_probit, user_seed = seed)
 
 
@@ -206,7 +184,7 @@ list_hyper_mix <- set_hyper(2*d, p, lambda = 1, nu = 1, a = 1, b = 8*d-1,
                             eta = 1, kappa = apply(Y, 2, var), link = "mix",
                             ind_bin = ind_bin, q = q, phi = 1, xi = 1)
 
-vb_mix <- epispot(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
+vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
                 ind_bin = ind_bin, list_hyper = list_hyper_mix,
                 user_seed = seed)
 

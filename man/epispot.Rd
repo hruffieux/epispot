@@ -7,14 +7,11 @@
 epispot(
   Y,
   X,
-  p0_av,
-  V = NULL,
-  s02 = 1/ncol(Y),
-  s2 = NULL,
-  om = NULL,
+  p0,
+  V,
+  list_blocks = NULL,
   list_hyper = NULL,
   list_init = NULL,
-  list_blocks = NULL,
   user_seed = NULL,
   tol = 0.001,
   adaptive_tol_em = FALSE,
@@ -33,23 +30,20 @@ samples and d is the number of response variables.}
 \item{X}{Input matrix of dimension n x p, where p is the number of candidate
 predictors. \code{X} cannot contain NAs. No intercept must be supplied.}
 
-\item{p0_av}{Vector of size 2 whose arguments are the expectation and the
-variance of the number of active predictors per response.
-Must be \code{NULL} if \code{list_init} and \code{list_hyper}
-are both non-\code{NULL}.}
+\item{p0}{Vector of size 2 whose entries are the prior expectation and 
+variance of the number of predictors associated with each response.
+Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
+non-\code{NULL}.}
 
 \item{V}{Annotation matrix of dimension p x r, where r is the number of
 variables representing external information on the candidate predictors
 which may make their selection more or less likely. \code{NULL} if no such
 information.}
 
-\item{s02}{Variance hyperparameter informing the proportion of active 
-responses per active predictor (degree of pleiotropy in a genetic context).}
-
-\item{s2}{Variance hyperparameter for the annotation spike-and-slab.}
-
-\item{om}{Initial value for the annotation inclusion probabilities (of size
-r or 1, in which case repeated).}
+\item{list_blocks}{An object of class "\code{blocks}" containing settings for
+parallel inference on a partitioned predictor space. Must be filled using
+the \code{\link{set_blocks}} function or must be \code{NULL} for no
+partitioning.}
 
 \item{list_hyper}{An object of class "\code{hyper}" containing the model
 hyperparameters. Must be filled using the \code{\link{set_hyper}}
@@ -58,11 +52,6 @@ function or must be \code{NULL} for default hyperparameters.}
 \item{list_init}{An object of class "\code{init}" containing the initial
 variational parameters. Must be filled using the \code{\link{set_init}}
 function or be \code{NULL} for a default initialization.}
-
-\item{list_blocks}{An object of class "\code{blocks}" containing settings for
-parallel inference on a partitioned predictor space. Must be filled using
-the \code{\link{set_blocks}} function or must be \code{NULL} for no
-partitioning.}
 
 \item{user_seed}{Seed set for reproducible default choices of hyperparameters
 (if \code{list_hyper} is \code{NULL}) and initial variational parameters
@@ -110,7 +99,7 @@ An object of class "\code{vb}" containing the following variational
  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
                     theta. Entry s corresponds to the propensity of candidate
                     predictor s to be included in the model.}
- \item{om_vb}{Vector of length p containing the posterior mean of omega.
+ \item{om}{Vector of length p containing the posterior mean of omega.
               Entry s controls the proportion of responses associated with
               candidate predictor s. NULL if \code{V} is non-\code{NULL}.}
  \item{zeta_vb}{Posterior inclusion probability vector of size r for the
@@ -123,7 +112,7 @@ An object of class "\code{vb}" containing the following variational
  \item{diff_lb}{Difference in ELBO between the last and penultimate
                 iterations. This may be a useful diagnostic information when
                 convergence has not been reached before \code{maxit}.}
- \item{p_star}{Vector of length 1 or p defining the applied sparsity control.}
+ \item{p0}{Vector of length 2 defining the applied sparsity control.}
  \item{rmvd_cst_x}{Vectors containing the indices of constant
                                variables in \code{X} removed
                                prior to the analysis.}
@@ -218,24 +207,24 @@ V[bool_x_act, ] <- rnorm(p0 * r, mean = 2)
 
 # No covariate
 #
-vb_g <- epispot(Y = Y, X = X, p0_av = p0, link = "identity", user_seed = seed)
+vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity", user_seed = seed)
 
 # With covariates
 #
-vb_g_z <- epispot(Y = Y, X = X, p0_av = p0,  Z = Z, link = "identity",
+vb_g_z <- epispot(Y = Y, X = X, p0 = p0,  Z = Z, link = "identity",
                 user_seed = seed)
 
 # With external annotation variables
 #
-vb_g_v <- epispot(Y = Y, X = X, p0_av = p0, Z = Z, V = V, s2 = 0.1, 
+vb_g_v <- epispot(Y = Y, X = X, p0 = p0, Z = Z, V = V, s2 = 0.1, 
                   link = "identity", user_seed = seed)
 
 ## Binary responses
 ##
-vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "logit",
+vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
                   user_seed = seed)
 
-vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
+vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
                    user_seed = seed)
 
 ## Mix of continuous and binary responses
@@ -243,7 +232,7 @@ vb_probit <- epispot(Y = Y_bin, X = X, p0_av = p0, Z = Z, link = "probit",
 Y_mix <- cbind(Y, Y_bin)
 ind_bin <- (d+1):(2*d)
 
-vb_mix <- epispot(Y = Y_mix, X = X, p0_av = p0, Z = Z, link = "mix",
+vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
                 ind_bin = ind_bin, user_seed = seed)
 
 }

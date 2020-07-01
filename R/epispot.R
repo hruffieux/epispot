@@ -251,6 +251,11 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
     
     list_blocks <- prepare_blocks_(list_blocks, d, bool_rmvd_x)
     
+    if (!is.null(list_blocks$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
+                                             # we group them prior to the analysis and ungroup them after the run in epispot.R
+      Y <- Y[, list_blocks$order_y_ids, drop = FALSE]
+    }
+    
     n_bl_x <- list_blocks$n_bl_x
     n_bl_y <- list_blocks$n_bl_y
     
@@ -290,22 +295,21 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
   
   
   if (verbose) cat("== Preparing the hyperparameters ... \n\n")
-  
-  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p0, r,
+
+  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p0, r, list_blocks,
                                     bool_rmvd_x, bool_rmvd_v, 
                                     names_x, names_y, verbose)
   
+
   if (verbose) cat("... done. == \n\n")
   
   if (verbose) cat("== Preparing the parameter initialization ... \n\n")
   
-  list_init <- prepare_list_init_(list_init, Y, p, p0, r, 
-                                  bool_rmvd_x, bool_rmvd_v, user_seed, verbose)
+  list_init <- prepare_list_init_(list_init, Y, p, p0, r, list_blocks,
+                                  bool_rmvd_x, bool_rmvd_v, 
+                                  user_seed, verbose)
   
   if (verbose) cat("... done. == \n\n")
-  
-  nr <- is.null(r)
-  
   
   if (verbose){
     cat(paste("============================================================== \n",
@@ -332,32 +336,26 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
     split_bl_mat_x_ <- function(bl_x) {
       
       X_bl <- X[, list_pos_bl_x[[bl_x]], drop = FALSE]
+
+      V_bl <- scale(V[list_pos_bl_x[[bl_x]],, drop = FALSE]) # we will assume that it is scaled in the algo
       
-      if (!nr) {
-        V_bl <- scale(V[list_pos_bl_x[[bl_x]],, drop = FALSE]) # we will assume that it is scaled in the algo
-        
-        list_V_bl_cst <- rm_constant_(V_bl, verbose = FALSE)
-        V_bl <- list_V_bl_cst$mat
-        bool_cst_v_bl <- list_V_bl_cst$bool_cst
-        rmvd_cst_v_bl <- list_V_bl_cst$rmvd_cst
-        
-        list_V_bl_coll <- rm_collinear_(V_bl, verbose = FALSE)
-        V_bl <- list_V_bl_coll$mat
-        r <- ncol(V_bl)
-        bool_coll_v_bl <- list_V_bl_coll$bool_coll
-        rmvd_coll_v_bl <- list_V_bl_coll$rmvd_coll
-        
-        bool_rmvd_v_bl <- bool_cst_v_bl
-        bool_rmvd_v_bl[!bool_cst_v_bl] <- bool_coll_v_bl
-        
-        if (sum(!bool_rmvd_v_bl) == 0)
-          stop(paste("There exist one or more blocks for which no non-constant ",
-                     "annotation variables remain. Try to use less blocks.", sep = ""))
-      } else {
-        
-        V_bl <- bool_rmvd_v_bl <- rmvd_cst_v_bl <- rmvd_coll_v_bl <- NULL
-        
-      }
+      list_V_bl_cst <- rm_constant_(V_bl, verbose = FALSE)
+      V_bl <- list_V_bl_cst$mat
+      bool_cst_v_bl <- list_V_bl_cst$bool_cst
+      rmvd_cst_v_bl <- list_V_bl_cst$rmvd_cst
+      
+      list_V_bl_coll <- rm_collinear_(V_bl, verbose = FALSE)
+      V_bl <- list_V_bl_coll$mat
+      r <- ncol(V_bl)
+      bool_coll_v_bl <- list_V_bl_coll$bool_coll
+      rmvd_coll_v_bl <- list_V_bl_coll$rmvd_coll
+      
+      bool_rmvd_v_bl <- bool_cst_v_bl
+      bool_rmvd_v_bl[!bool_cst_v_bl] <- bool_coll_v_bl
+      
+      if (sum(!bool_rmvd_v_bl) == 0)
+        stop(paste("There exist one or more blocks for which no non-constant ",
+                   "annotation variables remain. Try to use less blocks.", sep = ""))
       
       
       create_named_list_(X_bl, V_bl, bool_rmvd_v_bl, rmvd_cst_v_bl, rmvd_coll_v_bl)
@@ -451,7 +449,7 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
         
       }
       
-      if (!nr) list_init_bl$mu_c_vb <- list_init_bl$mu_c_vb[!bool_rmvd_v_bl,, drop = FALSE]
+      list_init_bl$mu_c_vb <- list_init_bl$mu_c_vb[!bool_rmvd_v_bl,, drop = FALSE]
       
       # adjust the sparsity level w.r.t. the blocks size
       
@@ -472,11 +470,11 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
                                             tol, maxit, anneal, anneal_vb_em, verbose = TRUE,
                                             adaptive_tol_em = adaptive_tol_em)
       
-      if (!nr) {
-        vb_bl$rmvd_cst_v <- rmvd_cst_v_bl
-        vb_bl$rmvd_coll_v <- rmvd_coll_v_bl
-        vb_bl$V_bl <- V_bl
-      }
+  
+      vb_bl$rmvd_cst_v <- rmvd_cst_v_bl
+      vb_bl$rmvd_coll_v <- rmvd_coll_v_bl
+      vb_bl$V_bl <- V_bl
+
       
       vb_bl
     }
@@ -497,7 +495,7 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
       
       list_init$s02 <- sapply(list_vb, `[[`, "s02")
       rownames(list_init$s02) <- paste0("Cov_", 1:p)
-      colnames(list_init$s02) <- paste0("Module_", 1:n_bl_y)
+      colnames(list_init$s02) <- list_blocks$module_names
       
       list_init$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), nrow = n_bl_x, byrow = TRUE)  # now it is a matrix with the s2 corresponding to each predicor block (rows) and modules
       
@@ -562,8 +560,40 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
     vb$rmvd_coll_v <- dat$rmvd_coll_v
   }
   
-  if (save_hyper) vb$list_hyper <- list_hyper
-  if (save_init) vb$list_init <- list_init
+  if (!is.null(list_blocks$undo_order_y_ids)) {# for the case where modules are provided and responses are not grouped per module
+                                               # we have grouped them prior to the analysis and ungroup them here after the run in epispot.R
+    
+    Y <- Y[, list_blocks$undo_order_y_ids, drop = FALSE]
+    
+    vb$mu_beta_vb <- vb$mu_beta_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
+    vb$gam_vb <- vb$gam_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
+    vb$mu_rho_vb <- vb$mu_rho_vb[list_blocks$undo_order_y_ids]
+    
+  }
+  
+  if (save_hyper) {
+    
+    if (!is.null(list_blocks$undo_order_y_ids)) { 
+      list_hyper$eta <- list_hyper$eta[list_blocks$undo_order_y_ids]
+      list_hyper$kappa <- list_hyper$kappa[list_blocks$undo_order_y_ids]
+      list_hyper$n0 <- list_hyper$n0[list_blocks$undo_order_y_ids]
+    }
+    
+    vb$list_hyper <- list_hyper
+  }
+  if (save_init) {
+    
+    if (!is.null(list_blocks$undo_order_y_ids)) { 
+      
+      list_init$gam_vb <- list_init$gam_vb[, list_blocks$undo_order_y_ids, drop = FALSE]
+      list_init$mu_beta_vb <- list_init$mu_beta_vb[, list_blocks$undo_order_y_ids, drop = FALSE]
+      list_init$sig2_beta_vb <- list_init$sig2_beta_vb[list_blocks$undo_order_y_ids]
+      
+    }
+    
+    vb$list_init <- list_init
+    
+  }
   
   class(vb) <- "epispot"
   

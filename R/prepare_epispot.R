@@ -132,7 +132,7 @@ check_annealing_ <- function(anneal, maxit) {
 # model hyperparameters before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, bool_rmvd_x, 
+prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, list_blocks, bool_rmvd_x, 
                                 bool_rmvd_v, names_x, names_y, verbose) {
 
   d <- ncol(Y)
@@ -173,12 +173,24 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, bool_rmvd_x,
     if (list_hyper$r_hyper != r_hyper_match)
       stop(paste("The dimensions of the provided hyperparameters ",
                  "(list_hyper) are not consistent with that of V.", sep=""))
-
+    
+    if (!is.null(list_blocks$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
+                                             # we group them prior to the analysis and ungroup them after the run in epispot.R
+      
+      list_hyper$eta <- list_hyper$eta[list_blocks$order_y_ids]
+      list_hyper$kappa <- list_hyper$kappa[list_blocks$order_y_ids]
+      list_hyper$n0 <- list_hyper$n0[list_blocks$order_y_ids]
+      
+    }
+    
     if (!is.null(names(list_hyper$eta)) && names(list_hyper$eta) != names_y)
       stop("Provided names for the entries of eta do not match the colnames of the continuous variables in Y")
 
     if (!is.null(names(list_hyper$kappa)) && names(list_hyper$kappa) != names_y)
       stop("Provided names for the entries of kappa do not match the colnames of the continuous variables in Y")
+    
+    if (!is.null(names(list_hyper$n0)) && names(list_hyper$n0) != names_y)
+      stop("Provided names for the entries of n0 do not match the colnames of the continuous variables in Y")
 
   }
 
@@ -192,7 +204,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, r, bool_rmvd_x,
 # starting values before the application of the different `epispot_*_core`
 # algorithms.
 #
-prepare_list_init_ <- function(list_init, Y, p, p0, r,
+prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
                                bool_rmvd_x, bool_rmvd_v, user_seed, verbose) {
 
   d <- ncol(Y)
@@ -241,6 +253,16 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r,
       stop(paste("The dimensions (r) of the provided initial parameters ",
                  "(list_init) are not consistent with that of V.\n", sep=""))
 
+    
+    if (!is.null(list_blocks$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
+                                             # we group them prior to the analysis and ungroup them after the run in epispot.R
+      
+      list_init$gam_vb <- list_init$gam_vb[, list_blocks$order_y_ids, drop = FALSE]
+      list_init$mu_beta_vb <- list_init$mu_beta_vb[, list_blocks$order_y_ids, drop = FALSE]
+      list_init$sig2_beta_vb <- list_init$sig2_beta_vb[list_blocks$order_y_ids]
+      
+    }
+    
     if (inherits(list_init, "init")) {
 
       list_init$gam_vb <- list_init$gam_vb[!bool_rmvd_x,, drop = FALSE]
@@ -264,14 +286,43 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r,
 #
 prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
 
-  if (!inherits(list_blocks, "blocks"))
-    stop(paste("The provided list_blocks must be an object of class ``blocks''. \n",
+  p <- length(bool_rmvd_x)
+  
+  if (inherits(list_blocks, "modules")) {
+    
+    if (list_blocks$d_modules != d) {
+      stop("The number of responses provided to set_modules does not match that in Y. Exit.")
+    }
+    
+    order_y_ids <- list_blocks$order_y_ids
+    undo_order_y_ids <- list_blocks$undo_order_y_ids
+    module_names <- list_blocks$module_names
+    
+    list_blocks <- set_blocks(c(length(bool_rmvd_x), d), 
+                              list(1, list_blocks$pos_modules), 
+                              n_cpus = n_cpus) 
+    
+  } else if (inherits(list_blocks, "blocks")) {
+    
+    order_y_ids <- undo_order_y_ids <- NULL
+    
+    if (list_blocks$bl_y$n_bl > 1) {
+      module_names <- paste0("Module_", 1:list_blocks$bl_y$n_bl)
+    } else {
+      module_names <- NULL
+    }
+
+    
+  } else {
+    
+    stop(paste0("The provided list_blocks must be an object of class ``blocks'' or ``modules''. \n",
                "*** you must either use the function set_blocks to give the settings ",
                "for parallels applications of epispot on blocks of candidate ",
                "predictors or set list_blocks to NULL to apply epispot jointly on ",
-               "all the candidate predictors (sufficient RAM required). ***",
-               sep=""))
-
+               "all the candidate predictors (sufficient RAM required). ***"))
+    
+  }
+  
   if (!is.null(list_blocks$bl_y)) {
     
     if (list_blocks$bl_x$n_var_blocks != length(bool_rmvd_x))
@@ -317,7 +368,8 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
     n_cpus <- list_blocks$n_cpus
   }
 
-  create_named_list_(n_bl_x, n_bl_y, n_cpus, vec_fac_bl_x, vec_fac_bl_y)
+  create_named_list_(n_bl_x, n_bl_y, n_cpus, vec_fac_bl_x, vec_fac_bl_y,
+                     order_y_ids, undo_order_y_ids, module_names)
 
 }
 
@@ -388,7 +440,7 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
 #' vb <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
 #'             list_blocks = list_blocks, user_seed = seed)
 #'
-#' @seealso \code{\link{epispot}}
+#' @seealso \code{\link{epispot}, \link{set_modules}}
 #'
 #' @export
 set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
@@ -464,7 +516,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
     }
     
     if (verbose) cat(paste("epispot applied in parallel on ", tot_n_bl,
-                           " blocks, using ", n_cpus, " CPUs.\n",
+                           " blocks or modules, using ", n_cpus, " CPUs.\n",
                            "Please make sure that enough RAM is available. \n", sep=""))
   }
   
@@ -474,3 +526,117 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 
   list_blocks
 }
+
+#' Wrapper of set_blocks to specifically define module partitions.
+#'
+#' Parallel applications of the method on blocks of candidate predictors for
+#' large datasets allows faster and less RAM-greedy executions.
+#'
+#' @param tot Number of candidate predictors (vector of size 1), and followed 
+#'   optionally by the number of responses (vector of size 2).
+#' @param pos_bl Vector gathering the predictor block positions (first index of
+#'   each block), or list gathering the predictor block positions and response
+#'   block positions.
+#' @param n_cpus Number of CPUs to be used. If large, one should ensure that
+#'   enough RAM will be available for parallel execution. Set to 1 for serial
+#'   execution.
+#' @param verbose If \code{TRUE}, messages are displayed when calling
+#'   \code{set_blocks}.
+#'
+#' @return An object of class "\code{blocks}" preparing the settings for parallel
+#'   inference in a form that can be passed to the \code{\link{epispot}}
+#'   function.
+#'
+#' @examples
+#'
+#'@seealso \code{\link{epispot}, \link{set_blocks}}
+#'
+#' @export
+set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
+  
+  check_structure_(module_ids, "vector", "numeric")
+  
+  tb_module_ids <- table(module_ids)
+  if(any(tb_module_ids < 10)) {
+    stop("Modules with size < 10 are not accepted as may induce unstable inference. Exit.")
+  }
+  
+  n_modules <- length(tb_module_ids)
+  d_modules <- length(module_ids)
+  
+  if (is.null(module_map)) {
+    
+    module_names <- paste0("Module_", 1:n_modules)
+    
+  } else {
+    if (length(module_map) != n_modules) {
+      stop("The number of module names provided does not match the number of modules. Exit.")
+    }
+    
+    sorted_module_map <- sort(module_map)
+    
+    if (sorted_module_map != sort(unique(module_ids))) {
+      stop("The module map is inconsistent with the modules provided. Exit.")
+    }
+
+    module_names <- names(sorted_module_map)
+    
+  }
+            
+  order_y_ids <- order(module_ids)
+  if (order_y_ids == 1:d_modules) { # already in the correct order.
+    order_y_ids <- undo_order_y_ids <- NULL
+  } else {
+    undo_order_y_ids <- match(module_ids, module_ids[order_y_ids])
+  }
+
+  pos_modules <- c(1, cumsum(tb_module_ids[-n_modules]) + 1)
+  
+  list_modules <- create_named_list_(order_y_ids, undo_order_y_ids, d_modules, pos_modules, 
+                                     module_names, n_modules, n_cpus)
+  class(list_modules) <- "modules"
+  
+  list_modules
+  
+  # if (bool_modules & length(list_modules) > 1) {
+  #   
+  #   if (!is.null(dim(list_modules[[1]]))) {
+  #     candidate_transcripts_ordered_by_modules <- unlist(lapply(list_modules, "[[", "Probe_Id"))
+  #     names(candidate_transcripts_ordered_by_modules) <- NULL
+  #     
+  #     # not all transcripts from candidate_transcripts_ordered_by_modules are in transcripts as some were removed because non-varying
+  #     #
+  #     transcripts <- transcripts[, colnames(transcripts) %in% candidate_transcripts_ordered_by_modules] 
+  #     list_transcripts_modules <- lapply(list_modules, function(mm) mm$Probe_Id[mm$Probe_Id %in% colnames(transcripts)])
+  #     
+  #   } else {
+  #     
+  #     candidate_transcripts_ordered_by_modules <- unlist(list_modules)
+  #     
+  #     transcripts <- transcripts[, colnames(transcripts) %in% candidate_transcripts_ordered_by_modules] 
+  #     list_transcripts_modules <- lapply(list_modules, function(mm) mm[mm %in% colnames(transcripts)])
+  #     
+  #   }
+  #   
+  #   n_modules <- length(list_transcripts_modules)
+  #   vec_q <- sapply(list_transcripts_modules, length)
+  #   pos_modules <- c(1, cumsum(vec_q[-n_modules]) + 1)
+  #   
+  #   q <- ncol(transcripts)
+  #   
+  #   # list to be given to the epispot function. Partition into modules. No partition of the SNPs.
+  #   #
+  #   list_partition <- set_blocks(c(p, q), list(1, pos_modules), n_cpus = n_cpus) # n_cpus used for the VBEM algo
+  #   
+  #   
+  # } else {
+  #   
+  #   list_partition <- list_transcripts_modules <- NULL
+  #   
+  # }
+  # 
+  # create_named_list(list_partition, list_transcripts_modules)
+  # 
+}
+
+

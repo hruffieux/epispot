@@ -74,10 +74,10 @@ n_bl <- 6
 pos_bl <- seq(1, p, by = ceiling(p/n_bl))
 list_blocks <- set_blocks(p, pos_bl, n_cpus = 2)
 
-vb <- epispot(Y = Y, X = X, p0_av = p0, link = "identity",
+vb <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
             list_blocks = list_blocks, user_seed = seed)
 
 }
 \seealso{
-\code{\link{epispot}}
+\code{\link{epispot}, \link{set_modules}}
 }
