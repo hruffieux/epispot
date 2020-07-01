@@ -120,11 +120,11 @@ check_annealing_ <- function(anneal, maxit) {
       stop(paste0("Temperature ladder size very large. This may be unnecessarily ",
                   "computationally demanding. Please decrease it."))
     
+    if (maxit <= anneal[3])
+      stop("The maximum number of iterations (maxit) must be strictly larger than the ladder size.")
+    
   }
   
-  if (maxit <= anneal[3])
-    stop("The maximum number of iterations (maxit) must be strictly larger than the ladder size.")
-
 }
 
 
@@ -300,7 +300,7 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
     
     list_blocks <- set_blocks(c(length(bool_rmvd_x), d), 
                               list(1, list_blocks$pos_modules), 
-                              n_cpus = n_cpus) 
+                              n_cpus = list_blocks$n_cpus) 
     
   } else if (inherits(list_blocks, "blocks")) {
     
@@ -569,6 +569,7 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
     module_names <- paste0("Module_", 1:n_modules)
     
   } else {
+    
     if (length(module_map) != n_modules) {
       stop("The number of module names provided does not match the number of modules. Exit.")
     }
@@ -584,13 +585,14 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
   }
             
   order_y_ids <- order(module_ids)
-  if (order_y_ids == 1:d_modules) { # already in the correct order.
+  if (all(order_y_ids == 1:d_modules)) { # already in the correct order.
     order_y_ids <- undo_order_y_ids <- NULL
   } else {
-    undo_order_y_ids <- match(module_ids, module_ids[order_y_ids])
+    undo_order_y_ids <- order(order_y_ids) 
   }
 
   pos_modules <- c(1, cumsum(tb_module_ids[-n_modules]) + 1)
+  names(pos_modules) <- module_names
   
   list_modules <- create_named_list_(order_y_ids, undo_order_y_ids, d_modules, pos_modules, 
                                      module_names, n_modules, n_cpus)
@@ -598,45 +600,6 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
   
   list_modules
   
-  # if (bool_modules & length(list_modules) > 1) {
-  #   
-  #   if (!is.null(dim(list_modules[[1]]))) {
-  #     candidate_transcripts_ordered_by_modules <- unlist(lapply(list_modules, "[[", "Probe_Id"))
-  #     names(candidate_transcripts_ordered_by_modules) <- NULL
-  #     
-  #     # not all transcripts from candidate_transcripts_ordered_by_modules are in transcripts as some were removed because non-varying
-  #     #
-  #     transcripts <- transcripts[, colnames(transcripts) %in% candidate_transcripts_ordered_by_modules] 
-  #     list_transcripts_modules <- lapply(list_modules, function(mm) mm$Probe_Id[mm$Probe_Id %in% colnames(transcripts)])
-  #     
-  #   } else {
-  #     
-  #     candidate_transcripts_ordered_by_modules <- unlist(list_modules)
-  #     
-  #     transcripts <- transcripts[, colnames(transcripts) %in% candidate_transcripts_ordered_by_modules] 
-  #     list_transcripts_modules <- lapply(list_modules, function(mm) mm[mm %in% colnames(transcripts)])
-  #     
-  #   }
-  #   
-  #   n_modules <- length(list_transcripts_modules)
-  #   vec_q <- sapply(list_transcripts_modules, length)
-  #   pos_modules <- c(1, cumsum(vec_q[-n_modules]) + 1)
-  #   
-  #   q <- ncol(transcripts)
-  #   
-  #   # list to be given to the epispot function. Partition into modules. No partition of the SNPs.
-  #   #
-  #   list_partition <- set_blocks(c(p, q), list(1, pos_modules), n_cpus = n_cpus) # n_cpus used for the VBEM algo
-  #   
-  #   
-  # } else {
-  #   
-  #   list_partition <- list_transcripts_modules <- NULL
-  #   
-  # }
-  # 
-  # create_named_list(list_partition, list_transcripts_modules)
-  # 
 }
 
 
