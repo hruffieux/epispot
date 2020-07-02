@@ -8,6 +8,14 @@
 prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
   
   check_structure_(user_seed, "vector", "numeric", 1, null_ok = TRUE)
+
+  if (!is.null(user_seed)) {
+    
+    if (verbose) cat(paste0("Seed set to user_seed ", user_seed,". \n"))
+    
+    set.seed(user_seed)
+    
+  }
   
   check_structure_(tol, "vector", "numeric", 1)
   check_positive_(tol, eps=.Machine$double.eps)
@@ -206,17 +214,11 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
   
   if (is.null(list_init)) {
     
-    if (!is.null(user_seed) & verbose) cat(paste("Seed set to user_seed ",
-                                                 user_seed,". \n", sep=""))
-    
     if (verbose) cat(paste("list_init set automatically. \n", sep=""))
     
     list_init <- auto_set_init_(Y, p, p0, r, user_seed)
     
   } else {
-    
-    if (!is.null(user_seed))
-      warning("user_seed not used since a non-NULL list_init was provided. \n")
     
     if (!inherits(list_init, c("init", "out_init")))
       stop(paste0("The provided list_init must be an object of class ``init'' ",
@@ -365,76 +367,11 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
   
 }
 
-#' Gather settings for parallel inference on partitioned predictor space.
-#'
-#' Parallel applications of the method on blocks of candidate predictors for
-#' large datasets allows faster and less RAM-greedy executions.
-#'
-#' @param tot Number of candidate predictors (vector of size 1), and followed 
-#'   optionally by the number of responses (vector of size 2).
-#' @param pos_bl Vector gathering the predictor block positions (first index of
-#'   each block), or list gathering the predictor block positions and response
-#'   block positions.
-#' @param n_cpus Number of CPUs to be used. If large, one should ensure that
-#'   enough RAM will be available for parallel execution. Set to 1 for serial
-#'   execution.
-#' @param verbose If \code{TRUE}, messages are displayed when calling
-#'   \code{set_blocks}.
-#'
-#' @return An object of class "\code{blocks}" preparing the settings for parallel
-#'   inference in a form that can be passed to the \code{\link{epispot}}
-#'   function.
-#'
-#' @examples
-#' seed <- 123; set.seed(seed)
-#'
-#' ###################
-#' ## Simulate data ##
-#' ###################
-#'
-#' ## Example using small problem sizes:
-#' ##
-#' n <- 200; p <- 1200; p0 <- 200; d <- 50; d0 <- 40
-#'
-#' ## Candidate predictors (subject to selection)
-#' ##
-#' # Here we simulate common genetic variants (but any type of candidate
-#' # predictors can be supplied).
-#' # 0 = homozygous, major allele, 1 = heterozygous, 2 = homozygous, minor allele
-#' #
-#' X_act <- matrix(rbinom(n * p0, size = 2, p = 0.25), nrow = n)
-#' X_inact <- matrix(rbinom(n * (p - p0), size = 2, p = 0.25), nrow = n)
-#'
-#' shuff_x_ind <- sample(p)
-#' X <- cbind(X_act, X_inact)[, shuff_x_ind]
-#'
-#' bool_x_act <- shuff_x_ind <= p0
-#'
-#' pat_act <- beta <- matrix(0, nrow = p0, ncol = d0)
-#' pat_act[sample(p0*d0, floor(p0*d0/5))] <- 1
-#' beta[as.logical(pat_act)] <-  rnorm(sum(pat_act))
-#'
-#' ## Gaussian responses
-#' ##
-#' Y_act <- matrix(rnorm(n * d0, mean = X_act %*% beta, sd = 0.5), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d0), sd = 0.5), nrow = n)
-#' shuff_y_ind <- sample(d)
-#' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
-#'
-#' ########################
-#' ## Infer associations ##
-#' ########################
-#'
-#' n_bl <- 6
-#' pos_bl <- seq(1, p, by = ceiling(p/n_bl))
-#' list_blocks <- set_blocks(p, pos_bl, n_cpus = 2)
-#'
-#' vb <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
-#'             list_blocks = list_blocks, user_seed = seed)
-#'
-#' @seealso \code{\link{epispot}, \link{set_modules}}
-#'
-#' @export
+# Internal function gathering settings for blockwise inference. The function 
+# \code{set_modules} is a wrapper of this function.  \code{set_blocks} also 
+# allows inference on partitioned predictor spaces, although this functionality
+# is not accessible to the package user.
+#
 set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
   
   check_structure_(n_cpus, "vector", "numeric", 1)
@@ -524,24 +461,86 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 #' Parallel applications of the method on blocks of candidate predictors for
 #' large datasets allows faster and less RAM-greedy executions.
 #'
-#' @param tot Number of candidate predictors (vector of size 1), and followed 
-#'   optionally by the number of responses (vector of size 2).
-#' @param pos_bl Vector gathering the predictor block positions (first index of
-#'   each block), or list gathering the predictor block positions and response
-#'   block positions.
+#'
+#'module_ids, module_map = NULL, n_cpus = 1
+#' @param module_ids Numeric vector of size the number of response variables 
+#'   which assigns each response to its corresponding module. See example below.
+#'   Each module must have size greater than 10 to avoid unstable inference. 
+#' @param module_map Vector of size the total number of modules where each value 
+#'   the provides the ids of the module as in module_ids and the names of the 
+#'   vector correspond to the desired module names. See example below. Default 
+#'   is \code{NULL} for default module names.
 #' @param n_cpus Number of CPUs to be used. If large, one should ensure that
 #'   enough RAM will be available for parallel execution. Set to 1 for serial
 #'   execution.
-#' @param verbose If \code{TRUE}, messages are displayed when calling
-#'   \code{set_blocks}.
 #'
-#' @return An object of class "\code{blocks}" preparing the settings for parallel
-#'   inference in a form that can be passed to the \code{\link{epispot}}
-#'   function.
+#' @return An object of class "\code{modules}" preparing the settings for a
+#'   parallel module-based EPISPOT run a form that can be passed to the 
+#'   \code{\link{epispot}} function.
 #'
 #' @examples
+#' seed <- 123; set.seed(seed)
 #'
-#'@seealso \code{\link{epispot}, \link{set_blocks}}
+#' ###################
+#' ## Simulate data ##
+#' ###################
+#'
+#' ## Examples using small problem sizes:
+#' ##
+#' n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+#'
+#' ## Candidate predictors (subject to selection)
+#' ##
+#' # Here example with common genetic variants under Hardy-Weinberg equilibrium
+#' #
+#' X_act <- matrix(rbinom(n * p_act, size = 2, p = 0.25), nrow = n)
+#' X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
+#'
+#' # shuffle indices 
+#' shuff_x_ind <- sample(p)
+#' shuff_y_ind <- sample(d)
+#' 
+#' X <- cbind(X_act, X_inact)[, shuff_x_ind]
+#'
+#' # Association pattern and effect sizes
+#' #
+#' pat <- matrix(FALSE, ncol = d, nrow = p)
+#' bool_x <- shuff_x_ind <= p_act
+#' bool_y <- shuff_y_ind <= d_act
+#' 
+#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
+#' pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+#' beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
+#' 
+#' pat[bool_x, bool_y] <- pat_act
+#' 
+#' # Gaussian responses
+#' #
+#' Y_act <- matrix(rnorm(n * d_act, mean = X_act %*% beta_act), nrow = n)
+#' Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+#'
+#' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
+#'
+#' # Annotation variables
+#' #
+#' V <- matrix(rnorm(p * r), nrow = p)
+#' V[bool_x, ] <- rnorm(p_act * r, mean = 2)
+#'
+#' ########################
+#' ## Infer associations ##
+#' ########################
+#'
+#' module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+#' 
+#' module_names <- sort(unique(module_ids))
+#' names(module_names) <- paste0("m_", 1:length(unique(module_ids)))
+#' 
+#' list_modules <- set_modules(module_ids, module_names, n_cpus = 1)
+#' 
+#' vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_blocks = list_modules,
+#'                 user_seed = seed)
+#'
+#'@seealso \code{\link{epispot}}.
 #'
 #' @export
 set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {

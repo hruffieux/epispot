@@ -22,17 +22,20 @@
 #'
 #'
 #' @param Y Response data matrix of dimension n x d, where n is the number of
-#'   samples and d is the number of response variables.
+#'   samples and d is the number of response variables; Y is centred prior to 
+#'   the run.
 #' @param X Input matrix of dimension n x p, where p is the number of candidate
-#'   predictors. \code{X} cannot contain NAs. No intercept must be supplied.
+#'   predictors. \code{X} cannot contain NAs. No intercept must be supplied; X 
+#'   is scaled prior to the run - beware the interpretation of the regression 
+#'   estimates.
+#' @param V Annotation matrix of dimension p x r, where r is the number of
+#'   variables representing external information on the candidate predictors
+#'   which may make their selection more or less likely. V is standardised prior
+#'   to the run - beware the interpretation of the annotation effect estimates.
 #' @param p0 Vector of size 2 whose entries are the prior expectation and 
 #'   variance of the number of predictors associated with each response.
 #'   Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
 #'   non-\code{NULL}.
-#' @param V Annotation matrix of dimension p x r, where r is the number of
-#'   variables representing external information on the candidate predictors
-#'   which may make their selection more or less likely. \code{NULL} if no such
-#'   information.
 #' @param list_blocks An object of class "\code{blocks}" containing settings for
 #'   parallel inference on a partitioned predictor space. Must be filled using
 #'   the \code{\link{set_blocks}} function or must be \code{NULL} for no
@@ -152,14 +155,14 @@
 #' # Gaussian responses
 #' #
 #' Y_act <- matrix(rnorm(n * d_act, mean = X_act %*% beta_act), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (q - d_act)), nrow = n)
+#' Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
 #'
 #' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 #'
 #' # Annotation variables
 #' #
 #' V <- matrix(rnorm(p * r), nrow = p)
-#' V[bool_x_act, ] <- rnorm(p_act * r, mean = 2)
+#' V[bool_x, ] <- rnorm(p_act * r, mean = 2)
 #'
 #'
 #' ########################
@@ -173,15 +176,15 @@
 #' 
 #' # Inference without modules
 #' #
-#' res_epispot <- epispot(Y = Y, X = X, p0 = p0, V = V, user_seed = seed)
+#' res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, user_seed = seed)
 #'
 #' # Inference with modules
 #' #
 #' module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
 #' list_modules <- set_modules(module_ids, n_cpus = 1)
 #' 
-#' vb_m <- epispot(Y = Y, X = X, p0 = p0, V = V, list_blocks = list_modules,
-#'                 user_seed = seed)
+#' res_epispot_modules <- epispot(Y = Y, X = X, V = V, p0 = p0, 
+#'                                list_blocks = list_modules, user_seed = seed)
 #'
 #' @references
 #' H. Ruffieux, B. P. Fairfax, E. Vigorito, C. Walllace, S. Richardson, 
@@ -193,12 +196,11 @@
 #'
 #' @export
 #'
-epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL, 
+epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL, 
                     list_init = NULL, user_seed = NULL, tol = 1e-3, 
                     adaptive_tol_em = FALSE, maxit = 1000, anneal = NULL, 
                     anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
                     verbose = TRUE) {
-  
   
   if (verbose) cat("== Preparing the data ... \n")
   
@@ -479,10 +481,7 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
         stop("EB local scales not implemented for n_bl_x > 1. Exit")
       
       list_init$s02 <- sapply(list_vb, `[[`, "s02")
-      
-      rownames(list_init$s02) <- colnames(X)
-      colnames(list_init$s02) <- list_blocks$module_names
-      
+    
       list_init$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), 
                              nrow = n_bl_x, byrow = TRUE)  
       
@@ -517,7 +516,9 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
     if (n_bl_y > 1) {
       
       vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
-                                                   vec_fac_bl_y, list_hyper, 
+                                                   vec_fac_bl_y, 
+                                                   list_blocks$module_names,
+                                                   list_hyper, 
                                                    list_init$gam_vb, 
                                                    list_init$mu_beta_vb, 
                                                    list_init$om,
@@ -538,8 +539,6 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
                                            verbose)
       
     }
-    
-    vb$s02 <- list_init$s02
     
   }
   

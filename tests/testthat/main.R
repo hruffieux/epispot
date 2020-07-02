@@ -1,64 +1,43 @@
 rm(list = ls())
 
-set.seed(123)
+seed <- 123
+set.seed(seed)
 
 ############################
 ## simulate basic dataset ##
 ############################
 
-n <- 100; p <- 75; d <- 20; q <- 3; p0 <- 10
-
-# covariates (not subject to selection)
-Z <- matrix(rnorm(n * q), nrow = n)
-
-alpha <-  matrix(rnorm(q * d), nrow = q)
+n <- 100; p <- 75; d <- 20; p_act <- 10; r <- 10
 
 # candidate predictors (subject to selection)
-X_act <- matrix(rbinom(n * p0, size = 2, p = 0.2), nrow = n)
-X_inact <- matrix(rbinom(n * (p - p0), size = 2, p = 0.2), nrow = n)
+X_act <- matrix(rbinom(n * p_act, size = 2, p = 0.2), nrow = n)
+X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.2), nrow = n)
 X <- cbind(X_act, X_inact)[, sample(p)]
 
-beta <-  matrix(rnorm(p0 * d), nrow = p0)
+beta <-  matrix(rnorm(p_act * d), nrow = p_act)
 
 # Gaussian outcomes
-Y <- matrix(rnorm(n * d, mean = Z %*% alpha + X_act %*% beta, sd = 1), nrow = n)
-
-# Binary outcomes
-Y_bin <- ifelse(Y > 0, 1, 0)
+Y <- matrix(rnorm(n * d, mean = X_act %*% beta, sd = 1), nrow = n)
 
 # remove constant variables (needed for checking dimension consistency)
-X <- scale(X); Z <- scale(Z)
+X <- scale(X)
 rm_cst <- function(mat_sc) mat_sc[, !is.nan(colSums(mat_sc))]
 rm_coll <- function(mat_sc) mat_sc[, !duplicated(mat_sc, MARGIN = 2)]
 
-X <- rm_cst(X); Z <- rm_cst(Z)
-X <- rm_coll(X); Z <- rm_coll(Z)
+X <- rm_cst(X)
+X <- rm_coll(X)
 
-p <- ncol(X); q <- ncol(Z)
+p <- ncol(X)
 
-####################
-## epispot settings ##
-####################
-
-# hyperparameter (prior number of active predictors)
-p0_av <- p0
+V <- matrix(rnorm(p * r), nrow = p)
 
 
-#####################
-## epispot inference ##
-#####################
+#############
+## EPISPOT ##
+#############
+
+p0 <- c(5, 25)
 
 # Continuous outcomes, no covariates
 #
-vb <- epispot(Y = Y, X = X, p0_av = p0_av, link = "identity")
-
-# Continuous outcomes, with covariates
-#
-vb_z <- epispot(Y = Y, X = X, p0_av = p0_av, Z = Z, link = "identity")
-
-# Binary outcomes, no covariates
-vb_logit <- epispot(Y = Y_bin, X = X, p0_av = p0_av, link = "logit")
-
-# Binary outcomes, with covariates
-vb_logit_z <- epispot(Y = Y_bin, X = X, p0_av = p0_av, Z = Z, link = "logit")
-
+res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, user_seed = seed)

@@ -7,8 +7,8 @@
 epispot(
   Y,
   X,
-  p0,
   V,
+  p0,
   list_blocks = NULL,
   list_hyper = NULL,
   list_init = NULL,
@@ -25,20 +25,23 @@ epispot(
 }
 \arguments{
 \item{Y}{Response data matrix of dimension n x d, where n is the number of
-samples and d is the number of response variables.}
+samples and d is the number of response variables; Y is centred prior to 
+the run.}
 
 \item{X}{Input matrix of dimension n x p, where p is the number of candidate
-predictors. \code{X} cannot contain NAs. No intercept must be supplied.}
+predictors. \code{X} cannot contain NAs. No intercept must be supplied; X 
+is scaled prior to the run - beware the interpretation of the regression 
+estimates.}
+
+\item{V}{Annotation matrix of dimension p x r, where r is the number of
+variables representing external information on the candidate predictors
+which may make their selection more or less likely. V is standardised prior
+to the run - beware the interpretation of the annotation effect estimates.}
 
 \item{p0}{Vector of size 2 whose entries are the prior expectation and 
 variance of the number of predictors associated with each response.
 Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
 non-\code{NULL}.}
-
-\item{V}{Annotation matrix of dimension p x r, where r is the number of
-variables representing external information on the candidate predictors
-which may make their selection more or less likely. \code{NULL} if no such
-information.}
 
 \item{list_blocks}{An object of class "\code{blocks}" containing settings for
 parallel inference on a partitioned predictor space. Must be filled using
@@ -84,8 +87,11 @@ the inference are saved as output.}
 \item{verbose}{If \code{TRUE}, messages are displayed during execution.}
 }
 \value{
-An object of class "\code{vb}" containing the following variational
-  estimates and settings:
+An object of class "\code{epispot}" containing the following output:
+ \item{m1_beta}{Estimated effect size matrix of dimension p x q. Entry (s, t) 
+                corresponds to the variational posterior mean 
+                (mu_beta_vb_st x gam_vb_st) of the regression effect between 
+                candidate predictor s and response t.}
  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x d.
                Entry (s, t) corresponds to the posterior probability of
                association between candidate predictor s and response t.}
@@ -155,98 +161,74 @@ seed <- 123; set.seed(seed)
 
 ## Examples using small problem sizes:
 ##
-n <- 200; p <- 250; p0 <- 25; d <- 30; d0 <- 25; q <- 3; r <- 3
+n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
 
 ## Candidate predictors (subject to selection)
 ##
-# Here we simulate common genetic variants (but any type of candidate
-# predictors can be supplied).
-# 0 = homozygous, major allele, 1 = heterozygous, 2 = homozygous, minor allele
+# Here example with common genetic variants under Hardy-Weinberg equilibrium
 #
-X_act <- matrix(rbinom(n * p0, size = 2, p = 0.25), nrow = n)
-X_inact <- matrix(rbinom(n * (p - p0), size = 2, p = 0.25), nrow = n)
+X_act <- matrix(rbinom(n * p_act, size = 2, p = 0.25), nrow = n)
+X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
 
+# shuffle indices 
 shuff_x_ind <- sample(p)
+shuff_y_ind <- sample(d)
+
 X <- cbind(X_act, X_inact)[, shuff_x_ind]
 
-bool_x_act <- shuff_x_ind <= p0
+# Association pattern and effect sizes
+#
+pat <- matrix(FALSE, ncol = d, nrow = p)
+bool_x <- shuff_x_ind <= p_act
+bool_y <- shuff_y_ind <= d_act
 
-pat_act <- beta <- matrix(0, nrow = p0, ncol = d0)
-pat_act[sample(p0*d0, floor(p0*d0/5))] <- 1
-beta[as.logical(pat_act)] <-  rnorm(sum(pat_act))
+pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
+pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 
-## Covariates (not subject to selection)
-##
-Z <- matrix(rnorm(n * q), nrow = n)
+pat[bool_x, bool_y] <- pat_act
 
-alpha <-  matrix(rnorm(q * d), nrow = q)
+# Gaussian responses
+#
+Y_act <- matrix(rnorm(n * d_act, mean = X_act \%*\% beta_act), nrow = n)
+Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
 
-## Gaussian responses
-##
-Y_act <- matrix(rnorm(n * d0, mean = X_act \%*\% beta, sd = 0.5), nrow = n)
-Y_inact <- matrix(rnorm(n * (d - d0), sd = 0.5), nrow = n)
-shuff_y_ind <- sample(d)
-Y <- cbind(Y_act, Y_inact)[, shuff_y_ind] + Z \%*\% alpha
+Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 
-## Binary responses
-##
-Y_bin <- ifelse(Y > 0, 1, 0)
-
-## Informative annotation variables
-##
+# Annotation variables
+#
 V <- matrix(rnorm(p * r), nrow = p)
-V[bool_x_act, ] <- rnorm(p0 * r, mean = 2)
+V[bool_x, ] <- rnorm(p_act * r, mean = 2)
 
 
 ########################
 ## Infer associations ##
 ########################
 
-## Continuous responses
-##
-
-# No covariate
+# Expectation and variance for the prior number of predictors associated with
+# each response
 #
-vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity", user_seed = seed)
+p0 <- c(mean(colSums(pat)), 10)
 
-# With covariates
+# Inference without modules
 #
-vb_g_z <- epispot(Y = Y, X = X, p0 = p0,  Z = Z, link = "identity",
-                user_seed = seed)
+res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, user_seed = seed)
 
-# With external annotation variables
+# Inference with modules
 #
-vb_g_v <- epispot(Y = Y, X = X, p0 = p0, Z = Z, V = V, s2 = 0.1, 
-                  link = "identity", user_seed = seed)
+module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+list_modules <- set_modules(module_ids, n_cpus = 1)
 
-## Binary responses
-##
-vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
-                  user_seed = seed)
-
-vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
-                   user_seed = seed)
-
-## Mix of continuous and binary responses
-##
-Y_mix <- cbind(Y, Y_bin)
-ind_bin <- (d+1):(2*d)
-
-vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
-                ind_bin = ind_bin, user_seed = seed)
+res_epispot_modules <- epispot(Y = Y, X = X, V = V, p0 = p0, 
+                               list_blocks = list_modules, user_seed = seed)
 
 }
 \references{
-H. Ruffieux, A. C. Davison, J. Hager, I. Irincheeva. Efficient inference for
-  genetic association studies with multiple outcomes. Biostatistics, 2017.
-
-Y. Xu, and W. Yin. A block coordinate descent method for
-  regularized multiconvex optimization with applications to nonnegative
-  tensor factorization and completion. SIAM Journal on imaging sciences, 6,
-  pp.1758-1789, 2013.
+H. Ruffieux, B. P. Fairfax, E. Vigorito, C. Walllace, S. Richardson, 
+L. Bottolo. EPISPOT: an epigenome-driven approach for detecting and 
+interpreting hotspots in molecular QTL studies, arXiv, 2020.
 }
 \seealso{
-\code{\link{set_hyper}}, \code{\link{set_init}},
-  \code{\link{set_blocks}}, \code{\link{set_groups}}
-  and \code{\link{set_struct}}.
+\code{\link{set_hyper}}, \code{\link{set_init}}, 
+\code{\link{set_modules}}.
 }

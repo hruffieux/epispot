@@ -11,12 +11,26 @@ set_init(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau_vb)
 
 \item{p}{Number of candidate predictors.}
 
+\item{r}{Number of candidate annotations.}
+
 \item{gam_vb}{Matrix of size p x d with initial values for the variational
 parameter yielding posterior probabilities of inclusion.}
 
 \item{mu_beta_vb}{Matrix of size p x d with initial values for the
 variational parameter yielding regression coefficient estimates for
 predictor-response pairs included in the model.}
+
+\item{om}{Vector of length r with initial values for the EM hyperparameter 
+yielding the probability parameters for the annotation variables.}
+
+\item{s02}{Vector of length 1 with initial value for the EM hyperparameter 
+yielding the variance of the predictor-specific modulations of the 
+probability parameter for the predictor-response associations (these inital 
+values are the same for all predictors, for simplicity).}
+
+\item{s2}{Vector of length 1 with initial value for the EM hyperparameter 
+yielding the variance of the annotation effects on the probability 
+parameter for the predictor-response associations.}
 
 \item{sig2_beta_vb}{Vector of length d with initial values for
 the variational parameter yielding estimates of effect variances for
@@ -42,6 +56,7 @@ parameter choices (without using \code{\link{set_init}}) by setting
 its argument \code{list_init} to \code{NULL}.
 }
 \examples{
+
 seed <- 123; set.seed(seed)
 
 ###################
@@ -50,130 +65,70 @@ seed <- 123; set.seed(seed)
 
 ## Examples using small problem sizes:
 ##
-n <- 200; p <- 200; p0 <- 20; d <- 20; d0 <- 15; q <- 2
+n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
 
 ## Candidate predictors (subject to selection)
 ##
-# Here we simulate common genetic variants (but any type of candidate
-# predictors can be supplied).
-# 0 = homozygous, major allele, 1 = heterozygous, 2 = homozygous, minor allele
+# Here example with common genetic variants under Hardy-Weinberg equilibrium
+#
+X_act <- matrix(rbinom(n * p_act, size = 2, p = 0.25), nrow = n)
+X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
 
-X_act <- matrix(rbinom(n * p0, size = 2, p = 0.25), nrow = n)
-X_inact <- matrix(rbinom(n * (p - p0), size = 2, p = 0.25), nrow = n)
-
+# shuffle indices 
 shuff_x_ind <- sample(p)
+shuff_y_ind <- sample(d)
+
 X <- cbind(X_act, X_inact)[, shuff_x_ind]
 
-bool_x_act <- shuff_x_ind <= p0
+# Association pattern and effect sizes
+#
+pat <- matrix(FALSE, ncol = d, nrow = p)
+bool_x <- shuff_x_ind <= p_act
+bool_y <- shuff_y_ind <= d_act
 
-pat_act <- beta <- matrix(0, nrow = p0, ncol = d0)
-pat_act[sample(p0*d0, floor(p0*d0/5))] <- 1
-beta[as.logical(pat_act)] <-  rnorm(sum(pat_act))
+pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
+pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 
-## Covariates (not subject to selection)
-##
-Z <- matrix(rnorm(n * q), nrow = n)
+pat[bool_x, bool_y] <- pat_act
 
-alpha <-  matrix(rnorm(q * d), nrow = q)
+# Gaussian responses
+#
+Y_act <- matrix(rnorm(n * d_act, mean = X_act \%*\% beta_act), nrow = n)
+Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
 
-## Gaussian responses
-##
-Y_act <- matrix(rnorm(n * d0, mean = X_act \%*\% beta, sd = 0.5), nrow = n)
-Y_inact <- matrix(rnorm(n * (d - d0), sd = 0.5), nrow = n)
-shuff_y_ind <- sample(d)
-Y <- cbind(Y_act, Y_inact)[, shuff_y_ind] + Z \%*\% alpha
+Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 
-## Binary responses
-##
-Y_bin <- ifelse(Y > 0, 1, 0)
+# Annotation variables
+#
+V <- matrix(rnorm(p * r), nrow = p)
+V[bool_x, ] <- rnorm(p_act * r, mean = 2)
+
+################################
+## Specify initial parameters ##
+################################
+
+tau_vb <- rep(1, d)
+
+gam_vb <- matrix(rbeta(p * d, shape1 = 1, shape2 = 4 * d - 1), nrow = p)
+
+mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
+sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1)
+
+om <- rep(0.5, r)
+s02 <- 1 / d
+s2 <- 0.01
+
+list_init <- set_init(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, 
+                      tau_vb)
 
 ########################
 ## Infer associations ##
 ########################
 
-## Continuous responses
-##
-
-# No covariate
-#
-# gam_vb chosen so that the prior mean number of responses associated with
-# each candidate predictor is 1/4.
-gam_vb <- matrix(rbeta(p * d, shape1 = 1, shape2 = 4*d-1), nrow = p)
-mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
-tau_vb <- 1 / apply(Y, 2, var)
-sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / tau_vb)
-
-list_init_g <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
-                        link = "identity")
-
-# We take p0 = p0 (known here); this choice may result in variable
-# selections that are (too) conservative in some cases. In practice, it is
-# advised to set p0 as a slightly overestimated guess of p0, or perform
-# cross-validation using function `set_cv'.
-
-vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity",
-              list_init = list_init_g)
-
-# With covariates
-#
-mu_alpha_vb <- matrix(rnorm(q * d), nrow = q)
-sig2_alpha_vb <- 1 / matrix(rgamma(q * d, shape = 2, rate = 1), nrow = q)
-
-list_init_g_z <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb,
-                          link = "identity", q = q,
-                          mu_alpha_vb = mu_alpha_vb,
-                          sig2_alpha_vb = sig2_alpha_vb)
-
-vb_g_z <- epispot(Y = Y, X = X, p0 = p0, Z = Z, link = "identity",
-                list_init = list_init_g_z)
-
-## Binary responses
-##
-# gam_vb chosen so that the prior mean number of responses associated with
-# each candidate predictor is 1/4.
-sig2_beta_vb_logit <- 1 / t(replicate(p, rgamma(d, shape = 2, rate = 1)))
-
-list_init_logit <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb_logit,
-                            tau_vb = NULL, link = "logit", q = q,
-                            mu_alpha_vb = mu_alpha_vb,
-                            sig2_alpha_vb = sig2_alpha_vb)
-
-vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
-                  list_init = list_init_logit)
-
-sig2_alpha_vb_probit <- sig2_alpha_vb[, 1]
-sig2_beta_vb_probit <- sig2_beta_vb[1]
-list_init_probit <- set_init(d, p, gam_vb, mu_beta_vb, sig2_beta_vb_probit,
-                             tau_vb = NULL, link = "probit", q = q,
-                             mu_alpha_vb = mu_alpha_vb,
-                             sig2_alpha_vb = sig2_alpha_vb_probit)
-
-vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
-                   list_init = list_init_probit)
-
-## Mix of continuous and binary responses
-##
-Y_mix <- cbind(Y, Y_bin)
-ind_bin <- (d+1):(2*d)
-
-# gam_vb chosen so that the prior mean number of responses associated with
-# each candidate predictor is 1/4.
-gam_vb_mix <- matrix(rbeta(p * 2*d, shape1 = 1, shape2 = 8*d-1), nrow = p)
-mu_beta_vb_mix <- matrix(rnorm(p * 2*d), nrow = p)
-sig2_beta_vb_mix <- 1 / c(rgamma(d, shape = 2, rate = 1 / tau_vb),
-                          rgamma(d, shape = 2, rate = 1))
-mu_alpha_vb_mix <- matrix(rnorm(q * 2*d), nrow = q)
-sig2_alpha_vb_mix <- 1 / matrix(rgamma(q * 2*d, shape = 2, rate = 1), nrow = q)
-
-list_init_mix <- set_init(2*d, p, gam_vb_mix, mu_beta_vb_mix,
-                          sig2_beta_vb_mix, tau_vb, link = "mix",
-                          ind_bin = ind_bin, q = q,
-                          mu_alpha_vb = mu_alpha_vb_mix,
-                          sig2_alpha_vb = sig2_alpha_vb_mix)
-
-vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
-                ind_bin = ind_bin, list_init = list_init_mix)
-
+res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, list_init = list_init, 
+                       user_seed = seed)
+                       
 }
 \seealso{
 \code{\link{set_hyper}}, \code{\link{epispot}}

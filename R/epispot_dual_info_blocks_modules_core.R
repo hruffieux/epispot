@@ -6,7 +6,7 @@
 # link, no fixed covariates. See help of `epispot` function for details.
 #
 epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
-                                                 vec_fac_bl_y, list_hyper, 
+                                                 vec_fac_bl_y, module_names, list_hyper, 
                                                  gam_vb, mu_beta_vb, om, s02, s2, 
                                                  sig2_beta_vb, 
                                                  tau_vb, tol, maxit, anneal, verbose, batch = "y", 
@@ -355,8 +355,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
       names_x <- colnames(X)
       names_y <- colnames(Y)
       names_v <- lapply(list_V, function(V) colnames(V))
-      module_names <- colnames(s02)
-      
+
       rownames(gam_vb) <- rownames(m1_beta) <- names_x
       colnames(gam_vb) <- colnames(m1_beta) <- names_y
       
@@ -369,27 +368,21 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
         colnames(m1_c[[bl]]) <- module_names
         m1_c[[bl]]})
       
-      om <- lapply(1:n_bl_x, function(bl) {
-        rownames(om[[bl]]) <- colnames(list_V[[bl]])
-        colnames(om[[bl]]) <- module_names
-        om[[bl]]})
-      
       zeta_vb <- lapply(1:n_bl_x, function(bl) {
         rownames(zeta_vb[[bl]]) <- colnames(list_V[[bl]])
         colnames(zeta_vb[[bl]]) <- module_names
         zeta_vb[[bl]]})
       
       if (n_bl_x > 1) {
-        names(zeta_vb) <- names(m1_c) <- names(om) <- paste0("bl_", 1:n_bl_x)
+        names(zeta_vb) <- names(m1_c) <- paste0("bl_", 1:n_bl_x)
       } else {
         zeta_vb <- zeta_vb[[1]]
         m1_c <- m1_c[[1]]
-        om <- om[[1]]
       }
 
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(m1_beta, m1_c, om, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
+      create_named_list_(m1_beta, m1_c, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
                          converged, it, lb_opt, diff_lb)
       
     }

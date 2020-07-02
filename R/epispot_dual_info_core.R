@@ -281,16 +281,14 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       
       names(zeta_vb) <- names_v
       names(m1_c) <- names_v
-      names(om) <- names_v
       
       rownames(mat_v_mu) <- names_x
       colnames(mat_v_mu) <- names_y
       
-      
       diff_lb <- abs(lb_opt - lb_old)
       
       create_named_list_(m1_beta, gam_vb, mat_v_mu, m1_c, mu_theta_vb, mu_rho_vb, 
-                         om, zeta_vb, converged, it, lb_opt, diff_lb)
+                         zeta_vb, converged, it, lb_opt, diff_lb)
       
     }
   })

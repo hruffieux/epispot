@@ -7,32 +7,94 @@
 set_modules(module_ids, module_map = NULL, n_cpus = 1)
 }
 \arguments{
+\item{module_ids}{Numeric vector of size the number of response variables 
+which assigns each response to its corresponding module. See example below.
+Each module must have size greater than 10 to avoid unstable inference.}
+
+\item{module_map}{Vector of size the total number of modules where each value 
+the provides the ids of the module as in module_ids and the names of the 
+vector correspond to the desired module names. See example below. Default 
+is \code{NULL} for default module names.}
+
 \item{n_cpus}{Number of CPUs to be used. If large, one should ensure that
 enough RAM will be available for parallel execution. Set to 1 for serial
 execution.}
-
-\item{tot}{Number of candidate predictors (vector of size 1), and followed 
-optionally by the number of responses (vector of size 2).}
-
-\item{pos_bl}{Vector gathering the predictor block positions (first index of
-each block), or list gathering the predictor block positions and response
-block positions.}
-
-\item{verbose}{If \code{TRUE}, messages are displayed when calling
-\code{set_blocks}.}
 }
 \value{
-An object of class "\code{blocks}" preparing the settings for parallel
-  inference in a form that can be passed to the \code{\link{epispot}}
-  function.
+An object of class "\code{modules}" preparing the settings for a
+  parallel module-based EPISPOT run a form that can be passed to the 
+  \code{\link{epispot}} function.
 }
 \description{
 Parallel applications of the method on blocks of candidate predictors for
 large datasets allows faster and less RAM-greedy executions.
 }
+\details{
+module_ids, module_map = NULL, n_cpus = 1
+}
 \examples{
+seed <- 123; set.seed(seed)
+
+###################
+## Simulate data ##
+###################
+
+## Examples using small problem sizes:
+##
+n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+
+## Candidate predictors (subject to selection)
+##
+# Here example with common genetic variants under Hardy-Weinberg equilibrium
+#
+X_act <- matrix(rbinom(n * p_act, size = 2, p = 0.25), nrow = n)
+X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
+
+# shuffle indices 
+shuff_x_ind <- sample(p)
+shuff_y_ind <- sample(d)
+
+X <- cbind(X_act, X_inact)[, shuff_x_ind]
+
+# Association pattern and effect sizes
+#
+pat <- matrix(FALSE, ncol = d, nrow = p)
+bool_x <- shuff_x_ind <= p_act
+bool_y <- shuff_y_ind <= d_act
+
+pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
+pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
+
+pat[bool_x, bool_y] <- pat_act
+
+# Gaussian responses
+#
+Y_act <- matrix(rnorm(n * d_act, mean = X_act \%*\% beta_act), nrow = n)
+Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+
+Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
+
+# Annotation variables
+#
+V <- matrix(rnorm(p * r), nrow = p)
+V[bool_x, ] <- rnorm(p_act * r, mean = 2)
+
+########################
+## Infer associations ##
+########################
+
+module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+
+module_names <- sort(unique(module_ids))
+names(module_names) <- paste0("m_", 1:length(unique(module_ids)))
+
+list_modules <- set_modules(module_ids, module_names, n_cpus = 1)
+
+vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_blocks = list_modules,
+                user_seed = seed)
 
 }
 \seealso{
-\code{\link{epispot}, \link{set_blocks}}
+\code{\link{epispot}}.
 }

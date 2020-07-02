@@ -360,19 +360,15 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
         names(m1_c[[bl]]) <- colnames(list_V[[bl]])
         m1_c[[bl]]})
       
-      om <- lapply(1:n_bl, function(bl) {
-        names(om[[bl]]) <- colnames(list_V[[bl]])
-        om[[bl]]})
-      
       zeta_vb <- lapply(1:n_bl, function(bl) {
         names(zeta_vb[[bl]]) <- colnames(list_V[[bl]])
         zeta_vb[[bl]]})
         
-      names(zeta_vb) <- names(m1_c) <- names(om) <- paste0("bl_", 1:n_bl)
+      names(zeta_vb) <- names(m1_c) <- paste0("bl_", 1:n_bl)
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(m1_beta, m1_c, om, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
+      create_named_list_(m1_beta, m1_c, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
                          converged, it, lb_opt, diff_lb)
       
     }

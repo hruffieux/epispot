@@ -14,6 +14,6 @@ levels (responses), genetic markers (candidate predictors) and epigenomic
 annotation marks (predictor-level covariates) and individuals (samples).
 }
 \section{epispot functions}{
- set_hyper, set_init, epispot, set_blocks, set_modules.
+ set_hyper, set_init, epispot, set_modules.
 }
 
