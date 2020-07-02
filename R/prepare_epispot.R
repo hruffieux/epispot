@@ -261,7 +261,7 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
       
       list_init$mu_beta_vb <- list_init$mu_beta_vb[!bool_rmvd_x,, drop = FALSE]
       
-      list_init$om <- list_init$om[!bool_rmvd_v,, drop = FALSE]
+      list_init$om <- list_init$om[!bool_rmvd_v]
       
     }
     
@@ -568,7 +568,7 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
     
     sorted_module_map <- sort(module_map)
     
-    if (sorted_module_map != sort(unique(module_ids))) {
+    if (!all(sorted_module_map == sort(unique(module_ids)))) {
       stop("The module map is inconsistent with the modules provided. Exit.")
     }
     

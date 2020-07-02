@@ -355,34 +355,41 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
       names_x <- colnames(X)
       names_y <- colnames(Y)
       names_v <- lapply(list_V, function(V) colnames(V))
+      module_names <- colnames(s02)
       
-      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
-      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
+      rownames(gam_vb) <- rownames(m1_beta) <- names_x
+      colnames(gam_vb) <- colnames(m1_beta) <- names_y
       
       rownames(mu_theta_vb) <- names_x
-      colnames(mu_theta_vb) <- paste0("module_", 1:n_bl_y)
+      colnames(mu_theta_vb) <- colnames(s02)
       names(mu_rho_vb) <- names_y
       
-      mu_c_vb <- lapply(1:n_bl_x, function(bl) {
-        rownames(mu_c_vb[[bl]]) <- colnames(list_V[[bl]])
-        colnames(mu_c_vb[[bl]]) <- paste0("module_", 1:n_bl_y)
-        mu_c_vb[[bl]]})
+      m1_c <- lapply(1:n_bl_x, function(bl) {
+        rownames(m1_c[[bl]]) <- colnames(list_V[[bl]])
+        colnames(m1_c[[bl]]) <- module_names
+        m1_c[[bl]]})
       
       om <- lapply(1:n_bl_x, function(bl) {
         rownames(om[[bl]]) <- colnames(list_V[[bl]])
-        colnames(om[[bl]]) <- paste0("module_", 1:n_bl_y)
+        colnames(om[[bl]]) <- module_names
         om[[bl]]})
       
       zeta_vb <- lapply(1:n_bl_x, function(bl) {
         rownames(zeta_vb[[bl]]) <- colnames(list_V[[bl]])
-        colnames(zeta_vb[[bl]]) <- paste0("module_", 1:n_bl_y)
+        colnames(zeta_vb[[bl]]) <- module_names
         zeta_vb[[bl]]})
       
-      names(zeta_vb) <- names(mu_c_vb) <- names(om) <- paste0("bl_", 1:n_bl_x)
-      
+      if (n_bl_x > 1) {
+        names(zeta_vb) <- names(m1_c) <- names(om) <- paste0("bl_", 1:n_bl_x)
+      } else {
+        zeta_vb <- zeta_vb[[1]]
+        m1_c <- m1_c[[1]]
+        om <- om[[1]]
+      }
+
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(mu_beta_vb, mu_c_vb, om, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
+      create_named_list_(m1_beta, m1_c, om, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
                          converged, it, lb_opt, diff_lb)
       
     }

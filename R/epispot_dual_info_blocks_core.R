@@ -350,15 +350,15 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
       names_y <- colnames(Y)
       names_v <- lapply(list_V, function(V) colnames(V))
       
-      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
-      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
+      rownames(gam_vb) <- rownames(m1_beta) <- names_x
+      colnames(gam_vb) <- colnames(m1_beta) <- names_y
       
       names(mu_theta_vb) <- names_x
       names(mu_rho_vb) <- names_y
       
-      mu_c_vb <- lapply(1:n_bl, function(bl) {
-        names(mu_c_vb[[bl]]) <- colnames(list_V[[bl]])
-        mu_c_vb[[bl]]})
+      m1_c <- lapply(1:n_bl, function(bl) {
+        names(m1_c[[bl]]) <- colnames(list_V[[bl]])
+        m1_c[[bl]]})
       
       om <- lapply(1:n_bl, function(bl) {
         names(om[[bl]]) <- colnames(list_V[[bl]])
@@ -368,11 +368,11 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
         names(zeta_vb[[bl]]) <- colnames(list_V[[bl]])
         zeta_vb[[bl]]})
         
-      names(zeta_vb) <- names(mu_c_vb) <- names(om) <- paste0("bl_", 1:n_bl)
+      names(zeta_vb) <- names(m1_c) <- names(om) <- paste0("bl_", 1:n_bl)
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(mu_c_vb, om, gam_vb, mu_beta_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
+      create_named_list_(m1_beta, m1_c, om, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
                          converged, it, lb_opt, diff_lb)
       
     }

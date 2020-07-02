@@ -65,8 +65,11 @@
 #'   the inference are saved as output.
 #' @param verbose If \code{TRUE}, messages are displayed during execution.
 #'
-#' @return An object of class "\code{vb}" containing the following variational
-#'   estimates and settings:
+#' @return An object of class "\code{epispot}" containing the following output:
+#'  \item{m1_beta}{Estimated effect size matrix of dimension p x q. Entry (s, t) 
+#'                 corresponds to the variational posterior mean 
+#'                 (mu_beta_vb_st x gam_vb_st) of the regression effect between 
+#'                 candidate predictor s and response t.}
 #'  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x d.
 #'                Entry (s, t) corresponds to the posterior probability of
 #'                association between candidate predictor s and response t.}
@@ -119,98 +122,74 @@
 #'
 #' ## Examples using small problem sizes:
 #' ##
-#' n <- 200; p <- 250; p0 <- 25; d <- 30; d0 <- 25; q <- 3; r <- 3
+#' n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
 #'
 #' ## Candidate predictors (subject to selection)
 #' ##
-#' # Here we simulate common genetic variants (but any type of candidate
-#' # predictors can be supplied).
-#' # 0 = homozygous, major allele, 1 = heterozygous, 2 = homozygous, minor allele
+#' # Here example with common genetic variants under Hardy-Weinberg equilibrium
 #' #
-#' X_act <- matrix(rbinom(n * p0, size = 2, p = 0.25), nrow = n)
-#' X_inact <- matrix(rbinom(n * (p - p0), size = 2, p = 0.25), nrow = n)
+#' X_act <- matrix(rbinom(n * p_act, size = 2, p = 0.25), nrow = n)
+#' X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
 #'
+#' # shuffle indices 
 #' shuff_x_ind <- sample(p)
+#' shuff_y_ind <- sample(d)
+#' 
 #' X <- cbind(X_act, X_inact)[, shuff_x_ind]
 #'
-#' bool_x_act <- shuff_x_ind <= p0
+#' # Association pattern and effect sizes
+#' #
+#' pat <- matrix(FALSE, ncol = d, nrow = p)
+#' bool_x <- shuff_x_ind <= p_act
+#' bool_y <- shuff_y_ind <= d_act
+#' 
+#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
+#' pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+#' beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
+#' 
+#' pat[bool_x, bool_y] <- pat_act
+#' 
+#' # Gaussian responses
+#' #
+#' Y_act <- matrix(rnorm(n * d_act, mean = X_act %*% beta_act), nrow = n)
+#' Y_inact <- matrix(rnorm(n * (q - d_act)), nrow = n)
 #'
-#' pat_act <- beta <- matrix(0, nrow = p0, ncol = d0)
-#' pat_act[sample(p0*d0, floor(p0*d0/5))] <- 1
-#' beta[as.logical(pat_act)] <-  rnorm(sum(pat_act))
+#' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 #'
-#' ## Covariates (not subject to selection)
-#' ##
-#' Z <- matrix(rnorm(n * q), nrow = n)
-#'
-#' alpha <-  matrix(rnorm(q * d), nrow = q)
-#'
-#' ## Gaussian responses
-#' ##
-#' Y_act <- matrix(rnorm(n * d0, mean = X_act %*% beta, sd = 0.5), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d0), sd = 0.5), nrow = n)
-#' shuff_y_ind <- sample(d)
-#' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind] + Z %*% alpha
-#'
-#' ## Binary responses
-#' ##
-#' Y_bin <- ifelse(Y > 0, 1, 0)
-#'
-#' ## Informative annotation variables
-#' ##
+#' # Annotation variables
+#' #
 #' V <- matrix(rnorm(p * r), nrow = p)
-#' V[bool_x_act, ] <- rnorm(p0 * r, mean = 2)
+#' V[bool_x_act, ] <- rnorm(p_act * r, mean = 2)
 #'
 #'
 #' ########################
 #' ## Infer associations ##
 #' ########################
 #'
-#' ## Continuous responses
-#' ##
-#'
-#' # No covariate
+#' # Expectation and variance for the prior number of predictors associated with
+#' # each response
 #' #
-#' vb_g <- epispot(Y = Y, X = X, p0 = p0, link = "identity", user_seed = seed)
-#'
-#' # With covariates
+#' p0 <- c(mean(colSums(pat)), 10)
+#' 
+#' # Inference without modules
 #' #
-#' vb_g_z <- epispot(Y = Y, X = X, p0 = p0,  Z = Z, link = "identity",
+#' res_epispot <- epispot(Y = Y, X = X, p0 = p0, V = V, user_seed = seed)
+#'
+#' # Inference with modules
+#' #
+#' module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+#' list_modules <- set_modules(module_ids, n_cpus = 1)
+#' 
+#' vb_m <- epispot(Y = Y, X = X, p0 = p0, V = V, list_blocks = list_modules,
 #'                 user_seed = seed)
 #'
-#' # With external annotation variables
-#' #
-#' vb_g_v <- epispot(Y = Y, X = X, p0 = p0, Z = Z, V = V, s2 = 0.1, 
-#'                   link = "identity", user_seed = seed)
-#'
-#' ## Binary responses
-#' ##
-#' vb_logit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "logit",
-#'                   user_seed = seed)
-#'
-#' vb_probit <- epispot(Y = Y_bin, X = X, p0 = p0, Z = Z, link = "probit",
-#'                    user_seed = seed)
-#'
-#' ## Mix of continuous and binary responses
-#' ##
-#' Y_mix <- cbind(Y, Y_bin)
-#' ind_bin <- (d+1):(2*d)
-#'
-#' vb_mix <- epispot(Y = Y_mix, X = X, p0 = p0, Z = Z, link = "mix",
-#'                 ind_bin = ind_bin, user_seed = seed)
-#'
 #' @references
-#' H. Ruffieux, A. C. Davison, J. Hager, I. Irincheeva. Efficient inference for
-#'   genetic association studies with multiple outcomes. Biostatistics, 2017.
+#' H. Ruffieux, B. P. Fairfax, E. Vigorito, C. Walllace, S. Richardson, 
+#' L. Bottolo. EPISPOT: an epigenome-driven approach for detecting and 
+#' interpreting hotspots in molecular QTL studies, arXiv, 2020.
 #'
-#' Y. Xu, and W. Yin. A block coordinate descent method for
-#'   regularized multiconvex optimization with applications to nonnegative
-#'   tensor factorization and completion. SIAM Journal on imaging sciences, 6,
-#'   pp.1758-1789, 2013.
-#'
-#' @seealso \code{\link{set_hyper}}, \code{\link{set_init}},
-#'   \code{\link{set_blocks}}, \code{\link{set_groups}}
-#'   and \code{\link{set_struct}}.
+#' @seealso \code{\link{set_hyper}}, \code{\link{set_init}}, 
+#' \code{\link{set_modules}}.
 #'
 #' @export
 #'
@@ -500,7 +479,8 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
         stop("EB local scales not implemented for n_bl_x > 1. Exit")
       
       list_init$s02 <- sapply(list_vb, `[[`, "s02")
-      rownames(list_init$s02) <- paste0("Cov_", 1:p)
+      
+      rownames(list_init$s02) <- colnames(X)
       colnames(list_init$s02) <- list_blocks$module_names
       
       list_init$s2 <- matrix(unlist(lapply(list_vb, `[[`, "s2")), 
@@ -568,17 +548,15 @@ epispot <- function(Y, X, p0, V, list_blocks = NULL, list_hyper = NULL,
   vb$rmvd_cst_x <- dat$rmvd_cst_x
   vb$rmvd_coll_x <- dat$rmvd_coll_x
   
-  if (!is.null(V) & is.null(list_blocks)) {
-    vb$rmvd_cst_v <- dat$rmvd_cst_v
-    vb$rmvd_coll_v <- dat$rmvd_coll_v
-  }
+  vb$rmvd_cst_v <- dat$rmvd_cst_v
+  vb$rmvd_coll_v <- dat$rmvd_coll_v
   
   if (!is.null(list_blocks$undo_order_y_ids)) {# for the case where modules are provided and responses are not grouped per module
     # we have grouped them prior to the analysis and ungroup them here after the run in epispot.R
     
     Y <- Y[, list_blocks$undo_order_y_ids, drop = FALSE]
     
-    vb$mu_beta_vb <- vb$mu_beta_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
+    vb$m1_beta <- vb$m1_beta[, list_blocks$undo_order_y_ids, drop = FALSE] 
     vb$gam_vb <- vb$gam_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
     vb$mu_rho_vb <- vb$mu_rho_vb[list_blocks$undo_order_y_ids]
     

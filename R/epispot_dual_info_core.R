@@ -273,14 +273,14 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       names_y <- colnames(Y)
       names_v <- colnames(V)
       
-      rownames(gam_vb) <- rownames(mu_beta_vb) <- names_x
-      colnames(gam_vb) <- colnames(mu_beta_vb) <- names_y
+      rownames(gam_vb) <- rownames(m1_beta) <- names_x
+      colnames(gam_vb) <- colnames(m1_beta) <- names_y
       
       names(mu_theta_vb) <- names_x
       names(mu_rho_vb) <- names_y
       
       names(zeta_vb) <- names_v
-      names(mu_c_vb) <- names_v
+      names(m1_c) <- names_v
       names(om) <- names_v
       
       rownames(mat_v_mu) <- names_x
@@ -289,7 +289,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(gam_vb, mat_v_mu, mu_beta_vb, mu_c_vb, mu_theta_vb, mu_rho_vb, 
+      create_named_list_(m1_beta, gam_vb, mat_v_mu, m1_c, mu_theta_vb, mu_rho_vb, 
                          om, zeta_vb, converged, it, lb_opt, diff_lb)
       
     }
