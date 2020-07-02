@@ -108,6 +108,11 @@ list_hyper <- set_hyper(d, p, lambda = 1, nu = 1, eta = 1, kappa = 1,
 ## Infer associations ##
 ########################
 
+# Expectation and variance for the prior number of predictors associated with
+# each response
+#
+p0 <- c(mean(colSums(pat)), 10)
+
 res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, list_hyper = list_hyper, 
                        user_seed = seed)
 

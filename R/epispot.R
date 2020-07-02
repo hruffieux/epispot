@@ -37,8 +37,8 @@
 #'   Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
 #'   non-\code{NULL}.
 #' @param list_blocks An object of class "\code{blocks}" containing settings for
-#'   parallel inference on a partitioned predictor space. Must be filled using
-#'   the \code{\link{set_blocks}} function or must be \code{NULL} for no
+#'   parallel inference using modules of responses. Must be filled using
+#'   the \code{\link{set_modules}} function or must be \code{NULL} for no
 #'   partitioning.
 #' @param list_hyper An object of class "\code{hyper}" containing the model
 #'   hyperparameters. Must be filled using the \code{\link{set_hyper}}

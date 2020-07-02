@@ -126,6 +126,11 @@ list_init <- set_init(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb,
 ## Infer associations ##
 ########################
 
+# Expectation and variance for the prior number of predictors associated with
+# each response
+#
+p0 <- c(mean(colSums(pat)), 10)
+
 res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, list_init = list_init, 
                        user_seed = seed)
                        

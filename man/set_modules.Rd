@@ -91,6 +91,11 @@ names(module_names) <- paste0("m_", 1:length(unique(module_ids)))
 
 list_modules <- set_modules(module_ids, module_names, n_cpus = 1)
 
+# Expectation and variance for the prior number of predictors associated with
+# each response
+#
+p0 <- c(mean(colSums(pat)), 10)
+
 vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_blocks = list_modules,
                 user_seed = seed)
 

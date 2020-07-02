@@ -320,8 +320,8 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
   if (!is.null(list_blocks$bl_y)) {
     
     if (list_blocks$bl_x$n_var_blocks != length(bool_rmvd_x))
-      stop(paste("The number of candidate predictors p provided to the function set_blocks ",
-                 "is not consistent with X.\n", sep=""))
+      stop(paste0("The number of candidate predictors p provided to the function ", 
+                  "set_modules is not consistent with X.\n"))
     
     vec_fac_bl_x <- list_blocks$bl_x$vec_fac_bl[!bool_rmvd_x]
     
@@ -536,6 +536,11 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 #' names(module_names) <- paste0("m_", 1:length(unique(module_ids)))
 #' 
 #' list_modules <- set_modules(module_ids, module_names, n_cpus = 1)
+#' 
+#' # Expectation and variance for the prior number of predictors associated with
+#' # each response
+#' #
+#' p0 <- c(mean(colSums(pat)), 10)
 #' 
 #' vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_blocks = list_modules,
 #'                 user_seed = seed)
