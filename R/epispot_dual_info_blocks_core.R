@@ -185,40 +185,6 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
       
       
       if (batch == "y") {
-
-        # Not clear if yields the same result. Doesn't seem to be the case...
-        # n_cpus <- 1
-        # if (n_cpus > 1) {
-        #   
-        #   out_bl <- parallel::mclapply(1:n_bl, function(bl) {
-        #     
-        #     shuffled_ind_info_bl <- as.numeric(sample(0:(vec_r_bl[bl]-1))) # Zero-based index in C++
-        #     
-        #     mat_v_mu_bl <- mat_v_mu[vec_fac_bl == bl_ids[bl],, drop = FALSE]
-        #     zeta_vb_bl <- zeta_vb[[bl]]
-        #     m1_c_bl <- m1_c[[bl]]
-        #     mu_c_vb_bl <- mu_c_vb[[bl]]
-        #     
-        #     coreDualInfoLoop(list_V[[bl]],
-        #                      W[vec_fac_bl == bl_ids[bl],, drop = FALSE],
-        #                      zeta_vb_bl,
-        #                      log_om[[bl]], log_1_min_om[[bl]], s2[bl],
-        #                      m1_c_bl,
-        #                      mat_v_mu_bl,
-        #                      mu_c_vb_bl, sig2_c_vb[bl],
-        #                      shuffled_ind_info_bl, c = c)
-        #   
-        #     create_named_list_(mat_v_mu_bl, mu_c_vb_bl, m1_c_bl, zeta_vb_bl)
-        # 
-        #     
-        #   }, mc.cores = n_cpus)
-        # 
-        #   mat_v_mu <- plyr::rbind.fill.matrix(lapply(out_bl, `[[`, "mat_v_mu_bl"))
-        #   m1_c <- lapply(out_bl, `[[`, "m1_c_bl")
-        #   mu_c_vb <- lapply(out_bl, `[[`, "mu_c_vb_bl")
-        #   zeta_vb <- lapply(out_bl, `[[`, "zeta_vb_bl")
-        # 
-        # } else {
           
           for (bl in sample(1:n_bl)) {
             
@@ -239,7 +205,6 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
             mat_v_mu[vec_fac_bl == bl_ids[bl],] <- mat_v_mu_bl
             
           }
-        # }
         
 
       } else {
@@ -368,7 +333,7 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(m1_beta, m1_c, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
+      create_named_list_(m1_beta, m1_c, gam_vb, mu_rho_vb, mu_theta_vb, zeta_vb, 
                          converged, it, lb_opt, diff_lb)
       
     }

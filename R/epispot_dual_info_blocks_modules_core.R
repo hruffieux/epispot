@@ -382,7 +382,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
 
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(m1_beta, m1_c, gam_vb, mu_theta_vb, mu_rho_vb, zeta_vb, 
+      create_named_list_(m1_beta, m1_c, gam_vb, mu_rho_vb, mu_theta_vb, zeta_vb, 
                          converged, it, lb_opt, diff_lb)
       
     }

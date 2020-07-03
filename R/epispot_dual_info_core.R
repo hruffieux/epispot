@@ -287,7 +287,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(m1_beta, gam_vb, mat_v_mu, m1_c, mu_theta_vb, mu_rho_vb, 
+      create_named_list_(m1_beta, gam_vb, m1_c, mu_rho_vb, mu_theta_vb,
                          zeta_vb, converged, it, lb_opt, diff_lb)
       
     }

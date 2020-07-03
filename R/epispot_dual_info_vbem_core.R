@@ -21,8 +21,6 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
   } 
   tol_vb_within_em <- tol_em
   
-  # list_hyper$om_vb <- om #rep(1 / 2, r) # prior proportion of active annotations 
-  
   vb <- create_named_list_(gam_vb, mu_beta_vb, sig2_beta_vb, tau_vb)
   
   
@@ -47,9 +45,6 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     om <- vb$zeta_vb
     s02 <- vb$sig2_theta_vb + vb$mu_theta_vb^2 # vector of size lenght(vb$mu_theta_vb)
     s2 <- sum(vb$zeta_vb * (vb$sig2_c_vb + vb$mu_c_vb^2)) / sum(vb$zeta_vb)
-    
-    # list_hyper$om_vb <- vb$zeta_vb
-    # list_hyper$s2 <- sum(vb$zeta_vb * (vb$sig2_c_vb + vb$mu_c_vb^2)) / sum(vb$zeta_vb)
     
     if (verbose) {
       
@@ -97,8 +92,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
   }
   
   if (bool_blocks) {
-    
-    # out <- list("s2" = list_hyper$s2, "om" = list_hyper$om_vb, "s02" = list_hyper$s02)
+  
     out <- create_named_list_(om, s02, s2)
     
   } else {
@@ -115,8 +109,6 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
       }
       
       cat("======= Final VB run =======\n") 
-      # cat(paste0("Empirical-Bayes hyperparameters, s2 : ", format(list_hyper$s2, digits = 4), ", omega :\n"))
-      # print(summary(list_hyper$om_vb))
       cat(paste0("Empirical-Bayes hyperparameters, s2 : ", format(s2, digits = 4), ", omega :\n"))
       print(summary(om))
       
@@ -127,30 +119,17 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
         
         cat("\n\n")
       }
-      
-      # if (!is.null(list_hyper$s02)) {
-      #   
-      #     cat("s02 : ")
-      #     print(summary(list_hyper$s02))
-      #     
-      #   cat("\n\n")
-      # }
-      
     }
     
     out <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                    om, s02, s2, vb$sig2_beta_vb, vb$tau_vb, 
                                    tol, maxit, anneal, verbose)
     
-    # if (!is.null(list_hyper$s02)) {
-    #   out$s02 <- list_hyper$s02
-    # }
-    # out$s2 <- list_hyper$s2
     
-    if (!is.null(s02)) {
-      out$s02 <- s02
-    }
-    out$s2 <- s2
+    # if (!is.null(s02)) {
+    #   out$s02 <- s02
+    # }
+    # out$s2 <- s2
     
   }
   

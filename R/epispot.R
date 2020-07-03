@@ -60,19 +60,14 @@
 #'  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x q.
 #'                Entry (s, t) corresponds to the posterior probability of
 #'                association between candidate predictor s and response t.}
-#'  \item{mu_c_vb}{Vector of size r, where entry l contains the overall effect 
-#'                 of annotation l on the
-#'                 probabilities of associations.\code{NULL} if \code{V} is
-#'                 \code{NULL}.}
+#'  \item{m1_c}{Vector of size r, where entry l contains the overall estimated 
+#'              effect of annotation l on the probabilities of associations.}
 #'  \item{mu_rho_vb}{Vector of length q containing the posterior mean of rho.
 #'                   Entry t controls the proportion of predictors associated
 #'                   with response t.}
 #'  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
 #'                     theta. Entry s corresponds to the propensity of candidate
 #'                     predictor s to be included in the model.}
-#'  \item{om}{Vector of length p containing the posterior mean of omega.
-#'               Entry s controls the proportion of responses associated with
-#'               candidate predictor s. NULL if \code{V} is non-\code{NULL}.}
 #'  \item{zeta_vb}{Posterior inclusion probability vector of size r for the
 #'                 annotation variables. \code{NULL} if \code{V} is \code{NULL}.}
 #'  \item{converged}{A boolean indicating whether the algorithm has converged
@@ -84,11 +79,11 @@
 #'                 iterations. This may be a useful diagnostic information when
 #'                 convergence has not been reached before \code{maxit}.}
 #'  \item{p0}{Vector of length 2 defining the applied sparsity control.}
-#'  \item{rmvd_cst_x}{Vectors containing the indices of constant
-#'                                variables in \code{X} removed
+#'  \item{rmvd_cst_x, rmvd_cst_v}{Vectors containing the indices of constant
+#'                                variables in \code{X}, resp. \code{V}, removed
 #'                                prior to the analysis.}
-#'  \item{rmvd_coll_x}{Vectors containing the indices of variables
-#'                                  in \code{X} removed prior
+#'  \item{rmvd_coll_x, rmvd_cst_v}{Vectors containing the indices of variables
+#'                                  in \code{X}, resp. \code{V}, removed prior
 #'                                  to the analysis because collinear to other
 #'                                  variables. The entry name indicates the
 #'                                  corresponding variable kept in the analysis
