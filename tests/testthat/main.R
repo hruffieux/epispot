@@ -7,17 +7,17 @@ set.seed(seed)
 ## simulate basic dataset ##
 ############################
 
-n <- 100; p <- 75; d <- 20; p_act <- 10; r <- 10
+n <- 100; p <- 75; q <- 20; p_act <- 10; r <- 10
 
 # candidate predictors (subject to selection)
 X_act <- matrix(rbinom(n * p_act, size = 2, p = 0.2), nrow = n)
 X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.2), nrow = n)
 X <- cbind(X_act, X_inact)[, sample(p)]
 
-beta <-  matrix(rnorm(p_act * d), nrow = p_act)
+beta <-  matrix(rnorm(p_act * q), nrow = p_act)
 
 # Gaussian outcomes
-Y <- matrix(rnorm(n * d, mean = X_act %*% beta, sd = 1), nrow = n)
+Y <- matrix(rnorm(n * q, mean = X_act %*% beta, sd = 1), nrow = n)
 
 # remove constant variables (needed for checking dimension consistency)
 X <- scale(X)

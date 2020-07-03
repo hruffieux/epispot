@@ -29,9 +29,6 @@ An object of class "\code{modules}" preparing the settings for a
 Parallel applications of the method on blocks of candidate predictors for
 large datasets allows faster and less RAM-greedy executions.
 }
-\details{
-module_ids, module_map = NULL, n_cpus = 1
-}
 \examples{
 seed <- 123; set.seed(seed)
 
@@ -41,7 +38,7 @@ seed <- 123; set.seed(seed)
 
 ## Examples using small problem sizes:
 ##
-n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 
 ## Candidate predictors (subject to selection)
 ##
@@ -52,26 +49,26 @@ X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
 
 # shuffle indices 
 shuff_x_ind <- sample(p)
-shuff_y_ind <- sample(d)
+shuff_y_ind <- sample(q)
 
 X <- cbind(X_act, X_inact)[, shuff_x_ind]
 
 # Association pattern and effect sizes
 #
-pat <- matrix(FALSE, ncol = d, nrow = p)
+pat <- matrix(FALSE, ncol = q, nrow = p)
 bool_x <- shuff_x_ind <= p_act
-bool_y <- shuff_y_ind <= d_act
+bool_y <- shuff_y_ind <= q_act
 
-pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 
 pat[bool_x, bool_y] <- pat_act
 
 # Gaussian responses
 #
-Y_act <- matrix(rnorm(n * d_act, mean = X_act \%*\% beta_act), nrow = n)
-Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+Y_act <- matrix(rnorm(n * q_act, mean = X_act \%*\% beta_act), nrow = n)
+Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 
 Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 
@@ -84,7 +81,7 @@ V[bool_x, ] <- rnorm(p_act * r, mean = 2)
 ## Infer associations ##
 ########################
 
-module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+module_ids <- sample(c(rep(1, floor(q/2)), rep(2, q - floor(q/2)))) # 2 modules
 
 module_names <- sort(unique(module_ids))
 names(module_names) <- paste0("m_", 1:length(unique(module_ids)))

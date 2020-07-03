@@ -4,10 +4,10 @@
 \alias{set_hyper}
 \title{Gather model hyperparameters provided by the user.}
 \usage{
-set_hyper(d, p, lambda, nu, eta, kappa, n0, t02)
+set_hyper(q, p, lambda, nu, eta, kappa, n0, t02)
 }
 \arguments{
-\item{d}{Number of responses.}
+\item{q}{Number of responses.}
 
 \item{p}{Number of candidate predictors.}
 
@@ -19,17 +19,17 @@ represents the typical size of nonzero effects.}
 for the prior distribution of \eqn{\sigma^{-2}}. \eqn{\sigma} represents
 the typical size of nonzero effects.}
 
-\item{eta}{Vector of length 1 or d. Provides the values of
+\item{eta}{Vector of length 1 or q. Provides the values of
 hyperparameter \eqn{\eta} for the prior distributions of the continuous
 response residual precisions, \eqn{\tau}. If of length 1, the provided
-value is repeated d times.}
+value is repeated q times.}
 
-\item{kappa}{Vector of length 1 or d. Provides the values of hyperparameter
+\item{kappa}{Vector of length 1 or q. Provides the values of hyperparameter
 \eqn{\kappa} for the prior distributions of the response residual
-precisions, \eqn{\tau}. If of length 1, the provided value is repeated d 
+precisions, \eqn{\tau}. If of length 1, the provided value is repeated q 
 times.}
 
-\item{n0}{Vector of length 1 or d providing the prior mean for the 
+\item{n0}{Vector of length 1 or q providing the prior mean for the 
 response-specific effect \eqn{\rho}.}
 
 \item{t02}{Vector of length 1 providing the prior variance for the 
@@ -58,7 +58,7 @@ seed <- 123; set.seed(seed)
 
 ## Examples using small problem sizes:
 ##
-n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 
 ## Candidate predictors (subject to selection)
 ##
@@ -69,26 +69,26 @@ X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
 
 # shuffle indices 
 shuff_x_ind <- sample(p)
-shuff_y_ind <- sample(d)
+shuff_y_ind <- sample(q)
 
 X <- cbind(X_act, X_inact)[, shuff_x_ind]
 
 # Association pattern and effect sizes
 #
-pat <- matrix(FALSE, ncol = d, nrow = p)
+pat <- matrix(FALSE, ncol = q, nrow = p)
 bool_x <- shuff_x_ind <= p_act
-bool_y <- shuff_y_ind <= d_act
+bool_y <- shuff_y_ind <= q_act
 
-pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 
 pat[bool_x, bool_y] <- pat_act
 
 # Gaussian responses
 #
-Y_act <- matrix(rnorm(n * d_act, mean = X_act \%*\% beta_act), nrow = n)
-Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+Y_act <- matrix(rnorm(n * q_act, mean = X_act \%*\% beta_act), nrow = n)
+Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 
 Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 
@@ -101,7 +101,7 @@ V[bool_x, ] <- rnorm(p_act * r, mean = 2)
 ## Specify hyperparameters ##
 #############################
 
-list_hyper <- set_hyper(d, p, lambda = 1, nu = 1, eta = 1, kappa = 1, 
+list_hyper <- set_hyper(q, p, lambda = 1, nu = 1, eta = 1, kappa = 1, 
                         n0 = -2, t02 = 1)
                         
 ########################

@@ -233,16 +233,6 @@ log_sum_exp_ <- function(x) {
 }
 
 
-# entropy_ <- function(Y, U) {
-#
-#   log((2 * pi * exp(1))^(1/2) *
-#            exp(Y * pnorm(U, log.p = TRUE) +
-#                  (1-Y) * pnorm(U, lower.tail = FALSE, log.p = TRUE))) -
-#   U * inv_mills_ratio_matrix_(Y, U) / 2
-#
-# }
-
-
 # Functions for hyperparameter settings in dual_core (similarly to what is done in HESS)
 #
 E_Phi_X <- function(mu, s2, lower_tail = TRUE) {
@@ -267,12 +257,12 @@ get_V_p_t <- function(mu, s2, p) {
 
 get_mu <- function(E_p_t, s2, p) {
 
-  # sqrt(1 + s2) * qnorm(1- E_p_t / p)
   sqrt(1 + s2) * qnorm(E_p_t / p)
+  
 }
 
 
-get_n0_t02 <- function(d, p, p0) {
+get_n0_t02 <- function(q, p, p0) {
   
   E_p_t <- p0[1]
   V_p_t <- min(p0[2], floor(2 * p / 3))
@@ -280,7 +270,7 @@ get_n0_t02 <- function(d, p, p0) {
   dn <- 1e-6
   up <- 1e5
   
-  # Get n0 and t02 similarly as for a_omega_t and b_omega_t in HESS
+  # Get n0 and t02
   # (specify expectation and variance of number of active predictors per response)
   #
   # Look at : gam_st | theta_s = 0
@@ -296,8 +286,7 @@ get_n0_t02 <- function(d, p, p0) {
   
   # n0 sets the level of sparsity.
   n0 <- get_mu(E_p_t, t02, p)
-  n0 <- rep(n0, d)
-  # n0 <- rep(-n0, d)
+  n0 <- rep(n0, q)
   
   create_named_list_(n0, t02)
 }
@@ -377,232 +366,8 @@ rm_collinear_ <- function(mat, verbose) {
   create_named_list_(mat, bool_coll, rmvd_coll)
 }
 
+
 make_chunks_ <- function(x, n_g) split(x, factor(sort(rank(x) %% n_g)))
-
-
-Q_approx <- function(x, eps1 = 1e-30, eps2 = 1e-7) {
-  
-  if(x <= 1) {
-    
-    gsl::expint_E1(x) * exp(x)
-    
-  } else {
-    
-    f_p <- eps1
-    C_p <- eps1
-    D_p <- 0
-    Delta <- 2 + eps2
-    j <- 1
-    
-    while( abs(Delta-1) >= eps2 ) {
-      
-      j <- j+1
-      
-      D_c <- x + 2*j - 1 - ((j-1)^{2}) * D_p
-      C_c <- x + 2*j - 1 - ((j-1)^{2}) / C_p
-      D_c <- 1 / D_c
-      
-      Delta <- C_c * D_c
-      f_c <- f_p * Delta
-      f_p <- f_c
-      C_p <- C_c
-      D_p <- D_c
-    }
-    
-    1/(x + 1 + f_c)
-  }
-}
-
-
-Q_approx_vec <- function(x, eps1 = 1e-30, eps2 = 1e-7) {
-  
-  qapprox <- rep(NA, length(x))
-  
-  x_lower <- x[x <= 1]
-  
-  if (length(x_lower) > 0) {
-    qapprox[x <= 1] <- gsl::expint_E1(x_lower) * exp(x_lower)
-  }
-  
-  
-  x_upper <- x[x > 1]
-  
-  if (length(x_upper) > 0) {
-    
-    f_p <- eps1
-    C_p <- eps1
-    D_p <- 0
-    Delta <- 2 + eps2
-    j <- 1
-    
-    
-    while( max(abs(Delta-1)) >= eps2 ) {
-      
-      j <- j+1
-      
-      D_c <- x_upper + 2*j - 1 - ((j-1)^{2}) * D_p
-      C_c <- x_upper + 2*j - 1 - ((j-1)^{2}) / C_p
-      D_c <- 1 / D_c
-      
-      Delta <- C_c * D_c
-      f_c <- f_p * Delta
-      f_p <- f_c
-      C_p <- C_c
-      D_p <- D_c
-    }
-    
-    qapprox[x > 1] <- 1/(x_upper + 1 + f_c)
-    
-  }
-  
-  qapprox
-  
-}
-
-compute_integral_hs_ <- function(alpha, beta, m, n, Q_ab) {
-  
-  # computes int_0^infty x^n (1 + alpha * x)^(-m) * exp(- beta * x) dx
-  # for m = n or m = n + 1, n natural n > 0, beta > 0 (if n = 0, then = Q_ab)
-  
-  # Q_ab = Q_approx(alpha / beta) # precomputed to avoid computing it too many times
-  # = exp(beta/alpha) * E_1(beta/alpha)
-  
-  
-  if (m == n) {
-    
-    out <- alpha^(-n) * beta^(-1) 
-    
-    if (n == 1) {
-      
-      out <- out - alpha^(-2) * Q_ab
-      
-    } else if (n == 2) {
-      
-      out <- out - 2 * alpha^(-3) * Q_ab + alpha^(-3) - alpha^(-4) * beta * Q_ab
-      
-    } else if (n == 3) {
-      
-      v1 <- c(-3 * log(alpha) - log(beta),
-              log(3) - 4 * log(alpha),
-              -5 * log(alpha) - log(2) + log(beta))
-      
-      
-      v2 <- c(log(3) - 4 * log(alpha) + log(Q_ab),
-              log(3) - 5 * log(alpha) + log(beta) + log(Q_ab),
-              -4 * log(alpha) - log(2),
-              -6 * log(alpha) - log(2) + 2 * log(beta) + log(Q_ab))
-      
-      out <- exp(log_sum_exp_(v1)) - exp(log_sum_exp_(v2))
-      
-    } else if (n == 4){
-      
-      v1 <- c(-4 * log(alpha) - log(beta),
-              log(4) - 5 * log(alpha),
-              log(2) - 5 * log(alpha),
-              log(2) - 7 * log(alpha) + 2 * log(beta) + log(Q_ab),
-              -7 * log(alpha) - log(6) + 2 * log(beta),
-              -5 * log(alpha) - log(3))
-      
-      v2 <- c(log(4) - 5 * log(alpha) + log(Q_ab),
-              log(4) - 6 * log(alpha) + log(beta) + log(Q_ab),
-              log(2) - 7 * log(alpha) + log(beta),
-              -6 * log(alpha) - log(6) + log(beta))
-      
-      out <- exp(log_sum_exp_(v1)) - exp(log_sum_exp_(v2))
-      
-    } else {
-      
-      v1 <- c(-n * log(alpha) - log(beta), 
-              -n * log(alpha) + log(n) + unlist(sapply(2:(n-1), function(k) {
-                -k * log(alpha) - lfactorial(k-1) +
-                  sapply(seq(1, k-1, by = 2), function(j) {
-                    lfactorial(j-1) + (k-j-1) * log(beta) + j * log(alpha)}) })),
-              -2*n *log(alpha) - lfactorial(n-1) +
-                sapply(seq(1, n-1, by = 2), function(j) {
-                  lfactorial(j-1) + (n-j-1) * log(beta) + j * log(alpha)})
-      )
-      
-      v2 <- c(log(n) - (n + 1) * log(alpha) + log(Q_ab), 
-              -n * log(alpha) + log(n) + unlist(sapply(3:(n-1), function(k) { # k = 2 doesn't contribute
-                -k * log(alpha) - lfactorial(k-1) +
-                  sapply(seq(2, k-1, by = 2), function(j) {
-                    lfactorial(j-1) * (k-j-1) * log(beta) + j * log(alpha)}) })),
-              -n * log(alpha) + log(n) + sapply(2:(n-1), function(k) {
-                -k * log(alpha) - lfactorial(k-1) + (k-1) * log(beta) + log(Q_ab)}),
-              - 2*n * log(alpha) - lfactorial(n-1) +
-                sapply(seq(2, n-1, by = 2), function(j) {
-                  lfactorial(j-1) + (n-j-1) * log(beta) + j * log(alpha)}), 
-              -2*n * log(alpha) - lfactorial(n-1) + (n-1) * log(beta) + log(Q_ab)
-      )
-      
-      out <- exp(log_sum_exp_(v1)) - exp(log_sum_exp_(v2))
-      
-    }
-    
-    
-  } else if (m == n + 1) { # not stable for n >= 4, i.e., can't be used for df = 9 and higher.
-    
-    if (n == 1) {
-      
-      out <- alpha^(-2) * Q_ab - alpha^(-2) +  alpha^(-3) * beta * Q_ab
-      
-    } else if (n == 2){
-      
-      v1 <- c(-3 * log(alpha) + log(Q_ab),
-              -3 * log(alpha) - log(2),
-              -5 * log(alpha) - log(2) + 2 * log(beta) + log(Q_ab),
-              -4 * log(alpha) + log(2) + log(beta) + log(Q_ab)
-      )
-      
-      v2 <- c(-4 * log(alpha) - log(2) + log(beta),
-              -3 * log(alpha) + log(2)
-      )
-      
-      
-      out <- exp(log_sum_exp_(v1)) - exp(log_sum_exp_(v2))
-      
-    } else {
-      
-      
-      v1 <- c(-(n+1) * log(alpha) + log(Q_ab),
-              -(2*n+1) * log(alpha) - lfactorial(n) +
-                sapply(seq(2, n, by = 2), function(j) {
-                  lfactorial(j-1) + (n-j) * log(beta) + j * log(alpha)}),
-              -(2*n+1) * log(alpha) - lfactorial(n) + n * log(beta) + log(Q_ab),
-              -n * log(alpha) + log(n) + unlist(sapply(2:(n-1), function(k) {
-                -(1+k) * log(alpha) - lfactorial(k) +
-                  sapply(seq(2, k, by = 2), function(j) {
-                    lfactorial(j-1) + (k-j) * log(beta) + j * log(alpha) })
-              })),
-              -n * log(alpha) + log(n) + sapply(1:(n-1), function(k) {
-                -(1+k) * log(alpha) - lfactorial(k) + k * log(beta) + log(Q_ab)
-              })
-      )
-      
-      
-      v2 <- c(-(2*n+1) * log(alpha) - lfactorial(n) +
-                sapply(seq(1, n, by = 2), function(j) {
-                  lfactorial(j-1) + (n-j) * log(beta) + j * log(alpha)}),
-              -n * log(alpha) + log(n) + unlist(sapply(1:(n-1), function(k) {
-                -(1+k) * log(alpha) - lfactorial(k) +
-                  sapply(seq(1, k, by = 2), function(j) {
-                    lfactorial(j-1) + (k-j) * log(beta) + j * log(alpha) })
-              }))
-              
-      )
-      
-      out <- exp(log_sum_exp_(v1)) - exp(log_sum_exp_(v2))
-      
-    }
-    
-  } else {
-    
-    stop("Invalid value of m, must be n or n + 1.")
-    
-  }
-  
-  out
-}
 
 
 cbind_fill_matrix <- function(...) { # more efficient than do.call cbind

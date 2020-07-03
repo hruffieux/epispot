@@ -13,7 +13,7 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
   
   # Y centered, and X and V standardized.
   
-  d <- ncol(Y)
+  q <- ncol(Y)
   n <- nrow(Y)
   p <- ncol(X)
   
@@ -48,7 +48,7 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
     # Parameter initialization here for the top level only
     #
     mu_theta_vb <- rnorm(p, sd = 0.1) 
-    mu_rho_vb <- rnorm(d, mean = n0, sd = sqrt(t02))
+    mu_rho_vb <- rnorm(q, mean = n0, sd = sqrt(t02))
     mu_c_vb <- lapply(vec_r_bl, function(r) rnorm(r, sd = 0.1)) 
     
     # om is a list of length n_bl
@@ -60,7 +60,7 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
     
     # Covariate-specific parameters: objects derived from s02
     
-      obj_theta_vb <- lapply(1:n_bl, function(bl) update_sig2_theta_vb_(d, vec_p_bl[bl], s02[vec_fac_bl == bl_ids[bl]], 
+      obj_theta_vb <- lapply(1:n_bl, function(bl) update_sig2_theta_vb_(q, vec_p_bl[bl], s02[vec_fac_bl == bl_ids[bl]], 
                                                                         c = c))    
       
 
@@ -71,13 +71,13 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
     # Response-specific parameters: objects derived from t02
     #
     T0_inv <- 1 / t02
-    sig2_rho_vb <- update_sig2_c0_vb_(p, t02, c = c) # stands for a diagonal matrix of size d with this value on the (constant) diagonal
-    vec_sum_log_det_rho <- - d * (log(t02) + log(p + T0_inv))
+    sig2_rho_vb <- update_sig2_c0_vb_(p, t02, c = c) # stands for a diagonal matrix of size q with this value on the (constant) diagonal
+    vec_sum_log_det_rho <- - q * (log(t02) + log(p + T0_inv))
     
     
     # External information effects
     #
-    sig2_c_vb <- sapply(1:n_bl, function(bl) update_sig2_c_vb_(vec_p_bl[bl], s2[bl], d, c = c))
+    sig2_c_vb <- sapply(1:n_bl, function(bl) update_sig2_c_vb_(vec_p_bl[bl], s2[bl], q, c = c))
     
     # Stored/precomputed objects
     #
@@ -142,7 +142,7 @@ epispot_dual_info_blocks_core_ <- function(Y, X, list_V, vec_fac_bl, list_hyper,
                                 # schemes "x" of "x-y" are not batch concave
                                 # hence not implemented as they may diverge
         
-        for (k in sample(1:d)) {
+        for (k in sample(1:q)) {
           
           for (j in sample(1:p)) {
             

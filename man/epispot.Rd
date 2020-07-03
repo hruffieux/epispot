@@ -2,7 +2,8 @@
 % Please edit documentation in R/epispot.R
 \name{epispot}
 \alias{epispot}
-\title{Fit sparse multivariate regression models using variational inference.}
+\title{Fit EPISPOT: fully joint annotation-driven molecular QTL mapping by annealed
+variational EM inference.}
 \usage{
 epispot(
   Y,
@@ -24,8 +25,8 @@ epispot(
 )
 }
 \arguments{
-\item{Y}{Response data matrix of dimension n x d, where n is the number of
-samples and d is the number of response variables; Y is centred prior to 
+\item{Y}{Response data matrix of dimension n x q, where n is the number of
+samples and q is the number of response variables; Y is centred prior to 
 the run.}
 
 \item{X}{Input matrix of dimension n x p, where p is the number of candidate
@@ -92,14 +93,14 @@ An object of class "\code{epispot}" containing the following output:
                 corresponds to the variational posterior mean 
                 (mu_beta_vb_st x gam_vb_st) of the regression effect between 
                 candidate predictor s and response t.}
- \item{gam_vb}{Posterior inclusion probability matrix of dimension p x d.
+ \item{gam_vb}{Posterior inclusion probability matrix of dimension p x q.
                Entry (s, t) corresponds to the posterior probability of
                association between candidate predictor s and response t.}
  \item{mu_c_vb}{Vector of size r, where entry l contains the overall effect 
                 of annotation l on the
                 probabilities of associations.\code{NULL} if \code{V} is
                 \code{NULL}.}
- \item{mu_rho_vb}{Vector of length d containing the posterior mean of rho.
+ \item{mu_rho_vb}{Vector of length q containing the posterior mean of rho.
                   Entry t controls the proportion of predictors associated
                   with response t.}
  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
@@ -136,21 +137,8 @@ An object of class "\code{epispot}" containing the following output:
  \item{...}{Other specific outputs are possible depending on the model used.}
 }
 \description{
-Variational approximation procedure fitting sparse multivariate regression
-models for combined selection of predictors and associated responses in
-high-dimensional set-ups. Dependence across responses linked to the same
-predictors is captured through the model hierarchical structure.
-}
-\details{
-The optimization is made using efficient block coordinate ascent schemes, for
-which convergence is ensured as the objective (elbo) is multiconcave
-for the selected blocks, i.e., it is concave in each block of parameters
-whose updates are made simultaneously, see Wu et al. (reference Section
-below).
-
-The continuous response variables in \code{Y} (if any) will be centered
-before application of the variational algorithm, and the candidate predictors
-in \code{X} will be standardized.
+Fit EPISPOT: fully joint annotation-driven molecular QTL mapping by annealed
+variational EM inference.
 }
 \examples{
 seed <- 123; set.seed(seed)
@@ -161,7 +149,7 @@ seed <- 123; set.seed(seed)
 
 ## Examples using small problem sizes:
 ##
-n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 
 ## Candidate predictors (subject to selection)
 ##
@@ -172,26 +160,26 @@ X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
 
 # shuffle indices 
 shuff_x_ind <- sample(p)
-shuff_y_ind <- sample(d)
+shuff_y_ind <- sample(q)
 
 X <- cbind(X_act, X_inact)[, shuff_x_ind]
 
 # Association pattern and effect sizes
 #
-pat <- matrix(FALSE, ncol = d, nrow = p)
+pat <- matrix(FALSE, ncol = q, nrow = p)
 bool_x <- shuff_x_ind <= p_act
-bool_y <- shuff_y_ind <= d_act
+bool_y <- shuff_y_ind <= q_act
 
-pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 
 pat[bool_x, bool_y] <- pat_act
 
 # Gaussian responses
 #
-Y_act <- matrix(rnorm(n * d_act, mean = X_act \%*\% beta_act), nrow = n)
-Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+Y_act <- matrix(rnorm(n * q_act, mean = X_act \%*\% beta_act), nrow = n)
+Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 
 Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 
@@ -216,7 +204,7 @@ res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, user_seed = seed)
 
 # Inference with modules
 #
-module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+module_ids <- sample(c(rep(1, floor(q/2)), rep(2, q - floor(q/2)))) # 2 modules
 list_modules <- set_modules(module_ids, n_cpus = 1)
 
 res_epispot_modules <- epispot(Y = Y, X = X, V = V, p0 = p0, 

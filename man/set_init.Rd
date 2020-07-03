@@ -4,19 +4,19 @@
 \alias{set_init}
 \title{Gather initial variational parameters provided by the user.}
 \usage{
-set_init(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau_vb)
+set_init(q, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, tau_vb)
 }
 \arguments{
-\item{d}{Number of responses.}
+\item{q}{Number of responses.}
 
 \item{p}{Number of candidate predictors.}
 
 \item{r}{Number of candidate annotations.}
 
-\item{gam_vb}{Matrix of size p x d with initial values for the variational
+\item{gam_vb}{Matrix of size p x q with initial values for the variational
 parameter yielding posterior probabilities of inclusion.}
 
-\item{mu_beta_vb}{Matrix of size p x d with initial values for the
+\item{mu_beta_vb}{Matrix of size p x q with initial values for the
 variational parameter yielding regression coefficient estimates for
 predictor-response pairs included in the model.}
 
@@ -32,13 +32,13 @@ values are the same for all predictors, for simplicity).}
 yielding the variance of the annotation effects on the probability 
 parameter for the predictor-response associations.}
 
-\item{sig2_beta_vb}{Vector of length d with initial values for
+\item{sig2_beta_vb}{Vector of length q with initial values for
 the variational parameter yielding estimates of effect variances for
 predictor-response pairs included in the model. These values are the same
 for all the predictors (as a result of the predictor variables being
 standardized before the variational algorithm).}
 
-\item{tau_vb}{Vector of length d with initial values for the variational parameter
+\item{tau_vb}{Vector of length q with initial values for the variational parameter
 yielding estimates for the continuous response residual precisions.}
 }
 \value{
@@ -65,7 +65,7 @@ seed <- 123; set.seed(seed)
 
 ## Examples using small problem sizes:
 ##
-n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 
 ## Candidate predictors (subject to selection)
 ##
@@ -76,26 +76,26 @@ X_inact <- matrix(rbinom(n * (p - p_act), size = 2, p = 0.25), nrow = n)
 
 # shuffle indices 
 shuff_x_ind <- sample(p)
-shuff_y_ind <- sample(d)
+shuff_y_ind <- sample(q)
 
 X <- cbind(X_act, X_inact)[, shuff_x_ind]
 
 # Association pattern and effect sizes
 #
-pat <- matrix(FALSE, ncol = d, nrow = p)
+pat <- matrix(FALSE, ncol = q, nrow = p)
 bool_x <- shuff_x_ind <= p_act
-bool_y <- shuff_y_ind <= d_act
+bool_y <- shuff_y_ind <= q_act
 
-pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 
 pat[bool_x, bool_y] <- pat_act
 
 # Gaussian responses
 #
-Y_act <- matrix(rnorm(n * d_act, mean = X_act \%*\% beta_act), nrow = n)
-Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+Y_act <- matrix(rnorm(n * q_act, mean = X_act \%*\% beta_act), nrow = n)
+Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 
 Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 
@@ -108,18 +108,18 @@ V[bool_x, ] <- rnorm(p_act * r, mean = 2)
 ## Specify initial parameters ##
 ################################
 
-tau_vb <- rep(1, d)
+tau_vb <- rep(1, q)
 
-gam_vb <- matrix(rbeta(p * d, shape1 = 1, shape2 = 4 * d - 1), nrow = p)
+gam_vb <- matrix(rbeta(p * q, shape1 = 1, shape2 = 4 * q - 1), nrow = p)
 
-mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
-sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1)
+mu_beta_vb <- matrix(rnorm(p * q), nrow = p)
+sig2_beta_vb <- 1 / rgamma(q, shape = 2, rate = 1)
 
 om <- rep(0.5, r)
-s02 <- 1 / d
+s02 <- 1 / q
 s2 <- 0.01
 
-list_init <- set_init(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, 
+list_init <- set_init(q, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, 
                       tau_vb)
 
 ########################

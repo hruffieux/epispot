@@ -11,7 +11,7 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
 
   if (!is.null(user_seed)) {
     
-    if (verbose) cat(paste0("Seed set to user_seed ", user_seed,". \n"))
+    if (verbose) cat(paste0("Seed set to user_seed ", user_seed, ". \n"))
     
     set.seed(user_seed)
     
@@ -31,7 +31,7 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
   p <- ncol(X)
   
   check_structure_(Y, "matrix", "numeric")
-  d <- ncol(Y)
+  q <- ncol(Y)
   
   if (nrow(Y) != n) stop("X and Y must have the same number of samples.")
   
@@ -43,7 +43,7 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
     stop("The provided rownames of X and Y must be the same.")
   
   if (is.null(colnames(X))) colnames(X) <- paste("Cov_x_", 1:p, sep="")
-  if (is.null(colnames(Y))) colnames(Y) <- paste("Resp_", 1:d, sep="")
+  if (is.null(colnames(Y))) colnames(Y) <- paste("Resp_", 1:q, sep="")
   
   X <- scale(X)
   
@@ -94,8 +94,8 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
     stop("All variables provided in V are constants and hence useless. Please set V to NULL.")
   
   p <- ncol(X)
-  if (p < 1) stop(paste("There must be at least 1 non-constant candidate predictor ",
-                        " stored in X.", sep=""))
+  if (p < 1) stop(paste("There must be at least 1 non-constant candidate ", 
+                        "predictor stored in X."))
   
   Y <- scale(Y, center = TRUE, scale = FALSE)
   
@@ -143,7 +143,7 @@ check_annealing_ <- function(anneal, maxit) {
 prepare_list_hyper_ <- function(list_hyper, Y, p, p0, list_blocks, bool_rmvd_x, 
                                 names_x, names_y, verbose) {
   
-  d <- ncol(Y)
+  q <- ncol(Y)
   
   if (is.null(list_hyper)) {
     
@@ -168,8 +168,8 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, list_blocks, bool_rmvd_x,
     }
     
     
-    if (list_hyper$d_hyper != d)
-      stop(paste("The dimensions (d) of the provided hyperparameters ",
+    if (list_hyper$q_hyper != q)
+      stop(paste("The dimensions (q) of the provided hyperparameters ",
                  "(list_hyper) are not consistent with that of Y.\n", sep=""))
     
     if (list_hyper$p_hyper != p_hyper_match)
@@ -209,7 +209,7 @@ prepare_list_hyper_ <- function(list_hyper, Y, p, p0, list_blocks, bool_rmvd_x,
 prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
                                bool_rmvd_x, bool_rmvd_v, user_seed, verbose) {
   
-  d <- ncol(Y)
+  q <- ncol(Y)
   n <- nrow(Y)
   
   if (is.null(list_init)) {
@@ -235,8 +235,8 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
       r_init_match <- r
     }
     
-    if (list_init$d_init != d)
-      stop(paste("The dimensions (d) of the provided initial parameters ",
+    if (list_init$q_init != q)
+      stop(paste("The dimensions (q) of the provided initial parameters ",
                  "(list_init) are not consistent with that of Y.\n", sep=""))
     
     if (list_init$p_init != p_init_match)
@@ -278,13 +278,13 @@ prepare_list_init_ <- function(list_init, Y, p, p0, r, list_blocks,
 # Internal function implementing sanity checks and needed preprocessing to the
 # settings provided by the user for block-wise parallel inference.
 #
-prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
+prepare_blocks_ <- function(list_blocks, q, bool_rmvd_x) {
   
   p <- length(bool_rmvd_x)
   
   if (inherits(list_blocks, "modules")) {
     
-    if (list_blocks$d_modules != d) {
+    if (list_blocks$q_modules != q) {
       stop("The number of responses provided to set_modules does not match that in Y. Exit.")
     }
     
@@ -292,7 +292,7 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
     undo_order_y_ids <- list_blocks$undo_order_y_ids
     module_names <- list_blocks$module_names
     
-    list_blocks <- set_blocks(c(length(bool_rmvd_x), d), 
+    list_blocks <- set_blocks(c(length(bool_rmvd_x), q), 
                               list(1, list_blocks$pos_modules), 
                               n_cpus = list_blocks$n_cpus) 
     
@@ -325,8 +325,8 @@ prepare_blocks_ <- function(list_blocks, d, bool_rmvd_x) {
     
     vec_fac_bl_x <- list_blocks$bl_x$vec_fac_bl[!bool_rmvd_x]
     
-    if (list_blocks$bl_y$n_var_blocks != d)
-      stop(paste("The number of responses d provided to the function set_blocks ",
+    if (list_blocks$bl_y$n_var_blocks != q)
+      stop(paste("The number of responses q provided to the function set_blocks ",
                  "is not consistent with Y.\n", sep=""))
     
     vec_fac_bl_y <- list_blocks$bl_y$vec_fac_bl
@@ -461,8 +461,6 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 #' Parallel applications of the method on blocks of candidate predictors for
 #' large datasets allows faster and less RAM-greedy executions.
 #'
-#'
-#'module_ids, module_map = NULL, n_cpus = 1
 #' @param module_ids Numeric vector of size the number of response variables 
 #'   which assigns each response to its corresponding module. See example below.
 #'   Each module must have size greater than 10 to avoid unstable inference. 
@@ -487,7 +485,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 #'
 #' ## Examples using small problem sizes:
 #' ##
-#' n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+#' n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 #'
 #' ## Candidate predictors (subject to selection)
 #' ##
@@ -498,26 +496,26 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 #'
 #' # shuffle indices 
 #' shuff_x_ind <- sample(p)
-#' shuff_y_ind <- sample(d)
+#' shuff_y_ind <- sample(q)
 #' 
 #' X <- cbind(X_act, X_inact)[, shuff_x_ind]
 #'
 #' # Association pattern and effect sizes
 #' #
-#' pat <- matrix(FALSE, ncol = d, nrow = p)
+#' pat <- matrix(FALSE, ncol = q, nrow = p)
 #' bool_x <- shuff_x_ind <= p_act
-#' bool_y <- shuff_y_ind <= d_act
+#' bool_y <- shuff_y_ind <= q_act
 #' 
-#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-#' pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+#' pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 #' beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 #' 
 #' pat[bool_x, bool_y] <- pat_act
 #' 
 #' # Gaussian responses
 #' #
-#' Y_act <- matrix(rnorm(n * d_act, mean = X_act %*% beta_act), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+#' Y_act <- matrix(rnorm(n * q_act, mean = X_act %*% beta_act), nrow = n)
+#' Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 #'
 #' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 #'
@@ -530,7 +528,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 #' ## Infer associations ##
 #' ########################
 #'
-#' module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+#' module_ids <- sample(c(rep(1, floor(q/2)), rep(2, q - floor(q/2)))) # 2 modules
 #' 
 #' module_names <- sort(unique(module_ids))
 #' names(module_names) <- paste0("m_", 1:length(unique(module_ids)))
@@ -558,7 +556,7 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
   }
   
   n_modules <- length(tb_module_ids)
-  d_modules <- length(module_ids)
+  q_modules <- length(module_ids)
   
   if (is.null(module_map)) {
     
@@ -581,7 +579,7 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
   }
   
   order_y_ids <- order(module_ids)
-  if (all(order_y_ids == 1:d_modules)) { # already in the correct order.
+  if (all(order_y_ids == 1:q_modules)) { # already in the correct order.
     order_y_ids <- undo_order_y_ids <- NULL
   } else {
     undo_order_y_ids <- order(order_y_ids) 
@@ -590,7 +588,7 @@ set_modules <- function(module_ids, module_map = NULL, n_cpus = 1) {
   pos_modules <- c(1, cumsum(tb_module_ids[-n_modules]) + 1)
   names(pos_modules) <- module_names
   
-  list_modules <- create_named_list_(order_y_ids, undo_order_y_ids, d_modules, pos_modules, 
+  list_modules <- create_named_list_(order_y_ids, undo_order_y_ids, q_modules, pos_modules, 
                                      module_names, n_modules, n_cpus)
   class(list_modules) <- "modules"
   

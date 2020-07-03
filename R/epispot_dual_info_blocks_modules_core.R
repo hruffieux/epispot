@@ -16,7 +16,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
   
   # Y centered, and X and V standardized.
   
-  d <- ncol(Y)
+  q <- ncol(Y)
   n <- nrow(Y)
   p <- ncol(X)
   
@@ -45,7 +45,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
     n_bl_y <- length(bl_ids_y)
     
-    vec_d_bl <- table(vec_fac_bl_y)
+    vec_q_bl <- table(vec_fac_bl_y)
     
     vec_r_bl <- sapply(list_V, function(V) ncol(V))# size of the V_bl (after removal of cst and coll annotations in each)
     
@@ -59,7 +59,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     # Parameter initialization here for the top level only
     #
     mu_theta_vb <- matrix(rnorm(p * n_bl_y, sd = 0.1), nrow = p)
-    mu_rho_vb <- rnorm(d, mean = n0, sd = sqrt(t02))
+    mu_rho_vb <- rnorm(q, mean = n0, sd = sqrt(t02))
     mu_c_vb <- lapply(vec_r_bl, function(r_bl) matrix(rnorm(r_bl * n_bl_y, sd = 0.1), nrow = r_bl)) 
     
     
@@ -78,7 +78,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
         if (bl_y == 0)
           bl_y <- n_bl_y
         
-        update_sig2_theta_vb_(vec_d_bl[bl_y], vec_p_bl[bl_x], s02[vec_fac_bl_x == bl_ids_x[bl_x], bl_y], c = c)
+        update_sig2_theta_vb_(vec_q_bl[bl_y], vec_p_bl[bl_x], s02[vec_fac_bl_x == bl_ids_x[bl_x], bl_y], c = c)
         
       })
 
@@ -91,14 +91,14 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     # Response-specific parameters: objects derived from t02
     #
     T0_inv <- 1 / t02
-    sig2_rho_vb <- update_sig2_c0_vb_(p, t02, c = c) # stands for a diagonal matrix of size d with this value on the (constant) diagonal
-    vec_sum_log_det_rho <- - d * (log(t02) + log(p + T0_inv))
+    sig2_rho_vb <- update_sig2_c0_vb_(p, t02, c = c) # stands for a diagonal matrix of size q with this value on the (constant) diagonal
+    vec_sum_log_det_rho <- - q * (log(t02) + log(p + T0_inv))
     
     
     # External information effects
     #
     sig2_c_vb <- matrix(sapply(1:n_bl_y, function(bl_y) {
-      sapply(1:n_bl_x, function(bl_x) update_sig2_c_vb_(vec_p_bl[bl_x], s2[bl_x, bl_y], vec_d_bl[bl_y], c = c))
+      sapply(1:n_bl_x, function(bl_x) update_sig2_c_vb_(vec_p_bl[bl_x], s2[bl_x, bl_y], vec_q_bl[bl_y], c = c))
     }), nrow = n_bl_x)
     
   
@@ -165,7 +165,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
         # schemes "x" of "x-y" are not batch concave
         # hence not implemented as they may diverge
         
-        for (k in sample(1:d)) {
+        for (k in sample(1:q)) {
           
           for (j in sample(1:p)) {
             
@@ -414,7 +414,7 @@ elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa
   bl_ids_y <- as.numeric(levels(vec_fac_bl_y))
   n_bl_y <- length(bl_ids_y)
   
-  d <- ncol(Y)
+  q <- ncol(Y)
   
   # needed for monotonically increasing elbo.
   #

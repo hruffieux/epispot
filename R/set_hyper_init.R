@@ -11,7 +11,7 @@
 #' hyperparameter choices (without using \code{\link{set_hyper}}) by setting the 
 #' argument \code{list_hyper} to \code{NULL}.
 #' 
-#' @param d Number of responses.
+#' @param q Number of responses.
 #' @param p Number of candidate predictors.
 #' @param lambda Vector of length 1 providing the values of hyperparameter
 #'   \eqn{\lambda} for the prior distribution of \eqn{\sigma^{-2}}. \eqn{\sigma}
@@ -19,15 +19,15 @@
 #' @param nu Vector of length 1 providing the values of hyperparameter \eqn{\nu}
 #'   for the prior distribution of \eqn{\sigma^{-2}}. \eqn{\sigma} represents
 #'   the typical size of nonzero effects.
-#' @param eta Vector of length 1 or d. Provides the values of
+#' @param eta Vector of length 1 or q. Provides the values of
 #'   hyperparameter \eqn{\eta} for the prior distributions of the continuous
 #'   response residual precisions, \eqn{\tau}. If of length 1, the provided
-#'   value is repeated d times.
-#' @param kappa Vector of length 1 or d. Provides the values of hyperparameter
+#'   value is repeated q times.
+#' @param kappa Vector of length 1 or q. Provides the values of hyperparameter
 #'   \eqn{\kappa} for the prior distributions of the response residual
-#'   precisions, \eqn{\tau}. If of length 1, the provided value is repeated d 
+#'   precisions, \eqn{\tau}. If of length 1, the provided value is repeated q 
 #'   times.
-#' @param n0 Vector of length 1 or d providing the prior mean for the 
+#' @param n0 Vector of length 1 or q providing the prior mean for the 
 #'   response-specific effect \eqn{\rho}.
 #' @param t02 Vector of length 1 providing the prior variance for the 
 #'   response-specific effect \eqn{\rho}.
@@ -45,7 +45,7 @@
 #'
 #' ## Examples using small problem sizes:
 #' ##
-#' n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+#' n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 #'
 #' ## Candidate predictors (subject to selection)
 #' ##
@@ -56,26 +56,26 @@
 #'
 #' # shuffle indices 
 #' shuff_x_ind <- sample(p)
-#' shuff_y_ind <- sample(d)
+#' shuff_y_ind <- sample(q)
 #' 
 #' X <- cbind(X_act, X_inact)[, shuff_x_ind]
 #'
 #' # Association pattern and effect sizes
 #' #
-#' pat <- matrix(FALSE, ncol = d, nrow = p)
+#' pat <- matrix(FALSE, ncol = q, nrow = p)
 #' bool_x <- shuff_x_ind <= p_act
-#' bool_y <- shuff_y_ind <= d_act
+#' bool_y <- shuff_y_ind <= q_act
 #' 
-#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-#' pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+#' pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 #' beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 #' 
 #' pat[bool_x, bool_y] <- pat_act
 #' 
 #' # Gaussian responses
 #' #
-#' Y_act <- matrix(rnorm(n * d_act, mean = X_act %*% beta_act), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+#' Y_act <- matrix(rnorm(n * q_act, mean = X_act %*% beta_act), nrow = n)
+#' Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 #'
 #' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 #'
@@ -88,7 +88,7 @@
 #' ## Specify hyperparameters ##
 #' #############################
 #' 
-#' list_hyper <- set_hyper(d, p, lambda = 1, nu = 1, eta = 1, kappa = 1, 
+#' list_hyper <- set_hyper(q, p, lambda = 1, nu = 1, eta = 1, kappa = 1, 
 #'                         n0 = -2, t02 = 1)
 #'                         
 #' ########################
@@ -107,16 +107,16 @@
 #'
 #' @export
 #'
-set_hyper <- function(d, p, lambda, nu, eta, kappa, n0, t02) {
+set_hyper <- function(q, p, lambda, nu, eta, kappa, n0, t02) {
   
-  check_structure_(d, "vector", "numeric", 1)
-  check_natural_(d)
+  check_structure_(q, "vector", "numeric", 1)
+  check_natural_(q)
   
   check_structure_(p, "vector", "numeric", 1)
   check_natural_(p)
   
-  check_structure_(n0, "vector", "double", c(1, d))
-  if (length(n0) == 1) n0 <- rep(n0, d)
+  check_structure_(n0, "vector", "double", c(1, q))
+  if (length(n0) == 1) n0 <- rep(n0, q)
   
   check_structure_(t02, "vector", "double", 1)
   check_positive_(t02)
@@ -127,18 +127,18 @@ set_hyper <- function(d, p, lambda, nu, eta, kappa, n0, t02) {
   check_structure_(nu, "vector", "double", 1)
   check_positive_(nu)
   
-  check_structure_(eta, "vector", "double", c(1, d))
+  check_structure_(eta, "vector", "double", c(1, q))
   check_positive_(eta)
-  if (length(eta) == 1) eta <- rep(eta, d)
+  if (length(eta) == 1) eta <- rep(eta, q)
   
-  check_structure_(kappa, "vector", "double", c(1, d))
+  check_structure_(kappa, "vector", "double", c(1, q))
   check_positive_(kappa)
-  if (length(kappa) == 1) kappa <- rep(kappa, d)
+  if (length(kappa) == 1) kappa <- rep(kappa, q)
   
-  d_hyper <- d
+  q_hyper <- q
   p_hyper <- p
   
-  list_hyper <- create_named_list_(d_hyper, p_hyper,
+  list_hyper <- create_named_list_(q_hyper, p_hyper,
                                    eta, kappa, lambda, nu, n0, t02)
   
   class(list_hyper) <- "hyper"
@@ -153,7 +153,7 @@ set_hyper <- function(d, p, lambda, nu, eta, kappa, n0, t02) {
 #
 auto_set_hyper_ <- function(Y, p, p0) {
   
-  d <- ncol(Y)
+  q <- ncol(Y)
   
   lambda <- 1e-2
   nu <- 1
@@ -166,8 +166,8 @@ auto_set_hyper_ <- function(Y, p, p0) {
   if (!is.finite(eta)) eta <- 1e3
   check_positive_(eta)
   
-  eta <- rep(eta, d)
-  kappa <- rep(1, d)
+  eta <- rep(eta, q)
+  kappa <- rep(1, q)
   check_positive_(kappa)
   
   E_p_t <- p0[1]
@@ -176,7 +176,7 @@ auto_set_hyper_ <- function(Y, p, p0) {
   dn <- 1e-6
   up <- 1e5
   
-  # Get n0 and t02 similarly as for a_omega_t and b_omega_t in HESS
+  # Get n0 and t02 
   # (specify expectation and variance of number of active predictors per response)
   #
   # Look at : gam_st | theta_s = 0
@@ -194,12 +194,12 @@ auto_set_hyper_ <- function(Y, p, p0) {
   # n0 sets the level of sparsity.
   # n0 <- - get_mu(E_p_t, t02, p)
   n0 <- get_mu(E_p_t, t02, p)
-  n0 <- rep(n0, d)
+  n0 <- rep(n0, q)
   
-  d_hyper <- d
+  q_hyper <- q
   p_hyper <- p
   
-  list_hyper <- create_named_list_(d_hyper, p_hyper, 
+  list_hyper <- create_named_list_(q_hyper, p_hyper, 
                                    eta, kappa, lambda, nu, n0, t02)
   
   class(list_hyper) <- "out_hyper"
@@ -217,12 +217,12 @@ auto_set_hyper_ <- function(Y, p, p0) {
 #' parameter choices (without using \code{\link{set_init}}) by setting
 #' its argument \code{list_init} to \code{NULL}.
 #' 
-#' @param d Number of responses.
+#' @param q Number of responses.
 #' @param p Number of candidate predictors.
 #' @param r Number of candidate annotations.
-#' @param gam_vb Matrix of size p x d with initial values for the variational
+#' @param gam_vb Matrix of size p x q with initial values for the variational
 #'   parameter yielding posterior probabilities of inclusion.
-#' @param mu_beta_vb Matrix of size p x d with initial values for the
+#' @param mu_beta_vb Matrix of size p x q with initial values for the
 #'   variational parameter yielding regression coefficient estimates for
 #'   predictor-response pairs included in the model.
 #' @param om Vector of length r with initial values for the EM hyperparameter 
@@ -234,12 +234,12 @@ auto_set_hyper_ <- function(Y, p, p0) {
 #' @param s2 Vector of length 1 with initial value for the EM hyperparameter 
 #'   yielding the variance of the annotation effects on the probability 
 #'   parameter for the predictor-response associations.
-#' @param sig2_beta_vb Vector of length d with initial values for
+#' @param sig2_beta_vb Vector of length q with initial values for
 #'   the variational parameter yielding estimates of effect variances for
 #'   predictor-response pairs included in the model. These values are the same
 #'   for all the predictors (as a result of the predictor variables being
 #'   standardized before the variational algorithm).
-#' @param tau_vb Vector of length d with initial values for the variational parameter
+#' @param tau_vb Vector of length q with initial values for the variational parameter
 #'   yielding estimates for the continuous response residual precisions. 
 #'
 #' @return An object of class "\code{init}" preparing user initial values for
@@ -256,7 +256,7 @@ auto_set_hyper_ <- function(Y, p, p0) {
 #'
 #' ## Examples using small problem sizes:
 #' ##
-#' n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+#' n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 #'
 #' ## Candidate predictors (subject to selection)
 #' ##
@@ -267,26 +267,26 @@ auto_set_hyper_ <- function(Y, p, p0) {
 #'
 #' # shuffle indices 
 #' shuff_x_ind <- sample(p)
-#' shuff_y_ind <- sample(d)
+#' shuff_y_ind <- sample(q)
 #' 
 #' X <- cbind(X_act, X_inact)[, shuff_x_ind]
 #'
 #' # Association pattern and effect sizes
 #' #
-#' pat <- matrix(FALSE, ncol = d, nrow = p)
+#' pat <- matrix(FALSE, ncol = q, nrow = p)
 #' bool_x <- shuff_x_ind <= p_act
-#' bool_y <- shuff_y_ind <= d_act
+#' bool_y <- shuff_y_ind <= q_act
 #' 
-#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-#' pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+#' pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 #' beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 #' 
 #' pat[bool_x, bool_y] <- pat_act
 #' 
 #' # Gaussian responses
 #' #
-#' Y_act <- matrix(rnorm(n * d_act, mean = X_act %*% beta_act), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+#' Y_act <- matrix(rnorm(n * q_act, mean = X_act %*% beta_act), nrow = n)
+#' Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 #'
 #' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 #'
@@ -299,18 +299,18 @@ auto_set_hyper_ <- function(Y, p, p0) {
 #' ## Specify initial parameters ##
 #' ################################
 #' 
-#' tau_vb <- rep(1, d)
+#' tau_vb <- rep(1, q)
 #' 
-#' gam_vb <- matrix(rbeta(p * d, shape1 = 1, shape2 = 4 * d - 1), nrow = p)
+#' gam_vb <- matrix(rbeta(p * q, shape1 = 1, shape2 = 4 * q - 1), nrow = p)
 #' 
-#' mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
-#' sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1)
+#' mu_beta_vb <- matrix(rnorm(p * q), nrow = p)
+#' sig2_beta_vb <- 1 / rgamma(q, shape = 2, rate = 1)
 #' 
 #' om <- rep(0.5, r)
-#' s02 <- 1 / d
+#' s02 <- 1 / q
 #' s2 <- 0.01
 #' 
-#' list_init <- set_init(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, 
+#' list_init <- set_init(q, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, 
 #'                       tau_vb)
 #' 
 #' ########################
@@ -329,11 +329,11 @@ auto_set_hyper_ <- function(Y, p, p0) {
 #'
 #' @export
 #'
-set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, 
+set_init <- function(q, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb, 
                      tau_vb) {
   
-  check_structure_(d, "vector", "numeric", 1)
-  check_natural_(d)
+  check_structure_(q, "vector", "numeric", 1)
+  check_natural_(q)
   
   check_structure_(p, "vector", "numeric", 1)
   check_natural_(p)
@@ -341,10 +341,10 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb,
   check_structure_(r, "vector", "numeric", 1)
   check_natural_(r)
   
-  check_structure_(gam_vb, "matrix", "double", c(p, d))
+  check_structure_(gam_vb, "matrix", "double", c(p, q))
   check_zero_one_(gam_vb)
   
-  check_structure_(mu_beta_vb, "matrix", "double", c(p, d))
+  check_structure_(mu_beta_vb, "matrix", "double", c(p, q))
   
   check_structure_(om, "vector", "double", r)
   check_zero_one_(om)
@@ -355,17 +355,17 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb,
   check_structure_(s2, "vector", "numeric", 1)
   check_positive_(s2)
   
-  check_structure_(sig2_beta_vb, "vector", "double", d)
+  check_structure_(sig2_beta_vb, "vector", "double", q)
   check_positive_(sig2_beta_vb)
   
-  check_structure_(tau_vb, "vector", "double", d)
+  check_structure_(tau_vb, "vector", "double", q)
   check_positive_(tau_vb)
   
-  d_init <- d
+  q_init <- q
   p_init <- p
   r_init <- r
   
-  list_init <- create_named_list_(d_init, p_init, r_init, gam_vb, mu_beta_vb, om,
+  list_init <- create_named_list_(q_init, p_init, r_init, gam_vb, mu_beta_vb, om,
                                   s02, s2, sig2_beta_vb, tau_vb)
   
   class(list_init) <- "init"
@@ -379,10 +379,8 @@ set_init <- function(d, p, r, gam_vb, mu_beta_vb, om, s02, s2, sig2_beta_vb,
 auto_set_init_ <- function(Y, p, p0, r, user_seed) {
   
   if (!is.null(user_seed)) set.seed(user_seed)
-  
-  # Initialisation not modified for dual = TRUE (should not matter, but maybe change this) ### TODO
-  
-  d <- ncol(Y)
+
+  q <- ncol(Y)
   
   E_p_t <- p0[1]
   V_p_t <- p0[2]
@@ -390,7 +388,7 @@ auto_set_init_ <- function(Y, p, p0, r, user_seed) {
   dn <- 1e-6
   up <- 1e5
   
-  # Get n0 and t02 similarly as for a_omega_t and b_omega_t in HESS
+  # Get n0 and t02 
   # (specify expectation and variance of number of active predictors per response)
   #
   # Look at : gam_st | theta_s = 0
@@ -410,7 +408,7 @@ auto_set_init_ <- function(Y, p, p0, r, user_seed) {
   # n0 <- - get_mu(E_p_t, t02, p)
   n0 <- get_mu(E_p_t, t02, p)
   
-  s02 <- 1 / d
+  s02 <- 1 / q
   check_positive_(s02)
   
   s2 <- 0.1
@@ -419,26 +417,26 @@ auto_set_init_ <- function(Y, p, p0, r, user_seed) {
   om <- rep(1 / r, r) 
   check_zero_one_(om)
   
-  gam_vb <- matrix(pnorm(rnorm(p * d, mean = n0, sd = s02 + t02)), 
+  gam_vb <- matrix(pnorm(rnorm(p * q, mean = n0, sd = s02 + t02)), 
                    nrow = p)                                       
   check_zero_one_(gam_vb)
   
-  mu_beta_vb <- matrix(rnorm(p * d), nrow = p)
+  mu_beta_vb <- matrix(rnorm(p * q), nrow = p)
   
   tau_vb <- 1 / median(apply(Y, 2, var))
   if (!is.finite(tau_vb)) tau_vb <- 1e3
-  tau_vb <- rep(tau_vb, d)
+  tau_vb <- rep(tau_vb, q)
   check_positive_(tau_vb)
   
   sig2_inv_vb <- 1e-2
-  sig2_beta_vb <- 1 / rgamma(d, shape = 2, rate = 1 / (sig2_inv_vb * tau_vb))
+  sig2_beta_vb <- 1 / rgamma(q, shape = 2, rate = 1 / (sig2_inv_vb * tau_vb))
   check_positive_(sig2_beta_vb)
   
-  d_init <- d
+  q_init <- q
   p_init <- p
   r_init <- r
   
-  list_init <- create_named_list_(d_init, p_init, r_init, gam_vb, mu_beta_vb, om, 
+  list_init <- create_named_list_(q_init, p_init, r_init, gam_vb, mu_beta_vb, om, 
                                   s02, s2, sig2_beta_vb, tau_vb)
   
   class(list_init) <- "out_init"

@@ -12,7 +12,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
   
   # Y centered, and X and V standardized.
   
-  d <- ncol(Y)
+  q <- ncol(Y)
   n <- nrow(Y)
   p <- ncol(X)
   r <- ncol(V)
@@ -37,7 +37,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     # Parameter initialization here for the top level only
     #
     mu_theta_vb <- rnorm(p, sd = 0.1) 
-    mu_rho_vb <- rnorm(d, mean = n0, sd = sqrt(t02))
+    mu_rho_vb <- rnorm(q, mean = n0, sd = sqrt(t02))
     mu_c_vb <- rnorm(r, sd = 0.1) 
       
       zeta_vb <- rbeta(r, shape1 = om + eps, shape2 = 1 - om + eps)
@@ -47,7 +47,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     
     # Covariate-specific parameters: objects derived from s02
     #
-    obj_theta_vb <- update_sig2_theta_vb_(d, p, s02, c = c)
+    obj_theta_vb <- update_sig2_theta_vb_(q, p, s02, c = c)
     
     S0_inv <- obj_theta_vb$S0_inv
     sig2_theta_vb <- obj_theta_vb$sig2_theta_vb
@@ -56,13 +56,13 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     # Response-specific parameters: objects derived from t02
     #
     T0_inv <- 1 / t02
-    sig2_rho_vb <- update_sig2_c0_vb_(p, t02, c = c) # stands for a diagonal matrix of size d with this value on the (constant) diagonal
-    vec_sum_log_det_rho <- - d * (log(t02) + log(p + T0_inv))
+    sig2_rho_vb <- update_sig2_c0_vb_(p, t02, c = c) # stands for a diagonal matrix of size q with this value on the (constant) diagonal
+    vec_sum_log_det_rho <- - q * (log(t02) + log(p + T0_inv))
     
     
     # External information effects
     #
-    sig2_c_vb <- update_sig2_c_vb_(p, s2, d, c = c)
+    sig2_c_vb <- update_sig2_c_vb_(p, s2, q, c = c)
     
     # Stored/precomputed objects
     #
@@ -126,7 +126,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
         # schemes "x" of "x-y" are not batch concave
         # hence not implemented as they may diverge
         
-        for (k in sample(1:d)) {
+        for (k in sample(1:q)) {
           
           for (j in sample(1:p)) {
             
@@ -343,9 +343,7 @@ elbo_dual_info_ <- function(Y, V, eta, eta_vb, gam_vb, kappa,
   
   elbo_G <- e_sig2_inv_(lambda, lambda_vb, log_sig2_inv_vb, nu, nu_vb, sig2_inv_vb)
   
-  elbo_H <- 0
-
-  as.numeric(elbo_A + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G + elbo_H)
+  as.numeric(elbo_A + elbo_B + elbo_C + elbo_D + elbo_E + elbo_F + elbo_G)
   
 }
 

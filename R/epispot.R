@@ -2,27 +2,11 @@
 #     https://github.com/hruffieux/epispot
 #
 
-#' Fit sparse multivariate regression models using variational inference.
+#' Fit EPISPOT: fully joint annotation-driven molecular QTL mapping by annealed
+#' variational EM inference.
 #'
-#' Variational approximation procedure fitting sparse multivariate regression
-#' models for combined selection of predictors and associated responses in
-#' high-dimensional set-ups. Dependence across responses linked to the same
-#' predictors is captured through the model hierarchical structure.
-#'
-#'
-#' The optimization is made using efficient block coordinate ascent schemes, for
-#' which convergence is ensured as the objective (elbo) is multiconcave
-#' for the selected blocks, i.e., it is concave in each block of parameters
-#' whose updates are made simultaneously, see Wu et al. (reference Section
-#' below).
-#'
-#' The continuous response variables in \code{Y} (if any) will be centered
-#' before application of the variational algorithm, and the candidate predictors
-#' in \code{X} will be standardized.
-#'
-#'
-#' @param Y Response data matrix of dimension n x d, where n is the number of
-#'   samples and d is the number of response variables; Y is centred prior to 
+#' @param Y Response data matrix of dimension n x q, where n is the number of
+#'   samples and q is the number of response variables; Y is centred prior to 
 #'   the run.
 #' @param X Input matrix of dimension n x p, where p is the number of candidate
 #'   predictors. \code{X} cannot contain NAs. No intercept must be supplied; X 
@@ -73,14 +57,14 @@
 #'                 corresponds to the variational posterior mean 
 #'                 (mu_beta_vb_st x gam_vb_st) of the regression effect between 
 #'                 candidate predictor s and response t.}
-#'  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x d.
+#'  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x q.
 #'                Entry (s, t) corresponds to the posterior probability of
 #'                association between candidate predictor s and response t.}
 #'  \item{mu_c_vb}{Vector of size r, where entry l contains the overall effect 
 #'                 of annotation l on the
 #'                 probabilities of associations.\code{NULL} if \code{V} is
 #'                 \code{NULL}.}
-#'  \item{mu_rho_vb}{Vector of length d containing the posterior mean of rho.
+#'  \item{mu_rho_vb}{Vector of length q containing the posterior mean of rho.
 #'                   Entry t controls the proportion of predictors associated
 #'                   with response t.}
 #'  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
@@ -125,7 +109,7 @@
 #'
 #' ## Examples using small problem sizes:
 #' ##
-#' n <- 50; p <- 60; p_act <- 10; d <- 25; d_act <- 15; r <- 10
+#' n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 #'
 #' ## Candidate predictors (subject to selection)
 #' ##
@@ -136,26 +120,26 @@
 #'
 #' # shuffle indices 
 #' shuff_x_ind <- sample(p)
-#' shuff_y_ind <- sample(d)
+#' shuff_y_ind <- sample(q)
 #' 
 #' X <- cbind(X_act, X_inact)[, shuff_x_ind]
 #'
 #' # Association pattern and effect sizes
 #' #
-#' pat <- matrix(FALSE, ncol = d, nrow = p)
+#' pat <- matrix(FALSE, ncol = q, nrow = p)
 #' bool_x <- shuff_x_ind <= p_act
-#' bool_y <- shuff_y_ind <= d_act
+#' bool_y <- shuff_y_ind <= q_act
 #' 
-#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = d_act)
-#' pat_act[sample(p_act * d_act, floor(p_act * d_act / 5))] <- 1
+#' pat_act <- beta_act <- matrix(0, nrow = p_act, ncol = q_act)
+#' pat_act[sample(p_act * q_act, floor(p_act * q_act / 5))] <- 1
 #' beta_act[as.logical(pat_act)] <-  rnorm(sum(pat_act))
 #' 
 #' pat[bool_x, bool_y] <- pat_act
 #' 
 #' # Gaussian responses
 #' #
-#' Y_act <- matrix(rnorm(n * d_act, mean = X_act %*% beta_act), nrow = n)
-#' Y_inact <- matrix(rnorm(n * (d - d_act)), nrow = n)
+#' Y_act <- matrix(rnorm(n * q_act, mean = X_act %*% beta_act), nrow = n)
+#' Y_inact <- matrix(rnorm(n * (q - q_act)), nrow = n)
 #'
 #' Y <- cbind(Y_act, Y_inact)[, shuff_y_ind]
 #'
@@ -180,7 +164,7 @@
 #'
 #' # Inference with modules
 #' #
-#' module_ids <- sample(c(rep(1, floor(d/2)), rep(2, d - floor(d/2)))) # 2 modules
+#' module_ids <- sample(c(rep(1, floor(q/2)), rep(2, q - floor(q/2)))) # 2 modules
 #' list_modules <- set_modules(module_ids, n_cpus = 1)
 #' 
 #' res_epispot_modules <- epispot(Y = Y, X = X, V = V, p0 = p0, 
@@ -215,7 +199,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
   
   n <- nrow(X)
   p <- ncol(X)
-  d <- ncol(Y)
+  q <- ncol(Y)
   r <- ncol(V)
   
   names_x <- colnames(X)
@@ -229,7 +213,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
   
   if (!is.null(list_blocks)) {
     
-    list_blocks <- prepare_blocks_(list_blocks, d, bool_rmvd_x)
+    list_blocks <- prepare_blocks_(list_blocks, q, bool_rmvd_x)
     
     if (!is.null(list_blocks$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
       # we group them prior to the analysis and ungroup them after the run in epispot.R
@@ -350,7 +334,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
     
     if (n_bl_y > 1) {
       
-      list_pos_bl_y <- split(1:d, vec_fac_bl_y)
+      list_pos_bl_y <- split(1:q, vec_fac_bl_y)
       
       split_bl_mat_y_ <- function(bl_y) {
         
@@ -415,13 +399,13 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
         
         pos_y <- list_pos_bl_y[[bl_y]]
         
-        list_hyper_bl$d_hyper <- length(pos_y)
+        list_hyper_bl$q_hyper <- length(pos_y)
         
         list_hyper_bl$eta <- list_hyper_bl$eta[pos_y]
         list_hyper_bl$kappa <- list_hyper_bl$kappa[pos_y]
         list_hyper_bl$n0 <- list_hyper_bl$n0[pos_y]
         
-        list_init_bl$d_init <- length(pos_y)
+        list_init_bl$q_init <- length(pos_y)
         list_init_bl$gam_vb <- list_init_bl$gam_vb[, pos_y, drop = FALSE]
         list_init_bl$mu_beta_vb <- list_init_bl$mu_beta_vb[, pos_y, drop = FALSE]
         list_init_bl$sig2_beta_vb <- list_init_bl$sig2_beta_vb[pos_y]
@@ -435,11 +419,11 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
       # adjust the sparsity level w.r.t. the blocks size
       
       p_bl <- ncol(X_bl) # block size
-      d_bl <- ncol(Y_bl)
+      q_bl <- ncol(Y_bl)
       
       p0_bl <- p0
       p0_bl[1] <- p0[1] * p_bl / p
-      adj_hyper <- get_n0_t02(d_bl, p_bl, p0_bl)
+      adj_hyper <- get_n0_t02(q_bl, p_bl, p0_bl)
       
       list_hyper_bl$n0 <- adj_hyper$n0
       list_hyper_bl$t02 <- adj_hyper$t02
