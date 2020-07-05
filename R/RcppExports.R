@@ -45,15 +45,11 @@ coreProbitLoop <- function(X, W, gam_vb, log_om, log_1_min_om, log_sig2_inv_vb, 
     invisible(.Call(`_epispot_coreProbitLoop`, X, W, gam_vb, log_om, log_1_min_om, log_sig2_inv_vb, m1_beta, mat_x_m1, mat_z_mu, mu_beta_vb, sig2_beta_vb, shuffled_ind))
 }
 
-coreStructLoop <- function(X, Y, gam_vb, log_Phi_mu_theta_vb, log_1_min_Phi_mu_theta_vb, log_sig2_inv_vb, log_tau_vb, m1_beta, mat_x_m1, mu_beta_vb, sig2_beta_vb, tau_vb, shuffled_ind) {
-    invisible(.Call(`_epispot_coreStructLoop`, X, Y, gam_vb, log_Phi_mu_theta_vb, log_1_min_Phi_mu_theta_vb, log_sig2_inv_vb, log_tau_vb, m1_beta, mat_x_m1, mu_beta_vb, sig2_beta_vb, tau_vb, shuffled_ind))
-}
-
 coreDualLoop <- function(X, Y, gam_vb, log_Phi_mu_theta_plus_rho, log_1_min_Phi_mu_theta_plus_rho, log_sig2_inv_vb, log_tau_vb, m1_beta, mat_x_m1, mu_beta_vb, sig2_beta_vb, tau_vb, shuffled_ind, c = 1) {
     invisible(.Call(`_epispot_coreDualLoop`, X, Y, gam_vb, log_Phi_mu_theta_plus_rho, log_1_min_Phi_mu_theta_plus_rho, log_sig2_inv_vb, log_tau_vb, m1_beta, mat_x_m1, mu_beta_vb, sig2_beta_vb, tau_vb, shuffled_ind, c))
 }
 
-coreDualInfoLoop <- function(V, W, zeta_vb, log_om, log_1_min_om, s2, m1_c, mat_v_mu, mu_c_vb, sig2_c_vb, shuffled_ind, c = 1) {
-    invisible(.Call(`_epispot_coreDualInfoLoop`, V, W, zeta_vb, log_om, log_1_min_om, s2, m1_c, mat_v_mu, mu_c_vb, sig2_c_vb, shuffled_ind, c))
+coreDualInfoLoop <- function(V, W, zeta_vb, log_om, log_1_min_om, s2, m1_xi, mat_v_mu, mu_xi_vb, sig2_xi_vb, shuffled_ind, c = 1) {
+    invisible(.Call(`_epispot_coreDualInfoLoop`, V, W, zeta_vb, log_om, log_1_min_om, s2, m1_xi, mat_v_mu, mu_xi_vb, sig2_xi_vb, shuffled_ind, c))
 }
 

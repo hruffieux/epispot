@@ -10,7 +10,7 @@
 
 e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
                                     log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
-                                    mu_c_vb, m2_beta, sig2_beta_vb, sig2_c_vb, 
+                                    mu_xi_vb, m2_beta, sig2_beta_vb, sig2_xi_vb, 
                                     sig2_rho_vb, list_sig2_theta_vb, 
                                     sig2_inv_vb, tau_vb, zeta_vb, 
                                     resp_spec = FALSE, bool_blocks = FALSE,
@@ -75,7 +75,7 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
     n_bl <- length(V)
     
     vec_arg <- as.vector(unlist(sapply(1:n_bl, function(bl) {
-      V[[bl]]^2 %*% (zeta_vb[[bl]] * (sig2_c_vb[bl] + mu_c_vb[[bl]]^2) - (mu_c_vb[[bl]] * zeta_vb[[bl]])^2) / 2})))
+      V[[bl]]^2 %*% (zeta_vb[[bl]] * (sig2_xi_vb[bl] + mu_xi_vb[[bl]]^2) - (mu_xi_vb[[bl]] * zeta_vb[[bl]])^2) / 2})))
     arg <- sweep(arg, 1, vec_arg, `-`)
     
   } else if (bool_modules) {
@@ -89,7 +89,7 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
       
       vec_arg <- as.vector(unlist(sapply(1:n_bl_x, function(bl_x) {
         
-        V[[bl_x]]^2 %*% (zeta_vb[[bl_x]][, bl_y] * (sig2_c_vb[bl_x, bl_y] + mu_c_vb[[bl_x]][, bl_y]^2) - (mu_c_vb[[bl_x]][, bl_y] * zeta_vb[[bl_x]][, bl_y])^2) / 2
+        V[[bl_x]]^2 %*% (zeta_vb[[bl_x]][, bl_y] * (sig2_xi_vb[bl_x, bl_y] + mu_xi_vb[[bl_x]][, bl_y]^2) - (mu_xi_vb[[bl_x]][, bl_y] * zeta_vb[[bl_x]][, bl_y])^2) / 2
       })))
       
       arg[, vec_fac_bl_y == bl_ids_y[bl_y]] <- sweep(arg[, vec_fac_bl_y == bl_ids_y[bl_y], drop = FALSE], 1, vec_arg, `-`)
@@ -98,13 +98,13 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
     
   } else {
     
-    m1_c <- mu_c_vb * zeta_vb
-    m2_c <- zeta_vb * (sig2_c_vb + mu_c_vb^2)
+    m1_xi <- mu_xi_vb * zeta_vb
+    m2_xi <- zeta_vb * (sig2_xi_vb + mu_xi_vb^2)
     
     if (resp_spec) {
-      arg <- arg - V^2 %*% (m2_c - m1_c^2) / 2
+      arg <- arg - V^2 %*% (m2_xi - m1_xi^2) / 2
     } else {
-      arg <- sweep(arg, 1, V^2 %*% (m2_c - m1_c^2) / 2, `-`)
+      arg <- sweep(arg, 1, V^2 %*% (m2_xi - m1_xi^2) / 2, `-`)
     }
     
   }
@@ -118,13 +118,13 @@ e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
 ## E log p(c, zeta_vb | rest) - E log q(c, zeta_vb) ##
 ######################################################
 
-e_c_zeta_ <- function(log_om, log_1_min_om, mu_c_vb, s2, sig2_c_vb,
+e_xi_zeta_ <- function(log_om, log_1_min_om, mu_xi_vb, s2, sig2_xi_vb,
                       zeta_vb, resp_spec = FALSE) {
   
   eps <- .Machine$double.eps^0.25 # to control the argument of the log when gamma is very small
   
-  arg <- - log(s2) * zeta_vb / 2  - zeta_vb * (sig2_c_vb + mu_c_vb^2) /(2 * s2) +
-    1 / 2 * zeta_vb * (log(sig2_c_vb) + 1) - zeta_vb * log(zeta_vb + eps) -
+  arg <- - log(s2) * zeta_vb / 2  - zeta_vb * (sig2_xi_vb + mu_xi_vb^2) /(2 * s2) +
+    1 / 2 * zeta_vb * (log(sig2_xi_vb) + 1) - zeta_vb * log(zeta_vb + eps) -
     (1 - zeta_vb) * log(1 - zeta_vb + eps)
   
   if (resp_spec) {

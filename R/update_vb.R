@@ -54,13 +54,13 @@ update_mat_x_m1_ <- function(X, m1_beta) X %*% m1_beta
 ## c0 and c's updates ##
 ########################
 
-update_sig2_c0_vb_ <- function(q, s02, c = 1) 1 / (c * (q + (1/s02)))
+update_sig2_xi0_vb_ <- function(q, s02, c = 1) 1 / (c * (q + (1/s02)))
 
 
-update_sig2_c_vb_ <- function(p, s2, q = 1, c = 1) 1 / (c * (q * (p - 1) + (1/s2)))
+update_sig2_xi_vb_ <- function(p, s2, q = 1, c = 1) 1 / (c * (q * (p - 1) + (1/s2)))
 
 
-update_mat_v_mu_ <- function(V, mu_0_s, mat_c, mu_0_t = NULL, resp_spec = FALSE) { # mu_0_s = mu_theta_vb, mu_0_t = mu_rho_vb, mat_c = zeta * mu_c_vb
+update_mat_v_mu_ <- function(V, mu_0_s, mat_c, mu_0_t = NULL, resp_spec = FALSE) { # mu_0_s = mu_theta_vb, mu_0_t = mu_rho_vb, mat_c = zeta * mu_xi_vb
   
   if (is.null(mu_0_t)) {
     sweep(V %*% mat_c, 1, mu_0_s, `+`)
@@ -228,7 +228,7 @@ update_mu_theta_vb_ <- function(W, sig2_theta_vb,
 update_sig2_theta_vb_ <- function(q, p, s02, c = 1) {
   
     S0_inv <- 1 / s02 # stands for a diagonal matrix of size p with this value on the (constant) diagonal
-    sig2_theta_vb <- as.numeric(update_sig2_c0_vb_(q, s02, c = c)) # idem
+    sig2_theta_vb <- as.numeric(update_sig2_xi0_vb_(q, s02, c = c)) # idem
     
     vec_sum_log_det_theta <- - sum(log(s02) + log(q + S0_inv))
   

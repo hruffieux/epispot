@@ -367,7 +367,7 @@ rm_collinear_ <- function(mat, verbose) {
 }
 
 
-make_chunks_ <- function(x, n_g) split(x, factor(sort(rank(x) %% n_g)))
+make_xihunks_ <- function(x, n_g) split(x, factor(sort(rank(x) %% n_g)))
 
 
 cbind_fill_matrix <- function(...) { # more efficient than do.call cbind

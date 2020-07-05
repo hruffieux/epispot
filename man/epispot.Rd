@@ -96,7 +96,7 @@ An object of class "\code{epispot}" containing the following output:
  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x q.
                Entry (s, t) corresponds to the posterior probability of
                association between candidate predictor s and response t.}
- \item{m1_c}{Vector of size r, where entry l contains the overall estimated 
+ \item{m1_xi}{Vector of size r, where entry l contains the overall estimated 
              effect of annotation l on the probabilities of associations.}
  \item{mu_rho_vb}{Vector of length q containing the posterior mean of rho.
                   Entry t controls the proportion of predictors associated

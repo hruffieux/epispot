@@ -44,7 +44,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     
     om <- vb$zeta_vb
     s02 <- vb$sig2_theta_vb + vb$mu_theta_vb^2 # vector of size lenght(vb$mu_theta_vb)
-    s2 <- sum(vb$zeta_vb * (vb$sig2_c_vb + vb$mu_c_vb^2)) / sum(vb$zeta_vb)
+    s2 <- sum(vb$zeta_vb * (vb$sig2_xi_vb + vb$mu_xi_vb^2)) / sum(vb$zeta_vb)
     
     if (verbose) {
       

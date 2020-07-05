@@ -60,7 +60,7 @@
 #'  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x q.
 #'                Entry (s, t) corresponds to the posterior probability of
 #'                association between candidate predictor s and response t.}
-#'  \item{m1_c}{Vector of size r, where entry l contains the overall estimated 
+#'  \item{m1_xi}{Vector of size r, where entry l contains the overall estimated 
 #'              effect of annotation l on the probabilities of associations.}
 #'  \item{mu_rho_vb}{Vector of length q containing the posterior mean of rho.
 #'                   Entry t controls the proportion of predictors associated
@@ -409,7 +409,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
         
       }
       
-      list_init_bl$mu_c_vb <- list_init_bl$mu_c_vb[!bool_rmvd_v_bl,, drop = FALSE]
+      list_init_bl$mu_xi_vb <- list_init_bl$mu_xi_vb[!bool_rmvd_v_bl,, drop = FALSE]
       
       # adjust the sparsity level w.r.t. the blocks size
       

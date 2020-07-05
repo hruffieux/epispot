@@ -38,7 +38,7 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     #
     mu_theta_vb <- rnorm(p, sd = 0.1) 
     mu_rho_vb <- rnorm(q, mean = n0, sd = sqrt(t02))
-    mu_c_vb <- rnorm(r, sd = 0.1) 
+    mu_xi_vb <- rnorm(r, sd = 0.1) 
       
       zeta_vb <- rbeta(r, shape1 = om + eps, shape2 = 1 - om + eps)
       
@@ -56,22 +56,22 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     # Response-specific parameters: objects derived from t02
     #
     T0_inv <- 1 / t02
-    sig2_rho_vb <- update_sig2_c0_vb_(p, t02, c = c) # stands for a diagonal matrix of size q with this value on the (constant) diagonal
+    sig2_rho_vb <- update_sig2_xi0_vb_(p, t02, c = c) # stands for a diagonal matrix of size q with this value on the (constant) diagonal
     vec_sum_log_det_rho <- - q * (log(t02) + log(p + T0_inv))
     
     
     # External information effects
     #
-    sig2_c_vb <- update_sig2_c_vb_(p, s2, q, c = c)
+    sig2_xi_vb <- update_sig2_xi_vb_(p, s2, q, c = c)
     
     # Stored/precomputed objects
     #
     m1_beta <- update_m1_beta_(gam_vb, mu_beta_vb)
     m2_beta <- update_m2_beta_(gam_vb, mu_beta_vb, sig2_beta_vb, sweep = TRUE)
-    m1_c <- update_m1_beta_(zeta_vb, mu_c_vb)
+    m1_xi <- update_m1_beta_(zeta_vb, mu_xi_vb)
     
     mat_x_m1 <- update_mat_x_m1_(X, m1_beta)
-    mat_v_mu <- update_mat_v_mu_(V, mu_theta_vb, m1_c, mu_rho_vb)
+    mat_v_mu <- update_mat_v_mu_(V, mu_theta_vb, m1_xi, mu_rho_vb)
     
     log_Phi_mat_v_mu <- pnorm(mat_v_mu, log.p = TRUE)
     log_1_min_Phi_mat_v_mu <- pnorm(mat_v_mu, lower.tail = FALSE, log.p = TRUE)
@@ -173,24 +173,24 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
         # # C++ Eigen call for expensive updates
         shuffled_ind_info <- as.numeric(sample(0:(r-1))) # Zero-based index in C++
         
-        coreDualInfoLoop(V, W, zeta_vb, log_om, log_1_min_om, s2, m1_c,
-                         mat_v_mu, mu_c_vb, sig2_c_vb, shuffled_ind_info, c = c)
+        coreDualInfoLoop(V, W, zeta_vb, log_om, log_1_min_om, s2, m1_xi,
+                         mat_v_mu, mu_xi_vb, sig2_xi_vb, shuffled_ind_info, c = c)
         
       } else {
         
         for (l in sample(1:r)) {
           
-          mat_v_mu <- sweep(mat_v_mu, 1, V[, l] * m1_c[l], `-`)
+          mat_v_mu <- sweep(mat_v_mu, 1, V[, l] * m1_xi[l], `-`)
           
-          mu_c_vb[l] <- c * sig2_c_vb * sum(crossprod(W - mat_v_mu, V[, l]))
+          mu_xi_vb[l] <- c * sig2_xi_vb * sum(crossprod(W - mat_v_mu, V[, l]))
           
           zeta_vb[l] <- exp(-log_one_plus_exp_(c * (log_1_min_om[l] - log_om[l] +
-                                                      log(s2) / 2 - log(sig2_c_vb) / 2 -
-                                                      mu_c_vb[l] ^ 2 / (2 * sig2_c_vb))))
+                                                      log(s2) / 2 - log(sig2_xi_vb) / 2 -
+                                                      mu_xi_vb[l] ^ 2 / (2 * sig2_xi_vb))))
           
-          m1_c[l] <- mu_c_vb[l] * zeta_vb[l]
+          m1_xi[l] <- mu_xi_vb[l] * zeta_vb[l]
           
-          mat_v_mu <- sweep(mat_v_mu, 1, V[, l] * m1_c[l], `+`)
+          mat_v_mu <- sweep(mat_v_mu, 1, V[, l] * m1_xi[l], `+`)
           
         }
         
@@ -206,13 +206,13 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
         
         sig2_theta_vb <- c * sig2_theta_vb
         sig2_rho_vb <- c * sig2_rho_vb
-        sig2_c_vb <- c * sig2_c_vb
+        sig2_xi_vb <- c * sig2_xi_vb
         
         c <- ifelse(it < length(ladder), ladder[it + 1], 1)
         
         sig2_theta_vb <- sig2_theta_vb / c
         sig2_rho_vb <- sig2_rho_vb / c
-        sig2_c_vb <- sig2_c_vb / c
+        sig2_xi_vb <- sig2_xi_vb / c
         
         if (isTRUE(all.equal(c, 1))) {
           
@@ -227,8 +227,8 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
         lb_new <- elbo_dual_info_(Y, V, eta, eta_vb, gam_vb, 
                                   kappa, kappa_vb, lambda, lambda_vb, 
                                   log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, n0, 
-                                  mu_c_vb, mu_rho_vb, mu_theta_vb, nu, nu_vb, om,
-                                  sig2_beta_vb, S0_inv, s2, sig2_c_vb, sig2_theta_vb,
+                                  mu_xi_vb, mu_rho_vb, mu_theta_vb, nu, nu_vb, om,
+                                  sig2_beta_vb, S0_inv, s2, sig2_xi_vb, sig2_theta_vb,
                                   sig2_inv_vb, sig2_rho_vb, T0_inv, tau_vb, zeta_vb, 
                                   m1_beta, m2_beta, mat_x_m1, 
                                   vec_sum_log_det_rho, vec_sum_log_det_theta)
@@ -260,9 +260,9 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     if (full_output) { # for internal use only
       
       create_named_list_(eta, eta_vb, gam_vb, kappa, kappa_vb, 
-                         lambda, lambda_vb, n0, mu_beta_vb, mu_c_vb, 
+                         lambda, lambda_vb, n0, mu_beta_vb, mu_xi_vb, 
                          mu_rho_vb, mu_theta_vb, nu, nu_vb, om, sig2_beta_vb, 
-                         S0_inv, s2, sig2_c_vb, sig2_theta_vb, sig2_inv_vb, 
+                         S0_inv, s2, sig2_xi_vb, sig2_theta_vb, sig2_inv_vb, 
                          sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta, m2_beta, 
                          mat_x_m1, mat_v_mu, vec_sum_log_det_rho,
                          vec_sum_log_det_theta, lb_opt, it)
@@ -280,14 +280,14 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
       names(mu_rho_vb) <- names_y
       
       names(zeta_vb) <- names_v
-      names(m1_c) <- names_v
+      names(m1_xi) <- names_v
       
       rownames(mat_v_mu) <- names_x
       colnames(mat_v_mu) <- names_y
       
       diff_lb <- abs(lb_opt - lb_old)
       
-      create_named_list_(m1_beta, gam_vb, m1_c, mu_rho_vb, mu_theta_vb,
+      create_named_list_(m1_beta, gam_vb, m1_xi, mu_rho_vb, mu_theta_vb,
                          zeta_vb, converged, it, lb_opt, diff_lb)
       
     }
@@ -302,9 +302,9 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
 #
 elbo_dual_info_ <- function(Y, V, eta, eta_vb, gam_vb, kappa, 
                             kappa_vb, lambda, lambda_vb, log_1_min_Phi_mat_v_mu, 
-                            log_Phi_mat_v_mu, n0, mu_c_vb, mu_rho_vb, 
+                            log_Phi_mat_v_mu, n0, mu_xi_vb, mu_rho_vb, 
                             mu_theta_vb, nu, nu_vb, om, sig2_beta_vb, S0_inv, 
-                            s2, sig2_c_vb, sig2_theta_vb, sig2_inv_vb, 
+                            s2, sig2_xi_vb, sig2_theta_vb, sig2_inv_vb, 
                             sig2_rho_vb, T0_inv, tau_vb, zeta_vb, m1_beta,
                             m2_beta, mat_x_m1, vec_sum_log_det_rho, vec_sum_log_det_theta) {
   
@@ -329,7 +329,7 @@ elbo_dual_info_ <- function(Y, V, eta, eta_vb, gam_vb, kappa,
   
   elbo_B <- e_beta_gamma_dual_info_(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
                                     log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
-                                    mu_c_vb, m2_beta, sig2_beta_vb, sig2_c_vb, 
+                                    mu_xi_vb, m2_beta, sig2_beta_vb, sig2_xi_vb, 
                                     sig2_rho_vb, sig2_theta_vb, sig2_inv_vb, 
                                     tau_vb, zeta_vb)
   
@@ -337,7 +337,7 @@ elbo_dual_info_ <- function(Y, V, eta, eta_vb, gam_vb, kappa,
   
   elbo_D <- e_rho_(mu_rho_vb, n0, sig2_rho_vb, T0_inv, vec_sum_log_det_rho)
   
-  elbo_E <- e_c_zeta_(log_om, log_1_min_om, mu_c_vb, s2, sig2_c_vb, zeta_vb)
+  elbo_E <- e_xi_zeta_(log_om, log_1_min_om, mu_xi_vb, s2, sig2_xi_vb, zeta_vb)
   
   elbo_F <- e_tau_(eta, eta_vb, kappa, kappa_vb, log_tau_vb, tau_vb)
   
