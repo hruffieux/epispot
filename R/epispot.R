@@ -2,16 +2,15 @@
 #     https://github.com/hruffieux/epispot
 #
 
-#' Fit EPISPOT: fully joint annotation-driven molecular QTL mapping by annealed
-#' variational EM inference.
+#' Fit EPISPOT: fully joint & annotation-driven multiple-response regression 
+#' by annealed variational EM inference.
 #'
 #' @param Y Response data matrix of dimension n x q, where n is the number of
 #'   samples and q is the number of response variables; Y is centred prior to 
 #'   the run.
 #' @param X Input matrix of dimension n x p, where p is the number of candidate
-#'   predictors. \code{X} cannot contain NAs. No intercept must be supplied; X 
-#'   is scaled prior to the run - beware the interpretation of the regression 
-#'   estimates.
+#'   predictors. No intercept must be supplied; X is scaled prior to the run 
+#'   - beware the interpretation of the regression estimates.
 #' @param V Annotation matrix of dimension p x r, where r is the number of
 #'   variables representing external information on the candidate predictors
 #'   which may make their selection more or less likely. V is standardised prior
@@ -20,16 +19,17 @@
 #'   variance of the number of predictors associated with each response.
 #'   Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
 #'   non-\code{NULL}.
-#' @param list_blocks An object of class "\code{blocks}" containing settings for
-#'   parallel inference using modules of responses. Must be filled using
+#' @param list_blocks An object of class "\code{modules}" containing settings 
+#'   for parallel inference using modules of responses. Must be filled using
 #'   the \code{\link{set_modules}} function or must be \code{NULL} for no
-#'   partitioning.
+#'   partitioning into modules.
 #' @param list_hyper An object of class "\code{hyper}" containing the model
 #'   hyperparameters. Must be filled using the \code{\link{set_hyper}}
 #'   function or must be \code{NULL} for default hyperparameters.
 #' @param list_init An object of class "\code{init}" containing the initial
-#'   variational parameters. Must be filled using the \code{\link{set_init}}
-#'   function or be \code{NULL} for a default initialization.
+#'   variational and EM parameters. Must be filled using the 
+#'   \code{\link{set_init}} function or be \code{NULL} for a default 
+#'   initialisation.
 #' @param user_seed Seed set for reproducible default choices of hyperparameters
 #'   (if \code{list_hyper} is \code{NULL}) and initial variational parameters
 #'   (if \code{list_init} is \code{NULL}). Default is \code{NULL}, no
@@ -37,15 +37,17 @@
 #' @param tol Tolerance for the stopping criterion.
 #' @param adaptive_tol_em Boolean indicating whether the tolerance for the 
 #'   within-EM variational runs should be controlled adaptively depending on the
-#'   EM-convergence status.
+#'   EM-convergence status in order to save computational time. Default is 
+#'   \code{TRUE}.
 #' @param maxit Maximum number of iterations allowed.
 #' @param anneal Parameters for annealing scheme. Must be a vector whose first
-#'   entry is sets the type of ladder: 1 = geometric spacing, 2 = harmonic
-#'   spacing or 3 = linear spacing, the second entry is the initial temperature,
-#'   and the third entry is the ladder size. If \code{NULL} (default), no
-#'   annealing is performed.
-#' @param anneal_vb_em Parameters for annealing scheme for the internal runs of the 
-#'   variational EM algorithm. 
+#'   entry is the type of schedule: 1 = geometric spacing (default), 
+#'   2 = harmonic spacing or 3 = linear spacing, the second entry is the initial 
+#'   temperature (default is 2), and the third entry is the temperature grid 
+#'   size (default is 10). If \code{NULL}, no annealing is performed.
+#' @param anneal_vb_em Parameters for annealing scheme for the internal runs of 
+#'   the variational EM algorithm. Default is geometric spacing, initial 
+#'   temperature is 2 and grid size is 10. See \code{anneal}.
 #' @param save_hyper If \code{TRUE}, the hyperparameters used for the model are
 #'   saved as output.
 #' @param save_init If \code{TRUE}, the initial variational parameters used for
@@ -53,23 +55,23 @@
 #' @param verbose If \code{TRUE}, messages are displayed during execution.
 #'
 #' @return An object of class "\code{epispot}" containing the following output:
-#'  \item{m1_beta}{Estimated effect size matrix of dimension p x q. Entry (s, t) 
+#'  \item{beta_vb}{Estimated effect size matrix of dimension p x q. Entry (s, t) 
 #'                 corresponds to the variational posterior mean 
 #'                 (mu_beta_vb_st x gam_vb_st) of the regression effect between 
 #'                 candidate predictor s and response t.}
 #'  \item{gam_vb}{Posterior inclusion probability matrix of dimension p x q.
 #'                Entry (s, t) corresponds to the posterior probability of
 #'                association between candidate predictor s and response t.}
-#'  \item{m1_xi}{Vector of size r, where entry l contains the overall estimated 
-#'              effect of annotation l on the probabilities of associations.}
-#'  \item{mu_rho_vb}{Vector of length q containing the posterior mean of rho.
-#'                   Entry t controls the proportion of predictors associated
-#'                   with response t.}
-#'  \item{mu_theta_vb}{Vector of length p containing the posterior mean of
-#'                     theta. Entry s corresponds to the propensity of candidate
-#'                     predictor s to be included in the model.}
-#'  \item{zeta_vb}{Posterior inclusion probability vector of size r for the
-#'                 annotation variables. \code{NULL} if \code{V} is \code{NULL}.}
+#'  \item{xi_vb}{Vector of size r, where entry l contains the estimated marginal
+#'               effect of annotation l on the probabilities of association.}
+#'  \item{rho_vb}{Posterior inclusion probability vector of size r for the
+#'                annotation variables.}
+#'  \item{theta_vb}{Vector of length p containing the posterior mean of theta. 
+#'                  Entry s corresponds to the propensity of candidate predictor 
+#'                  s to be included in the model.}
+#'  \item{zeta_vb}{Vector of length q containing the posterior mean of zeta.
+#'                 Entry t controls the proportion of predictors associated
+#'                 with response t.}
 #'  \item{converged}{A boolean indicating whether the algorithm has converged
 #'                   before reaching \code{maxit} iterations.}
 #'  \item{it}{Final number of iterations.}
@@ -78,22 +80,23 @@
 #'  \item{diff_lb}{Difference in ELBO between the last and penultimate
 #'                 iterations. This may be a useful diagnostic information when
 #'                 convergence has not been reached before \code{maxit}.}
-#'  \item{p0}{Vector of length 2 defining the applied sparsity control.}
+#'  \item{p0}{Vector of length two defining the applied sparsity control.}
 #'  \item{rmvd_cst_x, rmvd_cst_v}{Vectors containing the indices of constant
 #'                                variables in \code{X}, resp. \code{V}, removed
-#'                                prior to the analysis.}
+#'                                prior to the analysis. \code{NULL} if no 
+#'                                constant variable removed.}
 #'  \item{rmvd_coll_x, rmvd_cst_v}{Vectors containing the indices of variables
-#'                                  in \code{X}, resp. \code{V}, removed prior
-#'                                  to the analysis because collinear to other
-#'                                  variables. The entry name indicates the
-#'                                  corresponding variable kept in the analysis
-#'                                  (i.e., that causing the collinearity for the
-#'                                  entry in question).}
+#'                                 in \code{X}, resp. \code{V}, removed prior
+#'                                 to the analysis because collinear to other
+#'                                 variables. The entry name indicates the
+#'                                 corresponding variable kept in the analysis
+#'                                 (i.e., that causing the collinearity for the
+#'                                 entry in question). \code{NULL} if no 
+#'                                 collinear variable removed.}
 #'  \item{list_hyper, list_init}{If \code{save_hyper}, resp. \code{save_init},
 #'                               \code{TRUE}, hyperparameters, resp. initial
 #'                               variational parameters, used for inference are
 #'                               saved as output.}
-#'  \item{...}{Other specific outputs are possible depending on the model used.}
 #'  
 #' @examples
 #' seed <- 123; set.seed(seed)
@@ -102,7 +105,7 @@
 #' ## Simulate data ##
 #' ###################
 #'
-#' ## Examples using small problem sizes:
+#' ## Example using small problem sizes:
 #' ##
 #' n <- 50; p <- 60; p_act <- 10; q <- 25; q_act <- 15; r <- 10
 #'
@@ -153,7 +156,7 @@
 #' #
 #' p0 <- c(mean(colSums(pat)), 10)
 #' 
-#' # Inference without modules
+#' # Inference without module
 #' #
 #' res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, user_seed = seed)
 #'
@@ -176,10 +179,10 @@
 #' @export
 #'
 epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL, 
-                    list_init = NULL, user_seed = NULL, tol = 1e-3, 
-                    adaptive_tol_em = FALSE, maxit = 1000, anneal = NULL, 
-                    anneal_vb_em = NULL, save_hyper = FALSE, save_init = FALSE, 
-                    verbose = TRUE) {
+                    list_init = NULL, user_seed = NULL, tol = 0.1, 
+                    adaptive_tol_em = TRUE, maxit = 1000, anneal = c(1, 2, 10), 
+                    anneal_vb_em = TRUE, save_hyper = FALSE, 
+                    save_init = FALSE, verbose = TRUE) {
   
   if (verbose) cat("== Preparing the data ... \n")
   
@@ -534,9 +537,9 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
     
     Y <- Y[, list_blocks$undo_order_y_ids, drop = FALSE]
     
-    vb$m1_beta <- vb$m1_beta[, list_blocks$undo_order_y_ids, drop = FALSE] 
+    vb$beta_vb <- vb$beta_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
     vb$gam_vb <- vb$gam_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
-    vb$mu_rho_vb <- vb$mu_rho_vb[list_blocks$undo_order_y_ids]
+    vb$zeta_vb <- vb$zeta_vb[list_blocks$undo_order_y_ids]
     
   }
   

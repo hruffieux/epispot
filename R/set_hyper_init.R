@@ -28,9 +28,9 @@
 #'   precisions, \eqn{\tau}. If of length 1, the provided value is repeated q 
 #'   times.
 #' @param n0 Vector of length 1 or q providing the prior mean for the 
-#'   response-specific effect \eqn{\rho}.
+#'   response-specific effect \eqn{\zeta}.
 #' @param t02 Vector of length 1 providing the prior variance for the 
-#'   response-specific effect \eqn{\rho}.
+#'   response-specific effect \eqn{\zeta}.
 #'
 #' @return An object of class "\code{hyper}" preparing user hyperparameter in a
 #'   form that can be passed to the \code{\link{epispot}} function.
