@@ -210,9 +210,9 @@ res_epispot_modules <- epispot(Y = Y, X = X, V = V, p0 = p0,
 
 }
 \references{
-H. Ruffieux, B. P. Fairfax, E. Vigorito, C. Walllace, S. Richardson, 
-L. Bottolo. EPISPOT: an epigenome-driven approach for detecting and 
-interpreting hotspots in molecular QTL studies, arXiv, 2020.
+H. Ruffieux, B. P. Fairfax, I. Nassiri, E. Vigorito, C. Walllace, S. 
+Richardson, L. Bottolo. EPISPOT: an epigenome-driven approach for detecting 
+and interpreting hotspots in molecular QTL studies, arXiv, 2020.
 }
 \seealso{
 \code{\link{set_hyper}}, \code{\link{set_init}}, 
