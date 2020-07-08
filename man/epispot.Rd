@@ -2,8 +2,8 @@
 % Please edit documentation in R/epispot.R
 \name{epispot}
 \alias{epispot}
-\title{Fit EPISPOT: fully joint & annotation-driven multiple-response regression 
-by anneal_scheduleed variational EM inference.}
+\title{Fit EPISPOT: annotation-driven approach for large-scale joint regression with
+multiple responses.}
 \usage{
 epispot(
   Y,
@@ -152,8 +152,8 @@ An object of class "\code{epispot}" containing the following output:
                               saved as output.}
 }
 \description{
-Fit EPISPOT: fully joint & annotation-driven multiple-response regression 
-by anneal_scheduleed variational EM inference.
+Fit EPISPOT: annotation-driven approach for large-scale joint regression with
+multiple responses.
 }
 \examples{
 seed <- 123; set.seed(seed)

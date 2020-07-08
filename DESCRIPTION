@@ -1,7 +1,7 @@
 Package: epispot
 Type: Package
 Title: EPISPOT: annotation-driven approach for large-scale joint regression 
-    with multiple responses.
+    with multiple responses
 Version: 0.1.2
 Date: 2020-06-28
 Authors@R: c(
