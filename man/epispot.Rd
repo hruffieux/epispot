@@ -3,22 +3,22 @@
 \name{epispot}
 \alias{epispot}
 \title{Fit EPISPOT: fully joint & annotation-driven multiple-response regression 
-by annealed variational EM inference.}
+by anneal_scheduleed variational EM inference.}
 \usage{
 epispot(
   Y,
   X,
   V,
   p0,
-  list_blocks = NULL,
+  anneal_schedule = c(1, 2, 10),
+  list_modules = NULL,
   list_hyper = NULL,
   list_init = NULL,
   user_seed = NULL,
   tol = 0.1,
   adaptive_tol_em = TRUE,
   maxit = 1000,
-  anneal = c(1, 2, 10),
-  anneal_vb_em = c(1, 2, 10),
+  anneal_vbem = TRUE,
   save_hyper = FALSE,
   save_init = FALSE,
   verbose = TRUE
@@ -43,7 +43,13 @@ variance of the number of predictors associated with each response.
 Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
 non-\code{NULL}.}
 
-\item{list_blocks}{An object of class "\code{modules}" containing settings 
+\item{anneal_schedule}{Parameters for annealing scheme. Must be a vector 
+whose first entry is the type of schedule: 1 = geometric spacing (default), 
+2 = harmonic spacing or 3 = linear spacing, the second entry is the initial 
+temperature (default is 2), and the third entry is the temperature grid 
+size (default is 10). If \code{NULL}, no annealing is performed.}
+
+\item{list_modules}{An object of class "\code{modules}" containing settings 
 for parallel inference using modules of responses. Must be filled using
 the \code{\link{set_modules}} function or must be \code{NULL} for no
 partitioning into modules.}
@@ -71,15 +77,9 @@ EM-convergence status in order to save computational time. Default is
 
 \item{maxit}{Maximum number of iterations allowed.}
 
-\item{anneal}{Parameters for annealing scheme. Must be a vector whose first
-entry is the type of schedule: 1 = geometric spacing (default), 
-2 = harmonic spacing or 3 = linear spacing, the second entry is the initial 
-temperature (default is 2), and the third entry is the temperature grid 
-size (default is 10). If \code{NULL}, no annealing is performed.}
-
-\item{anneal_vb_em}{Parameters for annealing scheme for the internal runs of 
+\item{anneal_vbem}{Parameters for annealing scheme for the internal runs of 
 the variational EM algorithm. Default is geometric spacing, initial 
-temperature is 2 and grid size is 10. See \code{anneal}.}
+temperature is 2 and grid size is 10. See \code{anneal_schedule}.}
 
 \item{save_hyper}{If \code{TRUE}, the hyperparameters used for the model are
 saved as output.}
@@ -136,7 +136,7 @@ An object of class "\code{epispot}" containing the following output:
 }
 \description{
 Fit EPISPOT: fully joint & annotation-driven multiple-response regression 
-by annealed variational EM inference.
+by anneal_scheduleed variational EM inference.
 }
 \examples{
 seed <- 123; set.seed(seed)
@@ -196,7 +196,7 @@ V[bool_x, ] <- rnorm(p_act * r, mean = 2)
 #
 p0 <- c(mean(colSums(pat)), 10)
 
-# Inference without modules
+# Inference without module
 #
 res_epispot <- epispot(Y = Y, X = X, V = V, p0 = p0, user_seed = seed)
 
@@ -206,7 +206,7 @@ module_ids <- sample(c(rep(1, floor(q/2)), rep(2, q - floor(q/2)))) # 2 modules
 list_modules <- set_modules(module_ids, n_cpus = 1)
 
 res_epispot_modules <- epispot(Y = Y, X = X, V = V, p0 = p0, 
-                               list_blocks = list_modules, user_seed = seed)
+                               list_modules = list_modules, user_seed = seed)
 
 }
 \references{

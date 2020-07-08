@@ -93,7 +93,7 @@ list_modules <- set_modules(module_ids, module_names, n_cpus = 1)
 #
 p0 <- c(mean(colSums(pat)), 10)
 
-vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_blocks = list_modules,
+vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_modules = list_modules,
                 user_seed = seed)
 
 }

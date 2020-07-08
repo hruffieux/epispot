@@ -9,7 +9,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                                                  vec_fac_bl_y, module_names, list_hyper, 
                                                  gam_vb, mu_beta_vb, om, s02, s2, 
                                                  sig2_beta_vb, 
-                                                 tau_vb, tol, maxit, anneal, verbose, batch = "y", 
+                                                 tau_vb, tol, maxit, anneal_schedule, verbose, batch = "y", 
                                                  full_output = FALSE, debug = TRUE) {
   
   # EB s02 specific to each grid element (i.e., also modules), no choice because part of vbem procedure.
@@ -25,12 +25,12 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
     
     # Preparing annealing if any
     #
-    if (is.null(anneal)) {
+    if (is.null(anneal_schedule)) {
       annealing <- FALSE
       c <- 1
     } else {
       annealing <- TRUE
-      ladder <- get_annealing_ladder_(anneal, verbose)
+      ladder <- get_annealing_ladder_(anneal_schedule, verbose)
       c <- ladder[1]
     }
     

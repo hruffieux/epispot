@@ -109,26 +109,26 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
 }
 
 
-check_annealing_ <- function(anneal, maxit) {
+check_annealing_ <- function(anneal_schedule, maxit) {
   
-  check_structure_(anneal, "vector", "numeric", 3, null_ok = TRUE)
+  check_structure_(anneal_schedule, "vector", "numeric", 3, null_ok = TRUE)
   
-  if (!is.null(anneal)) {
+  if (!is.null(anneal_schedule)) {
     
-    check_natural_(anneal[c(1, 3)])
-    check_positive_(anneal[2])
+    check_natural_(anneal_schedule[c(1, 3)])
+    check_positive_(anneal_schedule[2])
     
-    stopifnot(anneal[1] %in% 1:3)
+    stopifnot(anneal_schedule[1] %in% 1:3)
     
-    if (anneal[2] < 1.5)
+    if (anneal_schedule[2] < 1.5)
       stop(paste0("Initial temperature very small. May not be large enough ",
                   "for a successful exploration. Please increase it or select no annealing."))
     
-    if (anneal[3] > 1000)
+    if (anneal_schedule[3] > 1000)
       stop(paste0("Temperature ladder size very large. This may be unnecessarily ",
                   "computationally demanding. Please decrease it."))
     
-    if (maxit <= anneal[3])
+    if (maxit <= anneal_schedule[3])
       stop("The maximum number of iterations (maxit) must be strictly larger than the ladder size.")
     
   }
@@ -540,7 +540,7 @@ set_blocks <- function(tot, pos_bl, n_cpus, verbose = TRUE) {
 #' #
 #' p0 <- c(mean(colSums(pat)), 10)
 #' 
-#' vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_blocks = list_modules,
+#' vb_m <- epispot(Y = Y, X = X, V = V, p0 = p0, list_modules = list_modules,
 #'                 user_seed = seed)
 #'
 #'@seealso \code{\link{epispot}}.

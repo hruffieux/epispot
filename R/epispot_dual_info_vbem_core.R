@@ -1,7 +1,7 @@
 epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
                                          om, s02, s2, sig2_beta_vb, tau_vb, 
                                          bool_blocks, 
-                                         tol, maxit, anneal, anneal_vb_em, verbose,
+                                         tol, maxit, anneal_schedule, anneal_schedule_vbem, verbose,
                                          adaptive_tol_em = FALSE) {
   
   r <- ncol(V)
@@ -36,7 +36,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     
     vb <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                   om, s02, s2, vb$sig2_beta_vb, vb$tau_vb,  
-                                  tol_vb_within_em, maxit, anneal_vb_em,
+                                  tol_vb_within_em, maxit, anneal_schedule_vbem,
                                   verbose = FALSE, full_output = TRUE)
     
     if (verbose)
@@ -123,7 +123,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
     
     out <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                    om, s02, s2, vb$sig2_beta_vb, vb$tau_vb, 
-                                   tol, maxit, anneal, verbose)
+                                   tol, maxit, anneal_schedule, verbose)
     
     
     # if (!is.null(s02)) {

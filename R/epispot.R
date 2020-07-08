@@ -3,7 +3,7 @@
 #
 
 #' Fit EPISPOT: fully joint & annotation-driven multiple-response regression 
-#' by annealed variational EM inference.
+#' by anneal_scheduleed variational EM inference.
 #'
 #' @param Y Response data matrix of dimension n x q, where n is the number of
 #'   samples and q is the number of response variables; Y is centred prior to 
@@ -19,7 +19,12 @@
 #'   variance of the number of predictors associated with each response.
 #'   Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
 #'   non-\code{NULL}.
-#' @param list_blocks An object of class "\code{modules}" containing settings 
+#' @param anneal_schedule Parameters for annealing scheme. Must be a vector 
+#'   whose first entry is the type of schedule: 1 = geometric spacing (default), 
+#'   2 = harmonic spacing or 3 = linear spacing, the second entry is the initial 
+#'   temperature (default is 2), and the third entry is the temperature grid 
+#'   size (default is 10). If \code{NULL}, no annealing is performed.
+#' @param list_modules An object of class "\code{modules}" containing settings 
 #'   for parallel inference using modules of responses. Must be filled using
 #'   the \code{\link{set_modules}} function or must be \code{NULL} for no
 #'   partitioning into modules.
@@ -40,14 +45,9 @@
 #'   EM-convergence status in order to save computational time. Default is 
 #'   \code{TRUE}.
 #' @param maxit Maximum number of iterations allowed.
-#' @param anneal Parameters for annealing scheme. Must be a vector whose first
-#'   entry is the type of schedule: 1 = geometric spacing (default), 
-#'   2 = harmonic spacing or 3 = linear spacing, the second entry is the initial 
-#'   temperature (default is 2), and the third entry is the temperature grid 
-#'   size (default is 10). If \code{NULL}, no annealing is performed.
-#' @param anneal_vb_em Parameters for annealing scheme for the internal runs of 
+#' @param anneal_vbem Parameters for annealing scheme for the internal runs of 
 #'   the variational EM algorithm. Default is geometric spacing, initial 
-#'   temperature is 2 and grid size is 10. See \code{anneal}.
+#'   temperature is 2 and grid size is 10. See \code{anneal_schedule}.
 #' @param save_hyper If \code{TRUE}, the hyperparameters used for the model are
 #'   saved as output.
 #' @param save_init If \code{TRUE}, the initial variational parameters used for
@@ -166,7 +166,7 @@
 #' list_modules <- set_modules(module_ids, n_cpus = 1)
 #' 
 #' res_epispot_modules <- epispot(Y = Y, X = X, V = V, p0 = p0, 
-#'                                list_blocks = list_modules, user_seed = seed)
+#'                                list_modules = list_modules, user_seed = seed)
 #'
 #' @references
 #' H. Ruffieux, B. P. Fairfax, E. Vigorito, C. Walllace, S. Richardson, 
@@ -178,10 +178,11 @@
 #'
 #' @export
 #'
-epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL, 
+epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10), 
+                    list_modules = NULL, list_hyper = NULL, 
                     list_init = NULL, user_seed = NULL, tol = 0.1, 
-                    adaptive_tol_em = TRUE, maxit = 1000, anneal = c(1, 2, 10), 
-                    anneal_vb_em = TRUE, save_hyper = FALSE, 
+                    adaptive_tol_em = TRUE, maxit = 1000, 
+                    anneal_vbem = TRUE, save_hyper = FALSE, 
                     save_init = FALSE, verbose = TRUE) {
   
   if (verbose) cat("== Preparing the data ... \n")
@@ -204,28 +205,44 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
   names_y <- colnames(Y)
   names_v <- colnames(V)
   
-  check_annealing_(anneal, maxit)
-  check_annealing_(anneal_vb_em, maxit)
+  check_annealing_(anneal_schedule, maxit)
+  
+  if (anneal_vbem) {
+    
+    if (!is.null(anneal_schedule)) {
+      anneal_schedule_vbem <- anneal_schedule
+    } else {
+      stop(paste0("anneal_vbem must be set to FALSE if no annealing is used ", 
+                  "for the VB algorithm (i.e., anneal_schedule is NULL)"))
+    }
+
+  } else {
+    
+    anneal_schedule_vbem <- NULL
+    
+  }
+
+  check_annealing_(anneal_schedule_vbem, maxit)
   
   if (verbose) cat("... done. == \n\n")
   
-  if (!is.null(list_blocks)) {
+  if (!is.null(list_modules)) {
     
-    list_blocks <- prepare_blocks_(list_blocks, q, bool_rmvd_x)
+    list_modules <- prepare_blocks_(list_modules, q, bool_rmvd_x)
     
-    if (!is.null(list_blocks$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
+    if (!is.null(list_modules$order_y_ids)) { # for the case where modules are provided and responses are not grouped per module
       # we group them prior to the analysis and ungroup them after the run in epispot.R
-      Y <- Y[, list_blocks$order_y_ids, drop = FALSE]
+      Y <- Y[, list_modules$order_y_ids, drop = FALSE]
       
     }
     
-    n_bl_x <- list_blocks$n_bl_x
-    n_bl_y <- list_blocks$n_bl_y
+    n_bl_x <- list_modules$n_bl_x
+    n_bl_y <- list_modules$n_bl_y
     
-    n_cpus <- list_blocks$n_cpus
+    n_cpus <- list_modules$n_cpus
     
-    vec_fac_bl_x <- list_blocks$vec_fac_bl_x
-    vec_fac_bl_y <- list_blocks$vec_fac_bl_y
+    vec_fac_bl_x <- list_modules$vec_fac_bl_x
+    vec_fac_bl_y <- list_modules$vec_fac_bl_y
     
   }
   
@@ -265,14 +282,14 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
   
   if (verbose) cat("== Preparing the hyperparameters ... \n\n")
   
-  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p0, list_blocks,
+  list_hyper <- prepare_list_hyper_(list_hyper, Y, p, p0, list_modules,
                                     bool_rmvd_x, names_x, names_y, verbose)
   
   if (verbose) cat("... done. == \n\n")
   
   if (verbose) cat("== Preparing the parameter initialization ... \n\n")
   
-  list_init <- prepare_list_init_(list_init, Y, p, p0, r, list_blocks,
+  list_init <- prepare_list_init_(list_init, Y, p, p0, r, list_modules,
                                   bool_rmvd_x, bool_rmvd_v, 
                                   user_seed, verbose)
   
@@ -285,14 +302,14 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
   }
   
   
-  if (is.null(list_blocks)) {
+  if (is.null(list_modules)) {
     
     vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                        list_init$mu_beta_vb, list_init$om,
                                        list_init$s02, list_init$s2,
                                        list_init$sig2_beta_vb, list_init$tau_vb,
-                                       bool_blocks = FALSE, tol, maxit, anneal, 
-                                       anneal_vb_em, verbose,
+                                       bool_blocks = FALSE, tol, maxit, anneal_schedule, 
+                                       anneal_schedule_vbem, verbose,
                                        adaptive_tol_em = adaptive_tol_em)
     
   } else {
@@ -434,7 +451,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
                                             list_init_bl$sig2_beta_vb,
                                             list_init_bl$tau_vb, 
                                             bool_blocks = TRUE, tol, maxit, 
-                                            anneal, anneal_vb_em, verbose = TRUE,
+                                            anneal_schedule, anneal_schedule_vbem, verbose = TRUE,
                                             adaptive_tol_em = adaptive_tol_em)
       
       
@@ -499,7 +516,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
       
       vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
                                                    vec_fac_bl_y, 
-                                                   list_blocks$module_names,
+                                                   list_modules$module_names,
                                                    list_hyper, 
                                                    list_init$gam_vb, 
                                                    list_init$mu_beta_vb, 
@@ -507,7 +524,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
                                                    list_init$s02, list_init$s2,
                                                    list_init$sig2_beta_vb, 
                                                    list_init$tau_vb,
-                                                   tol, maxit, anneal, verbose)
+                                                   tol, maxit, anneal_schedule, verbose)
       
       
     } else {
@@ -517,7 +534,7 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
                                            list_init$mu_beta_vb, 
                                            list_init$om, list_init$s02, 
                                            list_init$s2, list_init$sig2_beta_vb, 
-                                           list_init$tau_vb, tol, maxit, anneal, 
+                                           list_init$tau_vb, tol, maxit, anneal_schedule, 
                                            verbose)
       
     }
@@ -532,34 +549,34 @@ epispot <- function(Y, X, V, p0, list_blocks = NULL, list_hyper = NULL,
   vb$rmvd_cst_v <- dat$rmvd_cst_v
   vb$rmvd_coll_v <- dat$rmvd_coll_v
   
-  if (!is.null(list_blocks$undo_order_y_ids)) {# for the case where modules are provided and responses are not grouped per module
+  if (!is.null(list_modules$undo_order_y_ids)) {# for the case where modules are provided and responses are not grouped per module
     # we have grouped them prior to the analysis and ungroup them here after the run in epispot.R
     
-    Y <- Y[, list_blocks$undo_order_y_ids, drop = FALSE]
+    Y <- Y[, list_modules$undo_order_y_ids, drop = FALSE]
     
-    vb$beta_vb <- vb$beta_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
-    vb$gam_vb <- vb$gam_vb[, list_blocks$undo_order_y_ids, drop = FALSE] 
-    vb$zeta_vb <- vb$zeta_vb[list_blocks$undo_order_y_ids]
+    vb$beta_vb <- vb$beta_vb[, list_modules$undo_order_y_ids, drop = FALSE] 
+    vb$gam_vb <- vb$gam_vb[, list_modules$undo_order_y_ids, drop = FALSE] 
+    vb$zeta_vb <- vb$zeta_vb[list_modules$undo_order_y_ids]
     
   }
   
   if (save_hyper) {
     
-    if (!is.null(list_blocks$undo_order_y_ids)) { 
-      list_hyper$eta <- list_hyper$eta[list_blocks$undo_order_y_ids]
-      list_hyper$kappa <- list_hyper$kappa[list_blocks$undo_order_y_ids]
-      list_hyper$n0 <- list_hyper$n0[list_blocks$undo_order_y_ids]
+    if (!is.null(list_modules$undo_order_y_ids)) { 
+      list_hyper$eta <- list_hyper$eta[list_modules$undo_order_y_ids]
+      list_hyper$kappa <- list_hyper$kappa[list_modules$undo_order_y_ids]
+      list_hyper$n0 <- list_hyper$n0[list_modules$undo_order_y_ids]
     }
     
     vb$list_hyper <- list_hyper
   }
   if (save_init) {
     
-    if (!is.null(list_blocks$undo_order_y_ids)) { 
+    if (!is.null(list_modules$undo_order_y_ids)) { 
       
-      list_init$gam_vb <- list_init$gam_vb[, list_blocks$undo_order_y_ids, drop = FALSE]
-      list_init$mu_beta_vb <- list_init$mu_beta_vb[, list_blocks$undo_order_y_ids, drop = FALSE]
-      list_init$sig2_beta_vb <- list_init$sig2_beta_vb[list_blocks$undo_order_y_ids]
+      list_init$gam_vb <- list_init$gam_vb[, list_modules$undo_order_y_ids, drop = FALSE]
+      list_init$mu_beta_vb <- list_init$mu_beta_vb[, list_modules$undo_order_y_ids, drop = FALSE]
+      list_init$sig2_beta_vb <- list_init$sig2_beta_vb[list_modules$undo_order_y_ids]
       
     }
     

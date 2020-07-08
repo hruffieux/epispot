@@ -7,7 +7,7 @@
 #
 epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
                                   om, s02, s2, sig2_beta_vb, tau_vb, tol, 
-                                  maxit, anneal, verbose, batch = "y",
+                                  maxit, anneal_schedule, verbose, batch = "y",
                                   full_output = FALSE, debug = TRUE) {
   
   # Y centered, and X and V standardized.
@@ -23,12 +23,12 @@ epispot_dual_info_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
     
     # Preparing annealing if any
     #
-    if (is.null(anneal)) {
+    if (is.null(anneal_schedule)) {
       annealing <- FALSE
       c <- 1
     } else {
       annealing <- TRUE
-      ladder <- get_annealing_ladder_(anneal, verbose)
+      ladder <- get_annealing_ladder_(anneal_schedule, verbose)
       c <- ladder[1]
     }
     

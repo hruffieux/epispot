@@ -105,15 +105,15 @@ create_named_list_ <- function(...) {
 
 
 
-get_annealing_ladder_ <- function(anneal, verbose) {
+get_annealing_ladder_ <- function(anneal_schedule, verbose) {
 
   # ladder set following:
   # Importance Tempering, Robert B. Gramacy & Richard J. Samworth, pp.9-10, arxiv v4
 
-  k_m <- 1 / anneal[2]
-  m <- anneal[3]
+  k_m <- 1 / anneal_schedule[2]
+  m <- anneal_schedule[3]
 
-  if(anneal[1] == 1) {
+  if(anneal_schedule[1] == 1) {
 
     type <- "geometric"
 
@@ -121,7 +121,7 @@ get_annealing_ladder_ <- function(anneal, verbose) {
 
     ladder <- (1 + delta_k)^(1 - m:1)
 
-  } else if (anneal[1] == 2) { # harmonic spacing
+  } else if (anneal_schedule[1] == 2) { # harmonic spacing
 
     type <- "harmonic"
 
