@@ -30,6 +30,11 @@ check_zero_one_ <- function(x){
   }
 }
 
+check_binary_ <-function(x) {
+  identical(as.vector(x), as.numeric(as.logical(x)))
+}
+
+
 check_structure_ <- function(x, struct, type, size = NULL,
                              null_ok = FALSE,  inf_ok = FALSE, na_ok = FALSE) {
   if (type == "double") {
@@ -291,6 +296,60 @@ get_n0_t02 <- function(q, p, p0) {
   create_named_list_(n0, t02)
 }
 
+rm_bin_annot_freq_ <- function(mat, bin_annot_freq, verbose) {
+  
+  if (!is.null(bin_annot_freq)) {
+
+    bool_bin_annot_freq <- apply(mat, 2, function(x) {
+      if (check_binary_(x) & 
+          (sum(x) < bin_annot_freq * length(x) | sum(1-x) < bin_annot_freq * length(x))) {
+        TRUE
+      } else {
+        FALSE
+      }
+    })
+    
+    if (any(bool_bin_annot_freq)) {
+      
+      rmvd_bin_annot_freq <- colnames(mat)[bool_bin_annot_freq]
+      
+      if (verbose) {
+        if (sum(bool_bin_annot_freq) < 50) {
+          cat(paste0("Annotation variable(s) ", 
+                     paste(rmvd_bin_annot_freq, collapse=", "),
+                     " concern(s) less than ", bin_annot_freq * 100, " or more than ",
+                     (1-bin_annot_freq) * 100," candidate predictors. \n",
+                     "Removing corresponding column(s) and saving its/their id(s) ",
+                     "in the function output ... \n\n"))
+        } else {
+          cat(paste0(sum(bool_bin_annot_freq), " annotation variable(s) ", 
+                     " concern less than ", bin_annot_freq * 100, " or more than ",
+                     (1-bin_annot_freq) * 100," candidate predictors. \n",
+                     "Removing corresponding column(s) and saving its/their id(s) ",
+                     "in the function output ... \n\n"))
+        }
+      } 
+      
+      mat <- mat[, !bool_bin_annot_freq, drop = FALSE]
+      
+    } else {
+      
+      rmvd_bin_annot_freq  <- NULL
+      
+    }
+    
+  } else {
+    
+    bool_bin_annot_freq <- rep(FALSE, ncol(mat))
+    rmvd_bin_annot_freq <- NULL
+    
+  }
+  
+
+  create_named_list_(mat, bool_bin_annot_freq, rmvd_bin_annot_freq)
+  
+}
+
 
 
 rm_constant_ <- function(mat, verbose) {
@@ -303,16 +362,12 @@ rm_constant_ <- function(mat, verbose) {
 
     if (verbose) {
       if (sum(bool_cst) < 50) {
-        cat(paste("Variable(s) ", paste(rmvd_cst, collapse=", "),
-                  " constant across subjects. \n",
-                  "Removing corresponding column(s) and saving its/their id(s) ",
-                  "in the function output ... \n\n",
-                  sep=""))
+        cat(paste0("Variable(s) ", paste(rmvd_cst, collapse=", "), " constant. \n",
+                   "Removing corresponding column(s) and saving its/their id(s) ",
+                   "in the function output ... \n\n"))
       } else {
-        cat(paste(sum(bool_cst), " variables constant across subjects. \n",
-                  "Removing corresponding column(s) and saving their ids ",
-                  "in the function output ... \n\n",
-                  sep=""))
+        cat(paste0(sum(bool_cst), " variables constant. \n Removing corresponding ", 
+                   "column(s) and saving their ids in the function output ... \n\n"))
       }
     }
 
@@ -335,16 +390,14 @@ rm_collinear_ <- function(mat, verbose) {
 
     if (verbose) {
       if (length(rmvd_coll) < 50) {
-        cat(paste("Presence of collinear variable(s). ",
-                  paste(rmvd_coll, collapse=", "), " redundant. \n",
-                  "Removing corresponding column(s) and saving its/their id(s) ",
-                  "in the function output ... \n",
-                  sep=""))
+        cat(paste0("Presence of collinear variable(s). ",
+                   paste(rmvd_coll, collapse=", "), " redundant. \n",
+                   "Removing corresponding column(s) and saving its/their id(s) ",
+                   "in the function output ... \n"))
       } else {
-        cat(paste("Presence of collinear variables. ", length(rmvd_coll),
-                  " redundant.\n", "Removing corresponding columns and saving ",
-                  "their ids in the function output ... \n",
-                  sep=""))
+        cat(paste0("Presence of collinear variables. ", length(rmvd_coll),
+                   " redundant.\n", "Removing corresponding columns and saving ",
+                   "their ids in the function output ... \n"))
       }
     }
 

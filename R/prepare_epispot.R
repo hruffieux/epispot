@@ -5,7 +5,12 @@
 # Internal function implementing sanity checks and needed preprocessing before
 # the application of the different `epispot_*_core` algorithms.
 #
-prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
+prepare_data_ <- function(Y, X, V, bin_annot_freq, user_seed, tol, maxit, verbose) {
+  
+  check_structure_(bin_annot_freq, "vector", "numeric", 1, null_ok = TRUE)
+  if (!is.null(bin_annot_freq)) {
+    check_zero_one_(bin_annot_freq) 
+  }
   
   check_structure_(user_seed, "vector", "numeric", 1, null_ok = TRUE)
 
@@ -74,6 +79,12 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
   
   if (is.null(colnames(V))) colnames(V) <- paste("Annot_", 1:r, sep="")
   
+
+  list_V_bin_annot_freq <- rm_bin_annot_freq_(V, bin_annot_freq, verbose)
+  V <- list_V_bin_annot_freq$mat
+  bool_bin_annot_freq_v <- list_V_bin_annot_freq$bool_bin_annot_freq
+  rmvd_bin_annot_freq_v <- list_V_bin_annot_freq$rmvd_bin_annot_freq
+    
   V <- scale(V)
   
   list_V_cst <- rm_constant_(V, verbose)
@@ -87,11 +98,12 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
   bool_coll_v <- list_V_coll$bool_coll
   rmvd_coll_v <- list_V_coll$rmvd_coll
   
-  bool_rmvd_v <- bool_cst_v
-  bool_rmvd_v[!bool_cst_v] <- bool_coll_v
+  bool_rmvd_v <- bool_bin_annot_freq_v
+  bool_rmvd_v[!bool_bin_annot_freq_v] <- bool_cst_v
+  bool_rmvd_v[!bool_bin_annot_freq_v][!bool_cst_v] <- bool_coll_v
   
   if (sum(!bool_rmvd_v) == 0)
-    stop("All variables provided in V are constants and hence useless. Please set V to NULL.")
+    stop("All variables provided in V are removed by the QC filters. Exit")
   
   p <- ncol(X)
   if (p < 1) stop(paste("There must be at least 1 non-constant candidate ", 
@@ -104,7 +116,8 @@ prepare_data_ <- function(Y, X, V, user_seed, tol, maxit, verbose) {
   create_named_list_(Y, X, V,
                      bool_rmvd_x, bool_rmvd_v,
                      rmvd_cst_x, rmvd_cst_v,
-                     rmvd_coll_x,  rmvd_coll_v)
+                     rmvd_coll_x,  rmvd_coll_v,
+                     rmvd_bin_annot_freq_v)
   
 }
 

@@ -12,6 +12,7 @@ epispot(
   p0,
   anneal_schedule = c(1, 2, 10),
   list_modules = NULL,
+  bin_annot_freq = 0.05,
   list_hyper = NULL,
   list_init = NULL,
   user_seed = NULL,
@@ -36,7 +37,9 @@ predictors. No intercept must be supplied; X is scaled prior to the run
 \item{V}{Annotation matrix of dimension p x r, where r is the number of
 variables representing external information on the candidate predictors
 which may make their selection more or less likely. V is standardised prior
-to the run - beware the interpretation of the annotation effect estimates.}
+to the run - beware the interpretation of the annotation effect estimates.
+Annotations with either concern or do not concern given predictors should 
+be coded as binary.}
 
 \item{p0}{Vector of size 2 whose entries are the prior expectation and 
 variance of the number of predictors associated with each response.
@@ -53,6 +56,14 @@ size (default is 10). If \code{NULL}, no annealing is performed.}
 for parallel inference using modules of responses. Must be filled using
 the \code{\link{set_modules}} function or must be \code{NULL} for no
 partitioning into modules.}
+
+\item{bin_annot_freq}{Minimal frequency for binary annotations (if any), 
+i.e., annotation variables which concern less than 
+\code{bin_annot_freq} x 100 % or more than 
+(1 - \code{bin_annot_freq}) x 100 candidate predictors 
+are removed prior to the analysis, as they may not be 
+sufficiently informative. Default is 0.05. If set to 
+NULL, no filter is applied.}
 
 \item{list_hyper}{An object of class "\code{hyper}" containing the model
 hyperparameters. Must be filled using the \code{\link{set_hyper}}
@@ -129,6 +140,12 @@ An object of class "\code{epispot}" containing the following output:
                                 (i.e., that causing the collinearity for the
                                 entry in question). \code{NULL} if no 
                                 collinear variable removed.}
+ \item{rmvd_bin_annot_freq_v}{If \code{bin_annot_freq} is non-NULL, vector
+                              containing the indices of variables in \code{V}
+                              removed prior to the analysis because they 
+                              their frequency is lower than 
+                              \code{bin_annot_freq} or higher than 
+                              1-\code{bin_annot_freq}.}
  \item{list_hyper, list_init}{If \code{save_hyper}, resp. \code{save_init},
                               \code{TRUE}, hyperparameters, resp. initial
                               variational parameters, used for inference are

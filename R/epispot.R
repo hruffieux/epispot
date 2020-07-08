@@ -15,6 +15,8 @@
 #'   variables representing external information on the candidate predictors
 #'   which may make their selection more or less likely. V is standardised prior
 #'   to the run - beware the interpretation of the annotation effect estimates.
+#'   Annotations with either concern or do not concern given predictors should 
+#'   be coded as binary.
 #' @param p0 Vector of size 2 whose entries are the prior expectation and 
 #'   variance of the number of predictors associated with each response.
 #'   Must be \code{NULL} if \code{list_init} and \code{list_hyper} are both 
@@ -28,6 +30,13 @@
 #'   for parallel inference using modules of responses. Must be filled using
 #'   the \code{\link{set_modules}} function or must be \code{NULL} for no
 #'   partitioning into modules.
+#' @param bin_annot_freq Minimal frequency for binary annotations (if any), 
+#'                       i.e., annotation variables which concern less than 
+#'                       \code{bin_annot_freq} x 100 % or more than 
+#'                       (1 - \code{bin_annot_freq}) x 100 candidate predictors 
+#'                       are removed prior to the analysis, as they may not be 
+#'                       sufficiently informative. Default is 0.05. If set to 
+#'                       NULL, no filter is applied.
 #' @param list_hyper An object of class "\code{hyper}" containing the model
 #'   hyperparameters. Must be filled using the \code{\link{set_hyper}}
 #'   function or must be \code{NULL} for default hyperparameters.
@@ -93,6 +102,12 @@
 #'                                 (i.e., that causing the collinearity for the
 #'                                 entry in question). \code{NULL} if no 
 #'                                 collinear variable removed.}
+#'  \item{rmvd_bin_annot_freq_v}{If \code{bin_annot_freq} is non-NULL, vector
+#'                               containing the indices of variables in \code{V}
+#'                               removed prior to the analysis because they 
+#'                               their frequency is lower than 
+#'                               \code{bin_annot_freq} or higher than 
+#'                               1-\code{bin_annot_freq}.}
 #'  \item{list_hyper, list_init}{If \code{save_hyper}, resp. \code{save_init},
 #'                               \code{TRUE}, hyperparameters, resp. initial
 #'                               variational parameters, used for inference are
@@ -179,15 +194,15 @@
 #' @export
 #'
 epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10), 
-                    list_modules = NULL, list_hyper = NULL, 
-                    list_init = NULL, user_seed = NULL, tol = 0.1, 
-                    adaptive_tol_em = TRUE, maxit = 1000, 
+                    list_modules = NULL, bin_annot_freq = 0.05, 
+                    list_hyper = NULL, list_init = NULL, user_seed = NULL, 
+                    tol = 0.1, adaptive_tol_em = TRUE, maxit = 1000, 
                     anneal_vbem = TRUE, save_hyper = FALSE, 
                     save_init = FALSE, verbose = TRUE) {
   
   if (verbose) cat("== Preparing the data ... \n")
   
-  dat <- prepare_data_(Y, X, V, user_seed, tol, maxit, verbose)
+  dat <- prepare_data_(Y, X, V, bin_annot_freq, user_seed, tol, maxit, verbose)
   
   X <- dat$X
   Y <- dat$Y
@@ -320,7 +335,14 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
       
       X_bl <- X[, list_pos_bl_x[[bl_x]], drop = FALSE]
       
-      V_bl <- scale(V[list_pos_bl_x[[bl_x]],, drop = FALSE]) # the VB algorithm assumes a scaled V
+      V_bl <- V[list_pos_bl_x[[bl_x]],, drop = FALSE]
+      
+      list_V_bl_bin_annot_freq <- rm_bin_annot_freq_(V_bl, bin_annot_freq, verbose = FALSE)
+      V_bl <- list_V_bl_bin_annot_freq$mat
+      bool_bin_annot_freq_v_bl <- list_V_bl_bin_annot_freq$bool_bin_annot_freq
+      rmvd_bin_annot_freq_v_bl <- list_V_bl_bin_annot_freq$rmvd_bin_annot_freq
+      
+      V_bl <- scale(V_bl) # the VB algorithm assumes a scaled V
       
       list_V_bl_cst <- rm_constant_(V_bl, verbose = FALSE)
       V_bl <- list_V_bl_cst$mat
@@ -333,15 +355,17 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
       bool_coll_v_bl <- list_V_bl_coll$bool_coll
       rmvd_coll_v_bl <- list_V_bl_coll$rmvd_coll
       
-      bool_rmvd_v_bl <- bool_cst_v_bl
-      bool_rmvd_v_bl[!bool_cst_v_bl] <- bool_coll_v_bl
+      bool_rmvd_v_bl <- bool_bin_annot_freq_v_bl
+      bool_rmvd_v_bl[!bool_bin_annot_freq_v_bl] <- bool_cst_v_bl
+      bool_rmvd_v_bl[!bool_bin_annot_freq_v_bl][!bool_cst_v_bl] <- bool_coll_v_bl
       
+
       if (sum(!bool_rmvd_v_bl) == 0)
         stop(paste0("There exist one or more blocks for which no non-constant ",
                     "annotation variables remain. Try to use less blocks."))
       
       
-      create_named_list_(X_bl, V_bl, bool_rmvd_v_bl, rmvd_cst_v_bl, rmvd_coll_v_bl)
+      create_named_list_(X_bl, V_bl, bool_rmvd_v_bl, rmvd_cst_v_bl, rmvd_coll_v_bl, rmvd_bin_annot_freq_v_bl)
     }
     
     list_bl_mat_x <- parallel::mclapply(1:n_bl_x, function(bl_x) split_bl_mat_x_(bl_x), mc.cores = n_cpus)
@@ -393,6 +417,7 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
       bool_rmvd_v_bl <- list_bl_x$bool_rmvd_v_bl
       rmvd_cst_v_bl <- list_bl_x$rmvd_cst_v 
       rmvd_coll_v_bl <- list_bl_x$rmvd_coll_v
+      rmvd_bin_annot_freq_v_bl <- list_bl_x$rmvd_bin_annot_freq_v
       
       
       # split hyperparameters and initial parameters
@@ -457,6 +482,7 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
       
       vb_bl$rmvd_cst_v <- rmvd_cst_v_bl
       vb_bl$rmvd_coll_v <- rmvd_coll_v_bl
+      vb_bl$rmvd_bin_annot_freq_v <- rmvd_bin_annot_freq_v_bl
       vb_bl$V_bl <- V_bl
       
       
@@ -548,6 +574,7 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
   
   vb$rmvd_cst_v <- dat$rmvd_cst_v
   vb$rmvd_coll_v <- dat$rmvd_coll_v
+  vb$rmvd_bin_annot_freq_v <- dat$rmvd_bin_annot_freq_v
   
   if (!is.null(list_modules$undo_order_y_ids)) {# for the case where modules are provided and responses are not grouped per module
     # we have grouped them prior to the analysis and ungroup them here after the run in epispot.R
