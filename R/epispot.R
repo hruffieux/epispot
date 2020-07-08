@@ -2,8 +2,8 @@
 #     https://github.com/hruffieux/epispot
 #
 
-#' Fit EPISPOT: fully joint & annotation-driven multiple-response regression 
-#' by anneal_scheduleed variational EM inference.
+#' Fit EPISPOT: annotation-driven approach for large-scale joint regression with
+#' multiple responses.
 #'
 #' @param Y Response data matrix of dimension n x q, where n is the number of
 #'   samples and q is the number of response variables; Y is centred prior to 

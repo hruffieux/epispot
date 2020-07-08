@@ -1,7 +1,7 @@
 Package: epispot
 Type: Package
-Title: Parallel variational EM inference for EPIgenome-driven hotSPOT selection 
-    in molecular QTL studies
+Title: EPISPOT: annotation-driven approach for large-scale joint regression 
+    with multiple responses.
 Version: 0.1.2
 Date: 2020-06-28
 Authors@R: c(
