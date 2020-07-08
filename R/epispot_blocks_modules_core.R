@@ -5,7 +5,7 @@
 # control with external information variables. Sparse regression with identity
 # link, no fixed covariates. See help of `epispot` function for details.
 #
-epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
+epispot_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
                                                  vec_fac_bl_y, module_names, list_hyper, 
                                                  gam_vb, mu_beta_vb, om, s02, s2, 
                                                  sig2_beta_vb, 
@@ -303,7 +303,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
         
       } else {
         
-        lb_new <- elbo_dual_info_blocks_modules_(Y, list_V, eta, eta_vb, gam_vb, kappa, 
+        lb_new <- elbo_blocks_modules_(Y, list_V, eta, eta_vb, gam_vb, kappa, 
                                                  kappa_vb, lambda, lambda_vb, 
                                                  log_1_min_om, log_om, 
                                                  log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
@@ -395,7 +395,7 @@ epispot_dual_info_blocks_modules_core_ <- function(Y, X, list_V, vec_fac_bl_x,
 # Internal function which implements the marginal log-likelihood variational
 # lower bound (ELBO) corresponding to the `epispot_struct_core` algorithm.
 #
-elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa, 
+elbo_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa, 
                                            kappa_vb, lambda, lambda_vb, 
                                            log_1_min_om, log_om, 
                                            log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
@@ -429,7 +429,7 @@ elbo_dual_info_blocks_modules_ <- function(Y, list_V, eta, eta_vb, gam_vb, kappa
   
   elbo_A <- e_y_(n, kappa, kappa_vb, log_tau_vb, m2_beta, sig2_inv_vb, tau_vb)
   
-  elbo_B <- e_beta_gamma_dual_info_(list_V, gam_vb, log_sig2_inv_vb, log_tau_vb,
+  elbo_B <- e_beta_gamma_(list_V, gam_vb, log_sig2_inv_vb, log_tau_vb,
                                     log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
                                     mu_xi_vb, m2_beta, sig2_beta_vb,
                                     sig2_xi_vb, sig2_zeta_vb, sig2_theta_vb,

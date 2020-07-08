@@ -8,7 +8,7 @@
 ## E log p(beta, gamma | rest) - E log q(beta, gamma) ##
 ########################################################
 
-e_beta_gamma_dual_info_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
+e_beta_gamma_ <- function(V, gam_vb, log_sig2_inv_vb, log_tau_vb,
                                     log_1_min_Phi_mat_v_mu, log_Phi_mat_v_mu, 
                                     mu_xi_vb, m2_beta, sig2_beta_vb, sig2_xi_vb, 
                                     sig2_zeta_vb, list_sig2_theta_vb, 

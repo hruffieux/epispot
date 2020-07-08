@@ -1,4 +1,4 @@
-epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
+epispot_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb,
                                          om, s02, s2, sig2_beta_vb, tau_vb, 
                                          bool_blocks, 
                                          tol, maxit, anneal_schedule, anneal_schedule_vbem, verbose,
@@ -34,7 +34,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
                  "-EM VB tolerance: ", format(tol_vb_within_em, digits = 3), "\n"))
     }
     
-    vb <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
+    vb <- epispot_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                   om, s02, s2, vb$sig2_beta_vb, vb$tau_vb,  
                                   tol_vb_within_em, maxit, anneal_schedule_vbem,
                                   verbose = FALSE, full_output = TRUE)
@@ -121,7 +121,7 @@ epispot_dual_info_vbem_core_ <- function(Y, X, V, list_hyper, gam_vb, mu_beta_vb
       }
     }
     
-    out <- epispot_dual_info_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
+    out <- epispot_core_(Y, X, V, list_hyper, vb$gam_vb, vb$mu_beta_vb,
                                    om, s02, s2, vb$sig2_beta_vb, vb$tau_vb, 
                                    tol, maxit, anneal_schedule, verbose)
     

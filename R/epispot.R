@@ -304,7 +304,7 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
   
   if (is.null(list_modules)) {
     
-    vb <- epispot_dual_info_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
+    vb <- epispot_vbem_core_(Y, X, V, list_hyper, list_init$gam_vb,
                                        list_init$mu_beta_vb, list_init$om,
                                        list_init$s02, list_init$s2,
                                        list_init$sig2_beta_vb, list_init$tau_vb,
@@ -443,7 +443,7 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
       list_hyper_bl$n0 <- adj_hyper$n0
       list_hyper_bl$t02 <- adj_hyper$t02
       
-      vb_bl <- epispot_dual_info_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, 
+      vb_bl <- epispot_vbem_core_(Y_bl, X_bl, V_bl, list_hyper_bl, 
                                             list_init_bl$gam_vb,
                                             list_init_bl$mu_beta_vb, 
                                             list_init$om, list_init$s02, 
@@ -514,7 +514,7 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
     
     if (n_bl_y > 1) {
       
-      vb <- epispot_dual_info_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
+      vb <- epispot_blocks_modules_core_(Y, X, list_V, vec_fac_bl_x,
                                                    vec_fac_bl_y, 
                                                    list_modules$module_names,
                                                    list_hyper, 
@@ -529,7 +529,7 @@ epispot <- function(Y, X, V, p0, anneal_schedule = c(1, 2, 10),
       
     } else {
       
-      vb <- epispot_dual_info_blocks_core_(Y, X, list_V, vec_fac_bl_x, 
+      vb <- epispot_blocks_core_(Y, X, list_V, vec_fac_bl_x, 
                                            list_hyper, list_init$gam_vb, 
                                            list_init$mu_beta_vb, 
                                            list_init$om, list_init$s02, 

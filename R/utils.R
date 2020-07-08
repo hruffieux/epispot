@@ -233,7 +233,7 @@ log_sum_exp_ <- function(x) {
 }
 
 
-# Functions for hyperparameter settings in dual_core (similarly to what is done in HESS)
+# Functions for hyperparameter settings
 #
 E_Phi_X <- function(mu, s2, lower_tail = TRUE) {
 
