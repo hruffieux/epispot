@@ -1,5 +1,7 @@
 ## EPISPOT – annotation-driven approach for large-scale joint regression with multiple responses
 
+[![Travis-CI Build Status](https://travis-ci.org/hruffieux/epispot.svg?branch=master)](https://travis-ci.org/hruffieux/epispot)
+
 ## Overview
 
 **epispot** is an R package for parallel variational expectation-maximisation in 
