@@ -1,6 +1,6 @@
-## EPISPOT – annotation-driven approach for large-scale joint regression with multiple responses
+## EPISPOT – Annotation-driven approach for large-scale joint regression with multiple responses
 
-[![Travis-CI Build Status](https://travis-ci.org/hruffieux/epispot.svg?branch=master)](https://travis-ci.org/hruffieux/epispot)
+[![Travis-CI Build Status](https://travis-ci.org/hruffieux/epispot.svg?branch=devel)](https://travis-ci.org/hruffieux/epispot)
 
 ## Overview
 
