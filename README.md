@@ -1,4 +1,7 @@
-## EPISPOT - annotation-driven approach for large-scale joint regression with multiple responses
+## EPISPOT – Annotation-driven approach for large-scale joint regression with multiple responses
+
+[![Travis-CI Build Status](https://travis-ci.org/hruffieux/epispot.svg?branch=master)](https://travis-ci.org/hruffieux/epispot)
+
 
 ## Overview
 
@@ -6,7 +9,7 @@
 sparse regression with hierarchically-related responses and predictor-level 
 information. A notable application is in the context of molecular quantitative 
 trait locus mapping, with several thousand molecular levels (responses), genetic 
-markers (candidate predictors) and epigenomic annotation marks (predictor-level 
+markers (candidate predictors) and epigenetic annotation marks (predictor-level 
 covariates) and individuals (samples).
 
 ## Installation
