@@ -29,7 +29,7 @@ genetic markers (candidate predictors) and epigenetic annotation marks
 Preprint: H. Ruffieux, B. Fairfax, I. Nassiri, E. Vigorito, C. Wallace,
 S. Richardson, L. Bottolo. EPISPOT: an epigenome-driven approach for
 detecting and interpreting hotspots in molecular QTL studies, biorxiv
-10.1101/2020.09.21.305789
+10.1101/2020.09.21.305789.
 
 ## Installation
 
