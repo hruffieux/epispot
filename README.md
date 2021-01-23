@@ -26,9 +26,10 @@ locus mapping, with several thousand molecular levels (responses),
 genetic markers (candidate predictors) and epigenetic annotation marks
 (predictor-level covariates) and individuals (samples).
 
-Preprint: H. Ruffieux, S. Richardson, and L. Bottolo. An
-epigenome-driven approach for detecting and interpreting hotspots in
-molecular QTL studies, biorxiv 10.1101/2020.09.21.305789.
+Preprint: H. Ruffieux, B. Fairfax, I. Nassiri, E. Vigorito, C. Wallace,
+S. Richardson, L. Bottolo. EPISPOT: an epigenome-driven approach for
+detecting and interpreting hotspots in molecular QTL studies, biorxiv
+10.1101/2020.09.21.305789
 
 ## Installation
 
