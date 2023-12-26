@@ -6,10 +6,9 @@ re-knitted to generate an updated README.md -->
 ## EPISPOT – Annotation-driven approach for large-scale joint regression with multiple responses <img src="man/figures/epispot_logo.png" align="right" height="150"/>
 
 <!-- Run for the R CMD checks, run usethis::use_github_actions() to set up the pipeline, possibly modify the .yaml file and then: -->
+<!-- [![](https://travis-ci.org/hruffieux/epispot.svg?branch=devel)](https://travis-ci.org/hruffieux/epispot) -->
+<!-- [![R build status](https://github.com/hruffieux/epispot/workflows/R-CMD-check/badge.svg)](https://github.com/hruffieux/epispot/actions)  -->
 
-[![](https://travis-ci.org/hruffieux/epispot.svg?branch=devel)](https://travis-ci.org/hruffieux/epispot)
-[![R build
-status](https://github.com/hruffieux/epispot/workflows/R-CMD-check/badge.svg)](https://github.com/hruffieux/epispot/actions)
 [![License: GPL
 v3](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![](https://img.shields.io/badge/devel%20version-0.1.3-blue.svg)](https://github.com/hruffieux/epispot)
