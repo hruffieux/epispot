@@ -28,8 +28,8 @@ require(badger)
 ## EPISPOT – Annotation-driven approach for large-scale joint regression with multiple responses <img src="man/figures/epispot_logo.png" align="right" height="150"/>
 
 <!-- Run for the R CMD checks, run usethis::use_github_actions() to set up the pipeline, possibly modify the .yaml file and then: -->
-`r badge_travis("hruffieux/epispot")`
-`r badge_github_actions("hruffieux/epispot")` 
+<!-- `r badge_travis("hruffieux/epispot")` -->
+<!-- `r badge_github_actions("hruffieux/epispot")`  -->
 `r badge_license("GPL v3", url = "https://www.gnu.org/licenses/gpl-3.0")`
 `r badge_devel("hruffieux/epispot", "blue")`
 `r badge_code_size("hruffieux/epispot")`
