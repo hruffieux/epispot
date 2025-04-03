@@ -20,41 +20,14 @@ knitr::opts_chunk$set(
 ```
 
 
-```{r echo=FALSE, results="hide", message=FALSE}
+```{r echo=FALSE, results="hide", message=FALSE, warning=FALSE}
 require(badger)
-
-# modified badger function to all the Travis pipeline to run on other branches than the master
-#
-my_currentGitHubRef <- function(ref) {
-        if (!is.null(ref)) {return(ref)}
-
-        url <- desc::desc_get_field("URL")
-        if (!grepl("gitHub", url, ignore.case = TRUE)) {
-                stop("reference could not be determined by the DESCRIPTION' url")
-        }
-
-        url <- unlist(strsplit(url, ",\\s*"))
-        url <- url[grepl("github", url, ignore.case = TRUE)][[1]]
-
-        ref <- gsub("https://github.com/", "", url)
-        ref
-}
-
-my_badge_travis <- function(ref = NULL, is_commercial = FALSE, branch = "master") 
-{
-    ref <- my_currentGitHubRef(ref)
-    ext <- ifelse(is_commercial, "com/", "org/")
-    svg <- paste0("https://travis-ci.", ext, ref, ".svg?branch=", branch)
-    url <- paste0("https://travis-ci.", ext, ref)
-    paste0("[![](", svg, ")](", url, ")")
-}
 ```
 
 
-## EPISPOT – Annotation-driven approach for large-scale joint regression with multiple responses <img src="man/figures/epispot_logo.png" align="right" height="150"/>
+## EPISPOT – epigenome-informed approach for detecting and interpreting QTL effects <img src="man/figures/epispot_logo.png" align="right" height="150"/>
 
 <!-- Run for the R CMD checks, run usethis::use_github_actions() to set up the pipeline, possibly modify the .yaml file and then: -->
-<!-- `r my_badge_travis("hruffieux/epispot", branch = "devel")` -->
 <!-- `r badge_github_actions("hruffieux/epispot")`  -->
 `r badge_license("GPL v3", url = "https://www.gnu.org/licenses/gpl-3.0")`
 `r badge_devel("hruffieux/epispot", "blue")`
@@ -63,12 +36,13 @@ my_badge_travis <- function(ref = NULL, is_commercial = FALSE, branch = "master"
 
 ## Overview
 
-**epispot** is an R package for parallel variational expectation-maximisation in 
-sparse regression with hierarchically-related responses and predictor-level 
-information. A notable application is in the context of molecular quantitative 
-trait locus mapping, with several thousand molecular levels (responses), genetic 
-markers (candidate predictors) and epigenetic annotation marks (predictor-level 
-covariates) and individuals (samples).
+**epispot** is an R package for molecular QTL mapping that integrates 
+large-scale epigenetic annotations to enhance the detection and interpretation 
+of *cis-* and *trans-* acting QTLs, including hotspots. It employs a Bayesian 
+variational expectation-maximisation approach to jointly analyse thousands of 
+molecular phenotypes (e.g., gene, protein or metabolite levels) and genetic 
+variants while incorporating epigenetic marks as candidate auxiliary data on the 
+potential of genetic variants to control traits.
 
 H. Ruffieux, B. Fairfax, I. Nassiri, E. Vigorito, C. Wallace, S. Richardson, L. Bottolo. EPISPOT : An epigenome-driven approach for detecting and interpreting hotspots in molecular QTL studies, *The American Journal of Human Genetics*, 108:1-18, 10.1016/j.ajhg.2021.04.010, 2021.
 
@@ -85,7 +59,7 @@ To install, run the following commands in R:
 
 ``` r
 if(!require(remotes)) install.packages("remotes")
-remotes::install_github("hruffieux/epispot", ref = "devel")
+remotes::install_github("hruffieux/epispot")
 ```
 
 ## License and authors

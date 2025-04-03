@@ -1,12 +1,13 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
 <!-- First time: run usethis::use_readme_rmd() to create a pre-commit hook that 
 prevents from committing if the README.Rmd has changed, but has not been 
 re-knitted to generate an updated README.md -->
 
-## EPISPOT – Annotation-driven approach for large-scale joint regression with multiple responses <img src="man/figures/epispot_logo.png" align="right" height="150"/>
+## EPISPOT – epigenome-informed approach for detecting and interpreting QTL effects <img src="man/figures/epispot_logo.png" align="right" height="150"/>
 
 <!-- Run for the R CMD checks, run usethis::use_github_actions() to set up the pipeline, possibly modify the .yaml file and then: -->
-<!-- [![](https://travis-ci.org/hruffieux/epispot.svg?branch=devel)](https://travis-ci.org/hruffieux/epispot) -->
+
 <!-- [![R build status](https://github.com/hruffieux/epispot/workflows/R-CMD-check/badge.svg)](https://github.com/hruffieux/epispot/actions)  -->
 
 [![License: GPL
@@ -17,13 +18,14 @@ v3](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](https://www.gnu.org
 
 ## Overview
 
-**epispot** is an R package for parallel variational
-expectation-maximisation in sparse regression with
-hierarchically-related responses and predictor-level information. A
-notable application is in the context of molecular quantitative trait
-locus mapping, with several thousand molecular levels (responses),
-genetic markers (candidate predictors) and epigenetic annotation marks
-(predictor-level covariates) and individuals (samples).
+**epispot** is an R package for molecular QTL mapping that integrates
+large-scale epigenetic annotations to enhance the detection and
+interpretation of *cis-* and *trans-* acting QTLs, including hotspots.
+It employs a Bayesian variational expectation-maximisation approach to
+jointly analyse thousands of molecular phenotypes (e.g., gene, protein
+or metabolite levels) and genetic variants while incorporating
+epigenetic marks as candidate auxiliary data on the potential of genetic
+variants to control traits.
 
 H. Ruffieux, B. Fairfax, I. Nassiri, E. Vigorito, C. Wallace, S.
 Richardson, L. Bottolo. EPISPOT : An epigenome-driven approach for
@@ -44,7 +46,7 @@ To install, run the following commands in R:
 
 ``` r
 if(!require(remotes)) install.packages("remotes")
-remotes::install_github("hruffieux/epispot", ref = "devel")
+remotes::install_github("hruffieux/epispot")
 ```
 
 ## License and authors
