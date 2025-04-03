@@ -39,7 +39,7 @@ require(badger)
 
 **epispot** is an R package for molecular QTL mapping that integrates 
 large-scale epigenetic annotations to enhance the detection and interpretation 
-of *cis-* and *trans-*acting QTLs, including hotspots. It employs a Bayesian 
+of *cis-* and *trans-* acting QTLs, including hotspots. It employs a Bayesian 
 variational expectation-maximisation approach to jointly analyse thousands of 
 molecular phenotypes (e.g., gene, protein or metabolite levels) and genetic 
 variants while incorporating epigenetic marks as candidate auxiliary data on the 

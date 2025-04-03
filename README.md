@@ -22,8 +22,8 @@ v3](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](https://www.gnu.org
 
 **epispot** is an R package for molecular QTL mapping that integrates
 large-scale epigenetic annotations to enhance the detection and
-interpretation of *cis-* and *trans-*acting QTLs, including hotspots. It
-employs a Bayesian variational expectation-maximisation approach to
+interpretation of *cis-* and *trans-* acting QTLs, including hotspots.
+It employs a Bayesian variational expectation-maximisation approach to
 jointly analyse thousands of molecular phenotypes (e.g., gene, protein
 or metabolite levels) and genetic variants while incorporating
 epigenetic marks as candidate auxiliary data on the potential of genetic
