@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 ```
 
 
-```{r echo=FALSE, results="hide", message=FALSE}
+```{r echo=FALSE, results="hide", message=FALSE, warning=FALSE}
 require(badger)
 ```
 
